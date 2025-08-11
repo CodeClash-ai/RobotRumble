@@ -1,0 +1,7 @@
+.class, .function, .data {
+    margin-top: 1rem;
+}
+
+li.toctree-l1 {
+    margin-bottom: 0.5rem;
+}
