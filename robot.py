@@ -1,102 +1,154 @@
+# Coordinating bot: focus-fire on low-health enemies + improved micro
+target_id = None
+
 def robot(state, unit):
     """
-    Improved bot:
-    - If an enemy is adjacent (walking distance == 1), attack toward them.
-    - Otherwise, move toward the nearest known enemy, but avoid moving into occupied tiles.
-      If the direct tile is occupied, try rotating clockwise, then counter-clockwise.
-    - If no enemies are known, move off spawn (North) if on spawn, else move East (or alternatives if blocked).
+    Team-coordinated robot:
+    - Global target_id chosen as the enemy with lowest health (tie-breaker: total distance).
+    - If any adjacent enemies, attack the one with the lowest health.
+    - Otherwise, move toward the global target (try rotate cw/ccw if blocked).
+    - If no enemies known, move off spawn (North) or try East.
     """
+    global target_id
     my_coords = unit.coords
 
-    # Helper to check if a coords is free
+    # Helpers
     def is_free(coords):
         try:
             return state.obj_by_coords(coords) is None
         except Exception:
-            # Fallback to id lookup
             try:
                 return state.id_by_coords(coords) is None
             except Exception:
                 return True
 
-    # Try a list of directions and return the first valid move Action
     def try_dirs(dir_list):
         for d in dir_list:
             try:
                 target = my_coords + d
             except Exception:
-                # If addition with Direction not supported, use to_coords
                 try:
                     tc = d.to_coords()
                     target = type(my_coords)(my_coords.x + tc[0], my_coords.y + tc[1])
                 except Exception:
                     target = None
-            if target is None or is_free(target):
+            if target is not None and is_free(target):
                 return Action.move(d)
         return None
 
-    # Get enemy units
-    enemies = state.objs_by_team(state.other_team)
+    # Gather units
+    try:
+        allies = state.objs_by_team(state.our_team)
+    except Exception:
+        allies = []
+    try:
+        enemies = state.objs_by_team(state.other_team)
+    except Exception:
+        enemies = []
 
-    # Track nearest enemy
-    nearest = None
-    nearest_dist = None
+    # Validate or pick a global target
+    try:
+        if target_id:
+            if not state.obj_by_id(target_id):
+                target_id = None
+    except Exception:
+        target_id = None
 
+    def total_distance_for_team(enemy):
+        s = 0
+        for ally in allies:
+            try:
+                s += ally.coords.distance_to(enemy.coords)
+            except Exception:
+                s += 0
+        return s
+
+    if not target_id and enemies:
+        # Choose enemy with lowest health; tie-breaker: total distance from allies
+        def health_then_distance(enemy):
+            h = getattr(enemy, "health", getattr(enemy, "hp", 0))
+            td = total_distance_for_team(enemy)
+            return (h, td)
+        try:
+            closest_enemy_for_team = min(enemies, key=health_then_distance)
+            target_id = closest_enemy_for_team.id
+        except Exception:
+            try:
+                target_id = enemies[0].id
+            except Exception:
+                target_id = None
+
+    # Micro: attack adjacent weakest enemy
+    adjacents = []
     for e in enemies:
         try:
-            dist = my_coords.walking_distance_to(e.coords)
+            d = my_coords.distance_to(e.coords)
         except Exception:
-            dist = my_coords.distance_to(e.coords)
+            try:
+                d = my_coords.walking_distance_to(e.coords)
+            except Exception:
+                d = None
+        if d == 1:
+            adjacents.append(e)
 
-        # Attack immediately if adjacent
-        if dist == 1:
-            return Action.attack(my_coords.direction_to(e.coords))
-
-        if nearest is None or dist < nearest_dist:
-            nearest = e
-            nearest_dist = dist
-
-    # Move toward nearest enemy if we have one
-    if nearest is not None:
+    if adjacents:
+        def hp_val(o):
+            return getattr(o, "health", getattr(o, "hp", 0))
+        target = min(adjacents, key=hp_val)
         try:
-            preferred = my_coords.direction_to(nearest.coords)
+            return Action.attack(my_coords.direction_to(target.coords))
+        except Exception:
+            try:
+                return Action.attack(Direction.East)
+            except Exception:
+                return None
+
+    # Move toward global target if available
+    target = None
+    if target_id:
+        try:
+            target = state.obj_by_id(target_id)
+        except Exception:
+            target = None
+
+    if target:
+        try:
+            preferred = my_coords.direction_to(target.coords)
         except Exception:
             preferred = None
 
         if preferred is not None:
-            # Try preferred, then rotate cw, then ccw
             dirs = [preferred]
             try:
                 dirs.append(preferred.rotate_cw())
                 dirs.append(preferred.rotate_ccw())
             except Exception:
                 pass
-
             move_action = try_dirs(dirs)
-            if move_action is not None:
+            if move_action:
                 return move_action
 
-            # If all blocked, fall back to cardinal tries
-        # Fallback: try all cardinal directions
+        # fallback to cardinals
         all_dirs = [Direction.North, Direction.East, Direction.South, Direction.West]
         move_action = try_dirs(all_dirs)
-        if move_action is not None:
+        if move_action:
             return move_action
 
-    # No enemies known: move off spawn if on spawn, else move East
+    # No target/enemies: move off spawn or head East
     try:
-        if my_coords.is_spawn():
-            # Prefer North, then East
+        is_spawn = getattr(my_coords, "is_spawn", lambda: False)
+        if is_spawn():
             move_action = try_dirs([Direction.North, Direction.East])
             if move_action:
                 return move_action
     except Exception:
         pass
 
-    # Final fallbacks
     move_action = try_dirs([Direction.East, Direction.North, Direction.South, Direction.West])
     if move_action:
         return move_action
 
-    # As a last resort, attack East (should rarely happen)
-    return Action.attack(Direction.East)
+    try:
+        return Action.attack(Direction.East)
+    except Exception:
+        return None
