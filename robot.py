@@ -72,7 +72,7 @@ def robot(state, unit):
             return min(enemies, key=lambda e: coords.walking_distance_to(e.coords))
 
         current_danger = danger_at(unit.coords)
-        low_health = (unit.health is not None and unit.health < 8)
+        low_health = (unit.health is not None and unit.health < 11)
 
         scored = []
         for d, nc in candidates:
@@ -87,17 +87,18 @@ def robot(state, unit):
             penalty = 1 if (nc.x, nc.y) in predicted_danger else 0
             penalty *= 100
             # ally proximity penalty to discourage bunching
-            ally_penalty = sum(1 for a in allies if nc.walking_distance_to(a.coords) <= 1)
+            ally_penalty = 5 * sum(1 for a in allies if nc.walking_distance_to(a.coords) <= 1)
             # small randomness to break ties
             rnd = random.random()
 
-            if low_health or current_danger >= 2:
+            if low_health or current_danger >= 1:
                 # Retreat: prefer no-penalty, lower danger, and larger distance to nearest enemy
                 # Lexicographic ordering: big penalties first
                 score = (penalty, ally_penalty, dng, -dist_after, -enemies_in_range, h_nearest, rnd)
             else:
                 # Aggressive: prefer no-penalty, lower danger, closer to enemy, more enemies in range, lower health target
-                score = (penalty, ally_penalty, dng, dist_after, -enemies_in_range, h_nearest, rnd)
+                attack_bonus = -20 if enemies_in_range > 0 else 0
+                score = (penalty, ally_penalty, attack_bonus, dng, h_nearest, dist_after, -enemies_in_range, rnd)
             scored.append((score, d, nc))
 
         scored.sort(key=lambda x: x[0])
@@ -121,7 +122,7 @@ def robot(state, unit):
                 penalty *= 100
                 dng = danger_at(nc)
                 dist_after = nc.walking_distance_to(nearest_spawn)
-                ally_penalty = sum(1 for a in allies if nc.walking_distance_to(a.coords) <= 1)
+                ally_penalty = 5 * sum(1 for a in allies if nc.walking_distance_to(a.coords) <= 1)
                 rnd = random.random()
                 score = (penalty, ally_penalty, dng, dist_after, rnd)
                 if best is None or score < best[0]:
