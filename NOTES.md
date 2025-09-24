@@ -15,3 +15,4 @@ Round 1 summary:
   - Add logging via Debug.inspect to analyze unit-level decisions in web UI.
 
 To continue in later rounds, resume from robot.py and use the tests in logs/rounds to analyze simulation traces.
+Round 5: increased predicted danger penalty, added ally proximity penalty to avoid clustering, and added small randomness to break ties. Tested with rumblebot; initial run successful.
