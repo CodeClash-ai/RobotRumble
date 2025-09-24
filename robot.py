@@ -2,13 +2,13 @@ import random
 
 def robot(state, unit):
     """
-    Aggressive spawn-contesting bot:
-    - Target weakest then nearest; attack in range.
-    - When moving to engage enemies, prefer moves that get into attack range next turn,
-      then lower danger, then shorter distance.
-    - When no enemies visible, seek the nearest SPAWN_COORD (if available) by choosing a free
-      cardinal move that reduces walking_distance to that spawn; tiebreak by lower danger.
-    - Fallbacks: prefer moving East, then center, then spread out.
+    Simplified focus/retreat strategy:
+    - If any enemy adjacent, attack the weakest adjacent enemy.
+    - Otherwise consider all free cardinal moves and score them:
+      - If low health or currently in high danger, prefer moves that reduce danger and increase distance to nearest enemy (retreat).
+      - Otherwise prefer moves that reduce distance to nearest enemy and favor landing spots that let you attack low-health enemies next turn.
+    - Avoid predicted dangerous tiles based on simple opponent pattern (move East on even turns, attack South on odd turns).
+    - If no enemies visible, move toward nearest spawn or East as fallback.
     """
     enemies = state.objs_by_team(state.other_team)
     allies = [a for a in state.objs_by_team(state.our_team) if a.id != unit.id]
@@ -22,77 +22,97 @@ def robot(state, unit):
     def danger_at(coords):
         return sum(1 for e in enemies if coords.walking_distance_to(e.coords) <= 1)
 
-    # Combat behavior
+    # Predict simple opponent pattern (if present)
+    predicted_danger = set()
+    try:
+        if enemies:
+            if state.turn % 2 == 0:
+                for e in enemies:
+                    p = e.coords + Direction.East
+                    if in_bounds(p):
+                        predicted_danger.add((p.x, p.y))
+            else:
+                for e in enemies:
+                    p = e.coords + Direction.South
+                    if in_bounds(p):
+                        predicted_danger.add((p.x, p.y))
+    except Exception:
+        predicted_danger = set()
+
+    # Combat: handle visible enemies
     if enemies:
-        target = min(enemies, key=lambda e: ((e.health if e.health is not None else 9999),
-                                              unit.coords.walking_distance_to(e.coords)))
-        dist = unit.coords.walking_distance_to(target.coords)
-        dir_to = unit.coords.direction_to(target.coords)
+        # Attack weakest adjacent enemy if any
+        adjacent = [e for e in enemies if unit.coords.walking_distance_to(e.coords) <= 1]
+        if adjacent:
+            weakest = min(adjacent, key=lambda e: (e.health if e.health is not None else 9999))
+            return Action.attack(unit.coords.direction_to(weakest.coords))
 
-        if dist <= 1:
-            return Action.attack(dir_to)
-
-        prefs = [dir_to, dir_to.rotate_cw(), dir_to.rotate_ccw(), dir_to.opposite]
+        # Build candidate moves (all free cardinal tiles)
         candidates = []
-        for d in prefs:
+        for d in [Direction.North, Direction.East, Direction.South, Direction.West]:
             nc = unit.coords + d
             if is_free(nc):
                 candidates.append((d, nc))
         if not candidates:
-            for d in [Direction.North, Direction.East, Direction.South, Direction.West]:
-                nc = unit.coords + d
-                if is_free(nc):
-                    candidates.append((d, nc))
+            return Action.move(Direction.North)
 
-        if candidates:
-            low_health = (unit.health is not None and unit.health < 8)
-            scored = []
-            for d, nc in candidates:
-                dng = danger_at(nc)
-                dist_after = nc.walking_distance_to(target.coords)
-                in_range_flag = 0 if dist_after <= 1 else 1
-                score = (in_range_flag, dng, dist_after)
-                scored.append((score, d, nc))
-            scored.sort(key=lambda x: x[0])
-            if low_health:
-                for score, d, nc in scored:
-                    if score[1] == 0:
-                        return Action.move(d)
-                _, best_dir, _ = scored[0]
-                return Action.move(best_dir)
-            _, best_dir, _ = scored[0]
-            return Action.move(best_dir)
-        return Action.attack(dir_to)
+        # Determine nearest enemy from current position
+        def nearest_enemy_from(coords):
+            return min(enemies, key=lambda e: coords.walking_distance_to(e.coords))
 
-    # No enemies visible: try to move toward nearest spawn
+        current_danger = danger_at(unit.coords)
+        low_health = (unit.health is not None and unit.health < 8)
+
+        scored = []
+        for d, nc in candidates:
+            dng = danger_at(nc)
+            nearest = nearest_enemy_from(nc)
+            dist_after = nc.walking_distance_to(nearest.coords)
+            # health of the nearest enemy (lower is better to focus)
+            h_nearest = nearest.health if nearest.health is not None else 9999
+            # how many enemies could we attack next turn from nc
+            enemies_in_range = sum(1 for e in enemies if nc.walking_distance_to(e.coords) <= 1)
+            penalty = 1 if (nc.x, nc.y) in predicted_danger else 0
+
+            if low_health or current_danger >= 2:
+                # Retreat: prefer no-penalty, lower danger, and larger distance to nearest enemy
+                score = (penalty, dng, -dist_after, -enemies_in_range, h_nearest)
+            else:
+                # Aggressive: prefer no-penalty, lower danger, closer to enemy, more enemies in range, lower health target
+                score = (penalty, dng, dist_after, -enemies_in_range, h_nearest)
+            scored.append((score, d, nc))
+
+        scored.sort(key=lambda x: x[0])
+        _, best_dir, _ = scored[0]
+        return Action.move(best_dir)
+
+    # No enemies visible: move toward spawn if available
     spawn_coords = []
     try:
-        # SPAWN_COORDS is provided by the environment in many maps
         spawn_coords = list(SPAWN_COORDS)
     except Exception:
         spawn_coords = []
 
     if spawn_coords:
-        # find nearest spawn
-        nearest = min(spawn_coords, key=lambda s: unit.coords.walking_distance_to(s))
-        # if already on spawn, try to stay / move off to contest neighbors (pick East if possible)
-        # otherwise pick a free cardinal move that reduces distance to nearest
-        best_moves = []
+        nearest_spawn = min(spawn_coords, key=lambda s: unit.coords.walking_distance_to(s))
+        best = None
         for d in [Direction.North, Direction.East, Direction.South, Direction.West]:
             nc = unit.coords + d
             if is_free(nc):
-                dist_after = nc.walking_distance_to(nearest)
+                penalty = 1 if (nc.x, nc.y) in predicted_danger else 0
                 dng = danger_at(nc)
-                best_moves.append(((dist_after, dng), d))
-        if best_moves:
-            best_moves.sort(key=lambda x: x[0])  # minimize distance then danger
-            return Action.move(best_moves[0][1])
-    # If no spawn info or blocked, prefer moving East to contest expansion
-    east_tile = unit.coords + Direction.East
-    if is_free(east_tile):
+                dist_after = nc.walking_distance_to(nearest_spawn)
+                score = (penalty, dng, dist_after)
+                if best is None or score < best[0]:
+                    best = (score, d)
+        if best:
+            return Action.move(best[1])
+
+    # Fallbacks: prefer East if safe, else center, else spread out
+    east = unit.coords + Direction.East
+    if is_free(east) and (east.x, east.y) not in predicted_danger:
         return Action.move(Direction.East)
 
-    # Next preference: move toward center
     try:
         center = Coords(MAP_SIZE//2, MAP_SIZE//2)
     except Exception:
@@ -100,25 +120,17 @@ def robot(state, unit):
     if center and unit.coords != center:
         dir_to = unit.coords.direction_to(center)
         nc = unit.coords + dir_to
-        if is_free(nc):
+        if is_free(nc) and (nc.x, nc.y) not in predicted_danger:
             return Action.move(dir_to)
-        for d in [dir_to.rotate_cw(), dir_to.rotate_ccw(), dir_to.opposite]:
-            nc = unit.coords + d
-            if is_free(nc):
-                return Action.move(d)
 
-    # Fallback: spread out among free tiles (least allied neighbors)
-    dirs = [Direction.North, Direction.East, Direction.South, Direction.West]
+    # Spread out
     free = []
-    for d in dirs:
+    for d in [Direction.North, Direction.East, Direction.South, Direction.West]:
         nc = unit.coords + d
         if is_free(nc):
-            ally_neighbors = sum(1 for a in allies if nc.walking_distance_to(a.coords) <= 1)
-            free.append((ally_neighbors, d))
+            free.append((danger_at(nc), d))
     if free:
         free.sort(key=lambda x: x[0])
-        best_count = free[0][0]
-        best_choices = [d for c, d in free if c == best_count]
-        return Action.move(random.choice(best_choices))
+        return Action.move(free[0][1])
 
     return Action.move(Direction.North)
