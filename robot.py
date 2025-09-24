@@ -44,9 +44,29 @@ def robot(state, unit):
                 candidates.append((d, target))
         if not candidates:
             return None
+        def danger_score(tgt):
+            s = 0
+            try:
+                for e in enemies:
+                    try:
+                        if distance(e.coords, tgt) <= 1:
+                            s += 1
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            return s
         if goal is not None:
             try:
-                candidates.sort(key=lambda dt: distance(dt[1], goal))
+                candidates.sort(key=lambda dt: (danger_score(dt[1]), distance(dt[1], goal)))
+            except Exception:
+                try:
+                    candidates.sort(key=lambda dt: danger_score(dt[1]))
+                except Exception:
+                    pass
+        else:
+            try:
+                candidates.sort(key=lambda dt: danger_score(dt[1]))
             except Exception:
                 pass
         return Action.move(candidates[0][0])
