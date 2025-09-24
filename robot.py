@@ -29,8 +29,7 @@ def robot(state, unit):
             except Exception:
                 return True
 
-    def try_dirs(dir_list, goal=None):
-        candidates = []
+    def try_dirs(dir_list):
         for d in dir_list:
             try:
                 target = my_coords + d
@@ -41,35 +40,8 @@ def robot(state, unit):
                 except Exception:
                     target = None
             if target is not None and is_free(target):
-                candidates.append((d, target))
-        if not candidates:
-            return None
-        def danger_score(tgt):
-            s = 0
-            try:
-                for e in enemies:
-                    try:
-                        if distance(e.coords, tgt) <= 1:
-                            s += 1
-                    except Exception:
-                        pass
-            except Exception:
-                pass
-            return s
-        if goal is not None:
-            try:
-                candidates.sort(key=lambda dt: (danger_score(dt[1]), distance(dt[1], goal)))
-            except Exception:
-                try:
-                    candidates.sort(key=lambda dt: danger_score(dt[1]))
-                except Exception:
-                    pass
-        else:
-            try:
-                candidates.sort(key=lambda dt: danger_score(dt[1]))
-            except Exception:
-                pass
-        return Action.move(candidates[0][0])
+                return Action.move(d)
+        return None
 
     # Gather units
     try:
@@ -120,8 +92,16 @@ def robot(state, unit):
         def score_enemy(enemy):
             h = hp_of(enemy)
             td = total_distance_for_team(enemy)
-            # primary: health, secondary: distance (smaller is better)
-            return (h, td)
+            # prefer targets with more allies nearby (to focus fire)
+            ally_close = 0
+            for a in allies:
+                try:
+                    if distance(a.coords, enemy.coords) <= 2:
+                        ally_close += 1
+                except Exception:
+                    pass
+            # lower score = better; subtract ally_close weight from distance
+            return (h, td - ally_close*2)
 
         try:
             best = min(enemies, key=score_enemy)
@@ -176,7 +156,7 @@ def robot(state, unit):
             pass
 
     # If low HP and outnumbered (enemies nearby >= allies nearby + 1), try to retreat
-    if my_hp <= 4 and nearest_enemy is not None and nearest_enemy_dist <= 2 and nearby_enemy_count >= (nearby_ally_count + 1):
+    if my_hp <= 3 and nearby_enemy_count >= (nearby_ally_count + 1) and nearest_enemy is not None:
         # Try to move opposite the nearest enemy
         try:
             # compute direction from me to enemy then invert it
@@ -228,28 +208,7 @@ def robot(state, unit):
             except Exception:
                 return None
 
-    
-    # If there's a nearby enemy (non-adjacent) and we're not too weak, close in to engage
-    try:
-        if nearest_enemy is not None and nearest_enemy_dist <= 3 and nearest_enemy_dist > 1 and my_hp > 2:
-            try:
-                pref = my_coords.direction_to(nearest_enemy.coords)
-            except Exception:
-                pref = None
-            if pref is not None:
-                close_dirs = [pref]
-                try:
-                    close_dirs.append(pref.rotate_cw())
-                    close_dirs.append(pref.rotate_ccw())
-                except Exception:
-                    pass
-                move_action = try_dirs(close_dirs, nearest_enemy.coords)
-                if move_action:
-                    return move_action
-    except Exception:
-        pass
-
-# Move toward global target if available
+    # Move toward global target if available
     target = None
     if target_id:
         try:
@@ -270,13 +229,13 @@ def robot(state, unit):
                 dirs.append(preferred.rotate_ccw())
             except Exception:
                 pass
-            move_action = try_dirs(dirs, target.coords)
+            move_action = try_dirs(dirs)
             if move_action:
                 return move_action
 
         # fallback to cardinals
         all_dirs = [Direction.North, Direction.East, Direction.South, Direction.West]
-        move_action = try_dirs(all_dirs, target.coords)
+        move_action = try_dirs(all_dirs)
         if move_action:
             return move_action
 
