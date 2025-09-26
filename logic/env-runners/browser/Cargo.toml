@@ -1,0 +1,23 @@
+[package]
+name = "browser-runner"
+version = "0.1.0"
+authors = ["Anton <antonoutkine@gmail.com>", "Noa <coolreader18@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+logic = { path = "../../logic", features = ["robot-runner-not-send"] }
+futures-util = "0.3.30"
+maplit = "1.0"
+
+wasm-bindgen = { version = "0.2.92", features = ["serde-serialize"] }
+wasm-bindgen-futures = "0.4.42"
+js-sys = "0.3.69"
+
+serde = "1.0.197"
+serde_json = "1.0.114"
+
+console_error_panic_hook = "0.1.7"
+async-trait = "0.1.78"

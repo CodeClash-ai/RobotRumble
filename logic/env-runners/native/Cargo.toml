@@ -1,0 +1,13 @@
+[package]
+name = "native-runner"
+version = "0.1.0"
+authors = ["Anton <antonoutkine@gmail.com>", "Noa <coolreader18@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+logic = { path = "../../logic" }
+serde = "1.0.197"
+serde_json = "1.0.114"
+itertools = "0.12.1"
+tokio = { version = "1.36", features = ["macros", "process", "io-util", "time"] }
+async-trait = "0.1.78"

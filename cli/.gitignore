@@ -1,0 +1,9 @@
+node_modules/
+dist/
+elm-stuff/
+/target
+
+### JetBrains template
+.idea
+*.iml
+bots
