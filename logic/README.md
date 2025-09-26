@@ -34,7 +34,7 @@ A detailed writeup of our architecture/infrastructure can be found
 - `env-runners/`: libraries or binaries that wrap the `logic` crate in order to
   run in environments like AWS lambda or the browser. Notably absent is the
   `rumblebot` CLI, which lives in its own repo at
-  [robot-rumble/cli](https://github.com/robot-rumble/cli).
+  [robot-rumble/cli](https://github.com/emagedoc/RobotRumble/tree/main/cli).
   - `env-runners/browser/`: a `wasm-bindgen` wasm module that runs robots as
     web workers, in conjunction with the portions of the
     [garage](https://github.com/robot-rumble/battle-viewer/blob/master/src/garage/match.worker.js)
