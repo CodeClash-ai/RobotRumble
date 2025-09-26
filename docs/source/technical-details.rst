@@ -3,11 +3,11 @@ The technical details
 
 .. _Github org: https://github.com/robot-rumble
 .. _Robot Game: https://web.archive.org/web/20140101004828/http://robotgame.net/
-.. _logic: https://github.com/robot-rumble/logic
-.. _cli: https://github.com/robot-rumble/cli
+.. _logic: https://github.com/emagedoc/RobotRumble/tree/main/logic
+.. _cli: https://github.com/emagedoc/RobotRumble/tree/main/cli
 .. _backend: https://github.com/robot-rumble/backend
 .. _battle-viewer: https://github.com/robot-rumble/battle-viewer
-.. _docs: https://github.com/robot-rumble/docs
+.. _docs: https://github.com/emagedoc/RobotRumble/tree/main/docs
 .. _RustPython: https://github.com/RustPython/RustPython
 .. _QuickJS: https://bellard.org/quickjs/
 .. _Wasmer: https://wasmer.io

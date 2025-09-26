@@ -145,7 +145,7 @@ Python Details
 --------------
  - Stdlib source here__.
 
-__ https://github.com/robot-rumble/logic/blob/master/lang-runners/python/stdlib/rumblelib.py
+__ https://github.com/emagedoc/RobotRumble/blob/main/logic/lang-runners/python/stdlib/rumblelib.py
 
  - You can ``import`` most of the Python standard library modules.
 
@@ -161,7 +161,7 @@ Javascript Details
 ------------------
  - Stdlib source here__. Every identifier is in camelCase.
 
-__ https://github.com/robot-rumble/logic/blob/master/lang-runners/javascript/stdlib.js
+__ https://github.com/emagedoc/RobotRumble/blob/main/logic/lang-runners/javascript/stdlib.js
 
  - Javascript "enums" are implemented using the method proposed by 2ality__. In a nutshell, this method leverages static class members to create a Java-like Enum superclass. In practice, the result should feel no different from the Python enums.
 
