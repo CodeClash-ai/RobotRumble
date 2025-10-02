@@ -14,3 +14,6 @@
  4. On windows, you can go ahead and run the program with `./rumblebot.exe`. On Macos/Linux, you first need to make the `rumblebot` file runnable by executing `chmod +x ./rumblebot`. Then you can run it with `./rumblebot`.
 
 **Please note**: Just because your robots live in the filesystem does not mean that you can import external dependencies. Support for third-party packages is on roadmap, but implementing it is a very nuanced challenge. If you really, really need a library, your best bet is to minify it and just include it at the top of your program.
+
+### Notes
+- The executable in this folder corresponds to a linux build, downloaded from the releases associated with the cli source code (https://github.com/robot-rumble/cli/releases)
