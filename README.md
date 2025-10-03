@@ -1,6 +1,4 @@
-# RobotRumble for CodeClash
-written by John Y.
-
+# [CodeClash] RobotRumble
 This is the starter codebase for the RobotRumble arena featured in CodeClash.
 The code represented in this codebase comes from a number of sources.
 - The `cli` folder is from the https://github.com/robot-rumble/cli repository, which wraps the Robot Rumble engine in a command line interface. The `cli` tool is also how the ./rumblebot executable is built.
