@@ -1,8 +1,19 @@
-# [CodeClash] RobotRumble
-This is the starter codebase for the RobotRumble arena featured in CodeClash.
+# Rumblebot (Robot Rumble CLI tool)
 
-The code represented in this codebase comes from the following sources:
-- The `cli` folder is from the https://github.com/robot-rumble/cli repository, which wraps the Robot Rumble engine in a command line interface. The `cli` tool is also how the ./rumblebot executable is built.
-- The `logic/` folder is from https://github.com/robot-rumble/logic, which captures how Robot Rumble is implemented.
-- The `builtin-bots/` folder is from https://github.com/robot-rumble/builtin-bots, which contains the source code for several example robots provided to beginner players.
-- The `docs/` folder contains documentation for the Robot Rumble engine, which is also hosted at https://github.com/robot-rumble/docs.
+### Features
+
+ 1. Easily run robot programs stored on your filesystem, which makes it possible to use a custom IDE.
+ 2. View battle results in both a web GUI (like on the site), or directly in your terminal.
+ 3. Easily create and update robots from the command line.
+
+### Installation
+
+ 1. Download the appropriate release from the Github releases page.
+ 2. Unzip the folder somewhere in your filesystem.
+ 3. Open a terminal and navigate to the folder. If you've never used a terminal before, you can read a quick primer [here](https://lifehacker.com/a-command-line-primer-for-beginners-5633909) (it's way easier than it seems!) In this case, you will want to run `cd [FOLDER_PATH]`.
+ 4. On windows, you can go ahead and run the program with `./rumblebot.exe`. On Macos/Linux, you first need to make the `rumblebot` file runnable by executing `chmod +x ./rumblebot`. Then you can run it with `./rumblebot`.
+
+**Please note**: Just because your robots live in the filesystem does not mean that you can import external dependencies. Support for third-party packages is on roadmap, but implementing it is a very nuanced challenge. If you really, really need a library, your best bet is to minify it and just include it at the top of your program.
+
+### Notes
+- The executable in this folder corresponds to a linux build, downloaded from the releases associated with the cli source code (https://github.com/robot-rumble/cli/releases)
