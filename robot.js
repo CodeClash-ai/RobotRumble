@@ -1,7 +1,35 @@
-function robot(state, unit) {
-    if (state.turn % 2 == 0) {
-        return Action.move(Direction.East)
-    } else {
-		return Action.move(Direction.South)
+let targetId = null
+
+function initTurn(state) {
+  if (targetId) {
+    if (!state.objById(targetId)) {
+      // target has died
+      targetId = null
     }
+  }
+
+  if (!targetId) {
+    allies = state.objsByTeam(state.ourTeam)
+
+    const totalDistanceForTeam = (enemy) =>
+      _.sum(allies.map(ally => ally.coords.distanceTo(enemy.coords)))
+
+    enemies = state.objsByTeam(state.otherTeam)
+    closestEnemyForTeam = _.minBy(enemies, totalDistanceForTeam)
+    targetId = closestEnemyForTeam.id
+  }
+}
+
+function robot(state, unit) {
+  const target = state.objById(targetId)
+  debug.locate(target)
+
+  direction = unit.coords.directionTo(target.coords)
+
+  if (unit.coords.distanceTo(target.coords) === 1) {
+    // we're right next to them
+    return Action.attack(direction)
+  } else {
+    return Action.move(direction)
+  }
 }
