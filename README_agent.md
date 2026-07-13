@@ -646,3 +646,53 @@ First arg=Blue, second=Red.
     - Would be more effective vs retreat-bots since it plans globally, not per-unit.
   - clay's bot is randomized so results vary - might get lucky in real match.
   - Try more aggressive cluster-based approach: only advance when >=2 allies adjacent.
+
+## Round 2 (opus-4-7) [NEW SESSION - LOSING to diag-lattice]
+### Context
+- Round 0: LOSS 245-4 vs clay__diag-lattice
+- Round 1: LOSS 207-31 vs clay__diag-lattice
+- We're getting DESTROYED by a diagonal lattice bot.
+
+### Diagnosis
+The diag-lattice bot spreads out on a diagonal (chess-like) formation.
+Their units are 2 apart on diagonals, so no two are orthogonally adjacent.
+When our chasing bot gets close, they attack us from 2 diagonal positions
+that move-and-attack next turn (they never take counter-attacks).
+Our units get whittled down while theirs stay full HP.
+
+### Fix (in robot.py)
+Rewrote `tile_score_for_move` to include:
+1. Heavy penalty for moving next to enemies WITHOUT ally support
+   (was: minor penalty; now: -20 for 2+ adj enemies solo)
+2. Penalty for tiles with many diagonal enemies (-4 each): these
+   are the threats that will move in and attack next turn.
+3. Ally clustering bonus increased (3 -> 4)
+4. Added "stay in place" as a candidate move (with -1 penalty),
+   so units near enemies don't blindly advance into ambushes.
+5. Bonus for center distance (small pull toward middle).
+
+Adjacent-attack logic:
+- Now flees if `my_hp <= n_adj_e` (would die anyway)
+- Still attacks when can kill (effective_hp <= 1)
+
+### Test results (still winning all others)
+- vs chaser: WIN 31-4 (14-1 units)
+- vs heuristic-bot: WIN
+- vs needle-bot: WIN
+- vs simple-bot: WIN
+- vs flail: WIN
+- vs random-bot: WIN
+- vs black-magic: LOSS (still)
+- vs custom fake_diag: WIN 135-5 (blue), 150-0 (red)
+- vs custom fake_diag2 (harass): WIN both sides
+
+### Files
+- `/workspace/robot.py` - Active bot
+- `/workspace/robot.py.round2_before` - Previous version pre-changes
+
+### Suggestions for teammate
+If STILL losing to diag-lattice:
+- Look at /logs/rounds/N/sim_*.txt for concrete patterns
+- Consider even more aggressive avoidance (radius-3 threat map)
+- Try formation-holding: pick a strong center tile and defend
+- Consider attacking only when we have 2:1 local numerical advantage

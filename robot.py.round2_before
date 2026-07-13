@@ -1,27 +1,29 @@
 from typing import *
 
-# ---- Global state ----
+# Track previous positions to avoid oscillation
 robot_state: Dict[str, dict] = {}
+
+# Track intended moves to prevent friendly collisions
 planned_moves: Dict[str, "Coords"] = {}
+
+# Track damage already committed to enemies this turn
 damage_committed: Dict[str, int] = {}
 
+# Cached enemy positions
 _enemies_cache = None
 _allies_cache = None
 _enemy_set_cache = None
 _ally_set_cache = None
-_next_ally_positions = None  # set of tiles allies plan to occupy
 
 
 def init_turn(state: State) -> None:
-    global planned_moves, damage_committed
-    global _enemies_cache, _allies_cache, _enemy_set_cache, _ally_set_cache, _next_ally_positions
+    global planned_moves, damage_committed, _enemies_cache, _allies_cache, _enemy_set_cache, _ally_set_cache
     planned_moves = {}
     damage_committed = {}
     _enemies_cache = [o for o in state.objs_by_team(state.other_team) if o.obj_type == ObjType.Unit]
     _allies_cache = [o for o in state.objs_by_team(state.our_team) if o.obj_type == ObjType.Unit]
     _enemy_set_cache = {(o.coords.x, o.coords.y) for o in _enemies_cache}
     _ally_set_cache = {(o.coords.x, o.coords.y) for o in _allies_cache}
-    _next_ally_positions = set()
 
 
 def is_in_bounds(coords) -> bool:
@@ -44,27 +46,12 @@ def friend_at(x, y) -> bool:
     return (x, y) in _ally_set_cache
 
 
-def enemy_obj_at(state, x, y):
-    for e in _enemies_cache:
-        if e.coords.x == x and e.coords.y == y:
-            return e
-    return None
-
-
 def count_adj_enemies_xy(x, y) -> int:
     c = 0
     if enemy_at(x-1, y): c += 1
     if enemy_at(x+1, y): c += 1
     if enemy_at(x, y-1): c += 1
     if enemy_at(x, y+1): c += 1
-    return c
-
-
-def count_diag_enemies_xy(x, y) -> int:
-    c = 0
-    for dx, dy in [(-1,-1),(-1,1),(1,-1),(1,1)]:
-        if enemy_at(x+dx, y+dy):
-            c += 1
     return c
 
 
@@ -75,28 +62,6 @@ def count_adj_friends_xy(x, y, ignore=None) -> int:
         if (nx, ny) in _ally_set_cache and (nx, ny) != ignore:
             c += 1
     return c
-
-
-# Threat = # enemies within 2 that could attack us next turn (they can move 1 + attack)
-def threat_count_xy(x, y) -> int:
-    """Enemies that could hit next turn: those already adj (attack now), or 2 away (move+attack)."""
-    c = 0
-    for e in _enemies_cache:
-        ex, ey = e.coords.x, e.coords.y
-        d = abs(ex - x) + abs(ey - y)
-        if d <= 2:
-            c += 1
-    return c
-
-
-def adj_enemies_now_xy(x, y):
-    """Get list of enemies currently orthogonally adjacent."""
-    out = []
-    for e in _enemies_cache:
-        ex, ey = e.coords.x, e.coords.y
-        if abs(ex - x) + abs(ey - y) == 1:
-            out.append(e)
-    return out
 
 
 def enemy_adjacent_dir(state, unit):
@@ -127,79 +92,59 @@ def commit_attack(direction, state, unit):
     return Action.attack(direction)
 
 
-def tile_score_for_move(state, unit, target_coords, primary_target):
-    """Score a candidate tile. Higher = better."""
+def tile_score_for_move(state, unit, target_coords, primary_dir_target):
+    """Score how good a tile is to move into. Higher = better.
+    Factors:
+    - Distance to primary target (closer is better)
+    - Number of adjacent allies (more is better - stay in formation)
+    - Number of adjacent enemies (moderate - if we're strong; bad if alone)
+    - Danger: if 2+ enemies adjacent and no ally support, penalty
+    """
     tx, ty = target_coords.x, target_coords.y
-    dist = target_coords.walking_distance_to(primary_target)
+    dist = target_coords.walking_distance_to(primary_dir_target)
     adj_e = count_adj_enemies_xy(tx, ty)
     adj_a = count_adj_friends_xy(tx, ty, ignore=(unit.coords.x, unit.coords.y))
-    diag_e = count_diag_enemies_xy(tx, ty)
-    my_hp = unit.health
     
     score = -dist * 10  # closer to target better
-    
-    # Diagonal enemies are threats: next turn they can move adj and attack
-    # If we sit near a diagonal enemy, they will attack us
-    score -= diag_e * 4
-    
-    # Adjacent enemies = damage exchange
-    # If we move adjacent to N enemies: we deal 1 damage, but next turn we take N damage
-    # Only good if we have ally support to absorb
-    if adj_e >= 1:
-        # If we have allies adjacent OR if we can kill an adj enemy this turn (checked separately)
-        if adj_a >= adj_e:
-            score += 3 * adj_e  # good trade with support
-        elif adj_a >= 1:
-            score += 1
-        else:
-            # We'd be alone against enemies
-            if adj_e == 1:
-                score -= 2 + (5 - my_hp)  # ok if healthy
-            else:
-                score -= 20  # bad, being ganged up on
-    
-    # Cluster with allies (formation)
-    score += adj_a * 4
-    
-    # Prefer being close to center (better positioning generally)
-    center = MAP_SIZE // 2
-    center_dist = abs(tx - center) + abs(ty - center)
-    score -= center_dist  # small bonus for being centralish
-    
+    score += adj_a * 3  # cluster with allies
+    # Penalty for being surrounded by many enemies without ally support
+    if adj_e >= 2 and adj_a == 0:
+        score -= 25
+    elif adj_e >= 3:
+        score -= 15
+    # If we can attack an enemy from here, that's great
+    if adj_e >= 1 and adj_a >= 1:
+        score += 5
     return score
 
 
-def try_move_smart(state, unit, primary_target):
-    """Try to move, evaluating multiple candidates."""
-    global planned_moves, _next_ally_positions
+def try_move_smart(state, unit, primary_target_coords):
+    """Try to move, evaluating multiple candidate directions."""
+    global planned_moves
     my_id = unit.id
     
     turns_to_spawn = (10 - (state.turn % 10)) % 10
     avoid_spawn = turns_to_spawn <= 1
     
     candidates = []
-    # Include staying in place as a candidate
-    for d in [None, Direction.North, Direction.East, Direction.South, Direction.West]:
-        if d is None:
-            target = unit.coords
-        else:
-            target = unit.coords + d
-            if not is_in_bounds(target):
-                continue
-            obj = state.obj_by_coords(target)
-            if obj is not None:
-                continue
-            if (target.x, target.y) in _next_ally_positions:
-                continue
-        if d is not None and avoid_spawn and target.is_spawn():
+    for d in [Direction.North, Direction.East, Direction.South, Direction.West]:
+        target = unit.coords + d
+        if not is_in_bounds(target):
             continue
-        # For stay-in-place, only consider if we're not on spawn (or spawn is safe)
-        if d is None and avoid_spawn and unit.coords.is_spawn():
+        obj = state.obj_by_coords(target)
+        if obj is not None:
             continue
-        s = tile_score_for_move(state, unit, target, primary_target)
-        # Small penalty for staying (unless it's genuinely best)
-        if d is None:
-            s -= 1
+        # Check collision with planned moves
+        collision = False
+        for oid, oc in planned_moves.items():
+            if oid != my_id and oc.x == target.x and oc.y == target.y:
+                collision = True
+                break
+        if collision:
+            continue
+        if avoid_spawn and target.is_spawn():
+            continue
+        s = tile_score_for_move(state, unit, target, primary_target_coords)
         candidates.append((s, d, target))
     
     if not candidates:
@@ -211,9 +156,14 @@ def try_move_smart(state, unit, primary_target):
             obj = state.obj_by_coords(target)
             if obj is not None:
                 continue
-            if (target.x, target.y) in _next_ally_positions:
+            collision = False
+            for oid, oc in planned_moves.items():
+                if oid != my_id and oc.x == target.x and oc.y == target.y:
+                    collision = True
+                    break
+            if collision:
                 continue
-            s = tile_score_for_move(state, unit, target, primary_target)
+            s = tile_score_for_move(state, unit, target, primary_target_coords)
             candidates.append((s, d, target))
     
     if not candidates:
@@ -222,9 +172,6 @@ def try_move_smart(state, unit, primary_target):
     candidates.sort(key=lambda x: -x[0])
     best_s, best_d, best_target = candidates[0]
     planned_moves[my_id] = best_target
-    _next_ally_positions.add((best_target.x, best_target.y))
-    if best_d is None:
-        return None  # stay in place
     return Action.move(best_d)
 
 
@@ -235,7 +182,6 @@ def robot_impl(state, unit):
 
     enemies = _enemies_cache
     allies = _allies_cache
-    my_hp = unit.health
     
     if not enemies:
         center = Coords(MAP_SIZE // 2, MAP_SIZE // 2)
@@ -246,8 +192,15 @@ def robot_impl(state, unit):
     on_spawn = unit.coords.is_spawn()
     turns_to_spawn = (10 - (state.turn % 10)) % 10
     
-    # ALWAYS check adjacent enemy attack option first
+    if on_spawn and turns_to_spawn <= 1:
+        center = Coords(MAP_SIZE // 2, MAP_SIZE // 2)
+        mv = try_move_smart(state, unit, center)
+        if mv:
+            return mv
+    
+    # Adjacent enemy check
     adj = enemy_adjacent_dir(state, unit)
+    my_hp = unit.health
     
     if adj:
         adj_coords = unit.coords + adj
@@ -261,22 +214,20 @@ def robot_impl(state, unit):
         if eff_enemy_hp <= 1:
             return commit_attack(adj, state, unit)
         
-        # Compute expected damage exchange:
-        # We deal 1 damage. Adjacent enemies each deal 1 damage to us (avg).
-        # If we're already going to die (hp <= n_adj_e), and can't kill, retreat if possible.
-        
+        # Flee if very likely to die (surrounded, low hp)
         should_flee = False
-        # Certain death without accomplishing kill
-        if my_hp <= n_adj_e and eff_enemy_hp > 1:
+        # HP <= 2 and outnumbered
+        if my_hp <= 2 and n_adj_e >= 2 and n_adj_a == 0:
             should_flee = True
-        # Bad trade: outnumbered heavily
-        elif n_adj_e >= 2 and n_adj_a == 0 and my_hp <= 2:
+        # HP <= 1 and can't kill target
+        elif my_hp <= 1 and eff_enemy_hp > 1:
             should_flee = True
-        elif n_adj_e >= 3 and n_adj_a <= 1:
+        # HP <= 3, badly outnumbered
+        elif my_hp <= 3 and n_adj_e >= 3 and n_adj_a <= 1:
             should_flee = True
         
-        if should_flee and not (on_spawn and turns_to_spawn <= 1):
-            # Try to flee
+        if should_flee:
+            # Find safest retreat: away from enemies, toward allies
             best_flee = None
             best_flee_score = -1e9
             for d in [Direction.North, Direction.East, Direction.South, Direction.West]:
@@ -286,49 +237,49 @@ def robot_impl(state, unit):
                 obj = state.obj_by_coords(target)
                 if obj is not None:
                     continue
-                if (target.x, target.y) in _next_ally_positions:
+                collision = False
+                for oid, oc in planned_moves.items():
+                    if oid != unit.id and oc.x == target.x and oc.y == target.y:
+                        collision = True
+                        break
+                if collision:
                     continue
                 tx, ty = target.x, target.y
                 e_around = count_adj_enemies_xy(tx, ty)
                 a_around = count_adj_friends_xy(tx, ty, ignore=(unit.coords.x, unit.coords.y))
-                diag_e = count_diag_enemies_xy(tx, ty)
-                s = -e_around * 25 - diag_e * 5 + a_around * 8
+                s = -e_around * 20 + a_around * 5
                 if s > best_flee_score:
                     best_flee_score = s
                     best_flee = (d, target)
             if best_flee:
                 planned_moves[unit.id] = best_flee[1]
-                _next_ally_positions.add((best_flee[1].x, best_flee[1].y))
                 return Action.move(best_flee[0])
         
         return commit_attack(adj, state, unit)
     
-    # No adjacent enemy - move strategically
-    
-    # If on spawn and about to be cleared, escape
-    if on_spawn and turns_to_spawn <= 1:
-        center = Coords(MAP_SIZE // 2, MAP_SIZE // 2)
-        mv = try_move_smart(state, unit, center)
-        if mv:
-            return mv
-    
-    # Find target - prefer close AND weak, avoid deep isolated enemies
+    # Find target - prefer weaker AND closer, avoid isolated enemies deep in formation
     def enemy_score(e):
         dist = unit.coords.walking_distance_to(e.coords)
+        # Slight bias: prefer enemies with lower HP but weight distance heavily
         return dist * 10 + e.health
     
     target = min(enemies, key=enemy_score)
+    dist = unit.coords.walking_distance_to(target.coords)
     
-    # If HP=1 and enemies nearby but no allies, retreat toward ally cluster
-    if my_hp <= 1:
+    # If HP=1 and no allies nearby, retreat toward allies
+    if my_hp <= 1 and dist <= 3:
         near_allies = sum(1 for a in allies if a.id != unit.id and unit.coords.walking_distance_to(a.coords) <= 2)
         near_enemies = sum(1 for e in enemies if unit.coords.walking_distance_to(e.coords) <= 2)
         if near_enemies > near_allies:
-            other_allies = [a for a in allies if a.id != unit.id]
-            if other_allies:
-                nearest_ally = min(other_allies, key=lambda a: unit.coords.walking_distance_to(a.coords))
-                return try_move_smart(state, unit, nearest_ally.coords)
-            return try_move_smart(state, unit, Coords(MAP_SIZE // 2, MAP_SIZE // 2))
+            # Retreat toward nearest ally cluster or center
+            center = Coords(MAP_SIZE // 2, MAP_SIZE // 2)
+            if allies and len(allies) > 1:
+                # move toward nearest ally
+                other_allies = [a for a in allies if a.id != unit.id]
+                if other_allies:
+                    nearest_ally = min(other_allies, key=lambda a: unit.coords.walking_distance_to(a.coords))
+                    return try_move_smart(state, unit, nearest_ally.coords)
+            return try_move_smart(state, unit, center)
     
     return try_move_smart(state, unit, target.coords)
 
