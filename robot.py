@@ -16,6 +16,7 @@ ally_set: set = set()
 ally_centroid = None
 n_allies = 0
 n_enemies = 0
+next_turn_spawn = False
 
 
 def robot_enemies(state):
@@ -27,8 +28,9 @@ def robot_allies(state):
 
 
 def init_turn(state: State) -> None:
-    global planned, focus_id, enemy_set, ally_set, ally_centroid, n_allies, n_enemies
+    global planned, focus_id, enemy_set, ally_set, ally_centroid, n_allies, n_enemies, next_turn_spawn
     planned = {}
+    next_turn_spawn = ((state.turn + 1) % 10) == 0
     enemies = robot_enemies(state)
     allies = robot_allies(state)
     enemy_set = set((e.coords.x, e.coords.y) for e in enemies)
@@ -60,6 +62,8 @@ def coord_free(state, c):
     if state.obj_by_coords(c) is not None:
         return False
     if planned.get((c.x, c.y)):
+        return False
+    if next_turn_spawn and c.is_spawn():
         return False
     return True
 
@@ -123,6 +127,30 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     enemies = robot_enemies(state)
     if not enemies:
         return None
+
+    # Emergency: if we're standing on a spawn tile and next turn is a spawn tick,
+    # evacuate now or we die (units on spawn tiles are cleared at spawn time).
+    if next_turn_spawn and unit.coords.is_spawn():
+        best = None
+        for d in DIRECTIONS:
+            nc = unit.coords + d
+            if not in_bounds(nc):
+                continue
+            if nc.is_spawn():
+                continue
+            if state.obj_by_coords(nc) is not None or planned.get((nc.x, nc.y)):
+                continue
+            # Prefer safe tiles (fewer adjacent enemies, more adjacent allies)
+            score = -count_enemy_adj(nc) + count_ally_adj(nc)
+            if best is None or score > best[0]:
+                best = (score, d, nc)
+        if best is not None:
+            planned[(best[2].x, best[2].y)] = True
+            return Action.move(best[1])
+        # Can't reach a non-spawn tile; at least attack an adjacent enemy if any.
+        adj0 = adjacent_enemies(state, unit.coords)
+        if adj0:
+            return Action.attack(min(adj0, key=lambda t: t[1].health)[0])
 
     adj = adjacent_enemies(state, unit.coords)
 

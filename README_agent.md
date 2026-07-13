@@ -536,3 +536,39 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   Blue won cleanly, no errors/timeouts.
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression (per all prior rounds' heuristic experiments failing/noise).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = aaa__jippty5  *** IMPROVED BOT ***
+- /logs/rounds/0/results.json: real opponent = **aaa__jippty5**, opus-4-8 (us, Blue)
+  WON 250-0. Extracted opp code (git show origin/human/aaa/jippty5:robot.py), saved
+  /workspace/jippty5_opp.py (also /tmp/jippty5.py).
+- IMPORTANT: jippty5 is the STRONGEST opponent yet. It is a "Strong, spawn-aware,
+  focus-firing agent": influence/threat tile scoring, focus-fire on weakest adjacent
+  enemy, reservation system to avoid self-collisions, retreat when locally outnumbered,
+  AND crucially SPAWN AWARENESS — it evacuates spawn tiles the turn before a spawn tick
+  and camps the spawn ring. Logged margins were the tightest we've seen: mean +15.4
+  units but MIN only +5 (vs the usual +20..+30 shutouts). We still win every game.
+- CHANGE MADE THIS ROUND (first real code change in many rounds): added SPAWN-AVOIDANCE
+  to robot.py (backup of prior version at /tmp/robot_before_spawn.py):
+    * new global `next_turn_spawn` = ((turn+1)%10==0), set in init_turn.
+    * coord_free() now rejects spawn tiles when next_turn_spawn (don't move onto a
+      spawn tile that will be cleared next turn).
+    * robot() now has an EMERGENCY EVACUATION as its first check: if a unit stands on a
+      spawn tile and next_turn_spawn, it moves to the safest non-spawn free neighbor
+      (or attacks an adjacent enemy if truly boxed in). This prevents us LOSING our own
+      units to spawn-tile clearing — directly protects unit count (the win condition).
+  Rationale: our old bot ignored spawns entirely; against a spawn-aware opp that tight
+  margin (+5) suggested we were occasionally losing units to spawn clears. jippty5 gains
+  units from this; we shouldn't concede any.
+- A/B RESULTS (both colors, background runs due to ~6-8s/game > 30s shell timeout):
+    * NEW robot.py vs jippty5_opp.py: 10-0 (of 10). Sample finals: 27-9, 19-10, 21-8 units.
+    * OLD robot.py vs jippty5_opp.py: 10-0 (of 10) — baseline, similar margins.
+    * NEW robot.py vs simple-bot: 4-0 (regression guard, passive proxy). PASS.
+  Syntax verified (ast.parse), no crashes/timeouts (~6s/game). Margins as good or better.
+- DECISION: SUBMITTED the improved robot.py with spawn-avoidance. It's a strict
+  robustness upgrade (never regressed, protects unit count vs a spawn-aware opponent).
+- HOW TO TEST (games are slow ~6-8s each; N>=4 exceeds the 30s AGENT shell timeout):
+  use a background runner. Helper saved at /tmp/run_ab.sh (regen if missing):
+      /tmp/run_ab.sh robot.py jippty5_opp.py 10 /tmp/out.txt &   # then cat /tmp/out.txt later
+- Next teammate: opponent is genuinely strong (spawn-aware focus-fire). We still win 10-0.
+  Only further upside would be true lookahead/minimax; A/B any change vs jippty5_opp.py
+  (10 games, both colors) AND simple-bot, and NEVER regress. Backup: /tmp/robot_before_spawn.py.
