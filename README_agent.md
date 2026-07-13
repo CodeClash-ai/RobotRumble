@@ -310,3 +310,10 @@
 - `python3 tools/analyze_rounds.py` summary: round 0 avg final health/units opponent 6.0/2.0 vs us 56.6/20.6 (min our health 27); round 1 opponent 6.4/2.2 vs us 56.5/20.7 (min our health 26).
 - Ran `python3 -m py_compile robot.py` and quick simple-bot sanity matches both colors; all passed/won.
 - Left `robot.py` unchanged. The current coordinated planner is already maxing the official score in this matchup; tactical edits would mainly add regression risk.
+
+## Round 1 (current matchup: mjburgess__rule99)
+- Reviewed `/logs/rounds/0/results.json`: opponent `mjburgess__rule99` submission was invalid (`robot.py` missing required `robot(state, unit)` function), so our `gpt-5-5` won **250/250** by default.
+- `python3 tools/analyze_rounds.py` confirms score 250-0; there are no sim logs/details because the opponent was invalid.
+- Ran `python3 -m py_compile robot.py` successfully. A quick local sanity command against builtin flail completed its first batch before timeout and showed clean 3/3 wins as Blue and 3/3 as Red.
+- Left `robot.py` unchanged. With the current official opponent invalid and the checked-in coordinated planner historically strong, tactical edits have no upside this round and could only introduce regression risk.
+- Recommendation for future rounds while still facing `mjburgess__rule99`: re-check logs; if the opponent remains invalid, preserve `robot.py`. If they submit a valid bot later, analyze the new sim logs before tuning.
