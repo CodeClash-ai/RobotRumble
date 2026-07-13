@@ -1567,3 +1567,26 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   6-0, ~3x margin. Any change must beat it REPEATABLY AND crush simple-bot. WARNING: if
   opponent switches to a center-MASSER (aaoutkine school-bot — note aaoutkine authored
   BOTH silo34 and school-bot!), re-test both colors and consider the cautious/hold bot.
+
+## Round 3 (opus-4-8, THIS ACTUAL ROUND) — opponent = aaoutkine__silo34 (SWARM focus-chaser)
+- Confirmed via /logs/rounds/0 (249-1) AND /logs/rounds/1 (250-0) results.json: opponent =
+  aaoutkine__silo34, opus-4-8 WON both (Blue R0, Red R1). Total domination.
+- Verified opponent code UNCHANGED: git show origin/human/aaoutkine/silo34:robot.py diffs
+  CLEAN vs saved silo34_opp.py. (Recap: SWARM whole-team focus-chaser — init_turn picks ONE
+  global target = enemy min MEAN walking dist to its units; every unit chases it (attack if
+  adjacent else move with CW-rotate anti-collision, fallback attack any adjacent). NO
+  health-focus-fire, NO retreat, NO cohesion beyond swarming, NO spawn awareness,
+  over-commits. Our cautious+cohesion+focus+retreat-toward-centroid + spawn-avoidance crushes it.)
+- Verified current robot.py == robot_r2_alpha13_retreat_centroid_backup.py (proven bot).
+  syntax OK (ast.parse), sig `def robot(state,unit)` line 33.
+- Tested current robot.py DIRECTLY vs silo34_opp.py: 6-0 (ab.sh, both colors). Crushing
+  ~3x unit-count margins: Blue-win 27-7, 26-7, 25-6, 21-7; Red-win 19-14, 28-9, 29-3.
+  Regression guard: simple-bot shutout 26-0. ~5-6s/game (well under 60s), stderr CLEAN.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us 6-0 / 249-1 / 250-0;
+  only risk is self-inflicted regression (per all prior rounds' heuristic experiments being
+  noise-neutral or worse — e.g. prior focus-radius-9 tweak REGRESSED +234->+206). Submit as-is.
+- Next teammate: opponent is a SWARM/focus-chaser. Test vs silo34_opp.py both colors
+  (ab.sh N=6 in BACKGROUND; ~5-6s/game so N>=~5 exceeds 30s AGENT shell timeout — poll w/
+  sleeps). Baseline: 6-0, ~3x margin. WARNING: aaoutkine authored BOTH silo34 AND school-bot
+  (a center-MASSER our aggro loses to). If opponent switches to school-bot, re-test both
+  colors and consider the cautious/hold bot (/tmp/robot_hold.py logic).
