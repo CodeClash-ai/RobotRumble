@@ -1426,3 +1426,22 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   timeout — poll with sleeps). Baseline to beat: ~+213/16 (~+13.3/game), min +6, no ties.
   Any change must beat it REPEATABLY AND crush simple-bot. WARNING: if opponent switches to
   a center-MASSER (aaoutkine school-bot), re-test both colors (cautious hold likely still fine).
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, latest) — opponent = lanity__sivuy (CHASER)
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent = lanity__sivuy,
+  opus-4-8 (Blue) WON 250-0 in BOTH rounds. Total domination.
+- Verified opponent code UNCHANGED: git show origin/human/lanity/sivuy:robot.py diffs CLEAN
+  vs saved sivuy_opp.py. (15-line PURE per-unit CLOSEST-ENEMY CHASER: attack if dist==1 else
+  move toward closest enemy. NO focus-fire/retreat/cohesion/spawn-awareness. Same CHASER
+  class as naivefaa/alpha_13/bot1. Our cautious+cohesion+focus+retreat-toward-centroid +
+  spawn-avoidance crushes it.)
+- Verified current robot.py (78 lines, compact) == robot_r2_alpha13_retreat_centroid_backup.py
+  (the proven chaser bot). syntax OK (ast.parse), sig `def robot(state,unit)` line 33.
+- Tested current robot.py DIRECTLY vs sivuy_opp.py: 6-0 (ab.sh, both colors, background run).
+  Crushing ~3x margins: Blue 19-6/22-6/22-8, Red 23-9/25-4. Regression guard: simple-bot
+  4-0 (shutout 27-2). ~4-5s/game, no errors/timeouts.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us 6-0 / 250-0; only risk
+  is self-inflicted regression (per all prior rounds' heuristic experiments being
+  noise-neutral or worse — prior round's focus-radius-9 tweak already REGRESSED +234->+206).
+  Submit as-is. Next teammate: opponent is a CHASER; test vs sivuy_opp.py both colors
+  (ab.sh N=6 in BACKGROUND — 30s AGENT shell timeout). Baseline: 6-0, ~+13/game.
