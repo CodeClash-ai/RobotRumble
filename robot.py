@@ -1,91 +1,112 @@
 from enum import Enum, auto
 from typing import *
 
+# =========================================================================
+# Strategy notes (see README_agent.md for more context):
+#
+# - Each unit has 5 HP, deals 1 damage per attack. Killing a unit therefore
+#   takes 5 successful attacks. Numeric superiority in a local fight is very
+#   valuable: N attackers vs 1 defender kill ~N times faster than 1v1 while
+#   taking much less retaliation damage per kill.
+# - New units spawn periodically (every ~10 turns) at team spawn points, so
+#   games tend to snowball: keeping units alive and grouped compounds our
+#   advantage turn over turn.
+# - This bot: attacks the weakest adjacent enemy (finishes kills fast),
+#   avoids attacking into heavily-outnumbered local fights (retreats toward
+#   allies instead), and otherwise advances as a group toward the enemy
+#   concentration that our team can reach fastest (similar to the original
+#   quadrant-targeting idea, but fixed so it can't get stuck with no target).
+# =========================================================================
 
-class Quadrant(Enum):
-    One = auto()
-    Two = auto()
-    Three = auto()
-    Four = auto()
-
-    @staticmethod
-    def from_coords(coords: Coords) -> "Quadrant":
-        if coords.x <= MAP_SIZE // 2:
-            if coords.y <= MAP_SIZE // 2:
-                return Quadrant.Two
-            else:
-                return Quadrant.Three
-        else:
-            if coords.y <= MAP_SIZE // 2:
-                return Quadrant.One
-            else:
-                return Quadrant.Four
-
-
-target_ids: Dict[Quadrant, Optional[str]] = {
-    Quadrant.One: None,
-    Quadrant.Two: None,
-    Quadrant.Three: None,
-    Quadrant.Four: None,
-}
+RADIUS = 6          # radius (in board distance) used to judge local fights
+RETREAT_RATIO = 1.5  # if enemy "power" > allies "power" * this, retreat
 
 
-def total_distance_for_units(units: List[Obj], target: Obj) -> float:
-    return sum([unit.coords.distance_to(target.coords) for unit in units])
+def team_centroid(units: List[Obj]) -> Optional[Coords]:
+    if not units:
+        return None
+    xs = sum(u.coords.x for u in units)
+    ys = sum(u.coords.y for u in units)
+    n = len(units)
+    return Coords(round(xs / n), round(ys / n))
 
 
-def init_turn(state: State) -> None:
-    global target_ids
-
-    for (q, id) in target_ids.items():
-        if id and not state.obj_by_id(id):
-            target_ids[q] = None
-
-    allies = state.objs_by_team(state.our_team)
-    enemies = state.objs_by_team(state.other_team)
-    for q in target_ids:
-        if not target_ids[q]:
-            q_allies = [ally for ally in allies if Quadrant.from_coords(ally.coords) == q]
-            q_enemies = [enemy for enemy in enemies if Quadrant.from_coords(enemy.coords) == q]
-
-            if q_enemies and q_allies:
-                closest_enemy = min(q_enemies, key=lambda enemy: total_distance_for_units(q_allies, enemy))
-                target_ids[q] = closest_enemy.id
+def best_move_towards(state: State, unit: Obj, target: Coords, avoid: Optional[Coords] = None) -> Optional[Action]:
+    """Try to move one step towards `target`, avoiding occupied tiles and
+    (if possible) not stepping back onto `avoid` (previous coords), to
+    reduce oscillation. Falls back to rotating around obstacles."""
+    if unit.coords == target:
+        return None
+    direction = unit.coords.direction_to(target)
+    candidates = [direction, direction.rotate_cw, direction.rotate_ccw]
+    # First pass: prefer moves that don't revisit our last coords.
+    for d in candidates:
+        dest = unit.coords + d
+        if state.obj_by_coords(dest):
+            continue
+        if avoid is not None and dest == avoid:
+            continue
+        return Action.move(d)
+    # Second pass: allow revisiting last coords if that's the only option.
+    for d in candidates:
+        dest = unit.coords + d
+        if not state.obj_by_coords(dest):
+            return Action.move(d)
+    return None
 
 
 robot_state: Dict[str, dict] = {}
 
 
+def init_turn(state: State) -> None:
+    # Nothing global needed right now beyond per-unit history, which is
+    # tracked lazily in `robot_state`. Kept as a hook for future macro
+    # strategy (e.g. team-wide focus-fire target selection).
+    pass
+
+
 def robot(state: State, unit: Obj) -> Optional[Action]:
-    past_coords: Optional[Coords] = robot_state.setdefault(unit.id, {}).get("past_coords")
-    robot_state[unit.id]["past_coords"] = unit.coords
-    
-    id = target_ids[Quadrant.from_coords(unit.coords)]
-    if id:
-        target = state.obj_by_id(id)
-        if target:
-            debug.inspect(target)
-            direction = unit.coords.direction_to(target.coords)
+    st = robot_state.setdefault(unit.id, {})
+    past_coords: Optional[Coords] = st.get("past_coords")
+    st["past_coords"] = unit.coords
 
-            if unit.coords.distance_to(target.coords) == 1:
-                # we're right next to them
-                return Action.attack(direction)
-            else:
-                move_target = state.obj_by_coords(unit.coords + direction)
-                if not move_target:
-                    return Action.move(direction)
-                else:
-                    directions = [direction.rotate_cw, direction.rotate_ccw]
-                    destinations = [unit.coords + direction for direction in directions]
-                    if target.coords.distance_to(destinations[0]) < target.coords.distance_to(destinations[1]) \
-                            and not state.obj_by_coords(destinations[0]) \
-                            and past_coords != destinations[0]:
-                        return Action.move(directions[0])
-                    elif not state.obj_by_coords(destinations[1]) \
-                            and past_coords != destinations[1]:
-                        return Action.move(directions[1])
-                    else:
-                        return None
-        else:
-            raise Exception('Id points to nonexistent target')
+    allies = [u for u in state.objs_by_team(state.our_team) if u.id != unit.id]
+    enemies = state.objs_by_team(state.other_team)
 
+    if not enemies:
+        return None
+
+    # --- 1) If any enemy is adjacent, always attack. Prefer finishing off
+    #        the weakest one to reduce enemy unit count as fast as possible.
+    adjacent_enemies = [e for e in enemies if unit.coords.distance_to(e.coords) == 1]
+    if adjacent_enemies:
+        target = min(adjacent_enemies, key=lambda e: (e.health, e.coords.distance_to(unit.coords)))
+        return Action.attack(unit.coords.direction_to(target.coords))
+
+    # --- 2) Judge the local fight: allies/enemies within RADIUS.
+    near_allies = [a for a in allies if unit.coords.distance_to(a.coords) <= RADIUS] + [unit]
+    near_enemies = [e for e in enemies if unit.coords.distance_to(e.coords) <= RADIUS]
+
+    nearest_enemy = min(enemies, key=lambda e: unit.coords.distance_to(e.coords))
+
+    if near_enemies:
+        ally_power = sum(a.health for a in near_allies)
+        enemy_power = sum(e.health for e in near_enemies)
+
+        if enemy_power > ally_power * RETREAT_RATIO:
+            # Retreat toward our own local group (regroup for a better fight)
+            other_allies = [a for a in near_allies if a.id != unit.id]
+            centroid = team_centroid(other_allies) if other_allies else None
+            if centroid and centroid != unit.coords:
+                action = best_move_towards(state, unit, centroid, past_coords)
+                if action:
+                    return action
+            # Fall back: step directly away from the nearest enemy.
+            away = unit.coords.direction_to(nearest_enemy.coords).opposite
+            dest = unit.coords + away
+            if not state.obj_by_coords(dest):
+                return Action.move(away)
+            return None
+
+    # --- 3) Otherwise, advance as a group towards the nearest enemy.
+    return best_move_towards(state, unit, nearest_enemy.coords, past_coords)
