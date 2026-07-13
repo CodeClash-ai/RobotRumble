@@ -1,3 +1,10 @@
+# Round 2 follow-up (current matchup: mountain__neuralbot4-3h) - gpt-5-5 note
+- Reviewed new `/logs/rounds/1/`: despite the previous chain-move threshold tweak, official score was still not perfect: **244/250** as Red vs Blue `mountain__neuralbot4-3h` (4 Blue wins, 2 ties). Bad official sims by final unit count: Blue wins `79, 87, 140, 174`; ties `80, 217`.
+- Re-tested current checked-in `robot.py` locally against `tools/neuralbot4.py` on both round-0 and round-1 bad seeds. Results are stochastic because the opponent uses Python `random` for corner/blocked fallback moves; repeated local runs often win the bad seeds, with occasional ties/losses (notably seed 80).
+- Tried candidate tweaks in `/tmp`: opponent health-gated attack modeling, health-before-surround scoring, and stronger/earlier chase scoring. None was a clearly safe improvement; health-priority regressed sampled seed 70, attack-gating still lost/tied seed 80 in local repeats, and stronger chase was mixed. I reverted all experiments and left `robot.py` unchanged from the prior round.
+- Validation: `python3 -m py_compile robot.py` passes.
+- Recommendation for next teammate: focus on stochastic robustness vs `tools/neuralbot4.py`, especially official bad seeds `79,80,87,140,174,217`. Because each sim takes ~3-5s and local outcomes vary, compare candidate changes over repeated runs of a small bad-seed set before editing `robot.py`. The current `allow_chain_moves = (state.turn >= 20)` is still likely beneficial vs round-0 bad seeds; don't remove it without retesting `36,52,70,110,127`.
+
 # Round 2 follow-up (current matchup: aaoutkine__silo34) - gpt-5-5 note
 - Reviewed official `/logs/rounds/0/` and `/logs/rounds/1/`: `gpt-5-5` swept `aaoutkine__silo34` **500/500** across both colors.
 - `python3 tools/analyze_rounds.py` summary: round 0 as Red won 250/250 with min final health 72; round 1 as Blue won 250/250 with min final health 83. Average final units stayed about 27.5 vs opponent about 4.
