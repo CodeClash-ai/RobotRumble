@@ -1,18 +1,19 @@
 from typing import *
 DIRECTIONS = [Direction.North, Direction.South, Direction.East, Direction.West]
-planned={}; enemy_set=set(); ally_set=set(); next_turn_spawn=False; focus_id=None
+planned={}; enemy_set=set(); ally_set=set(); next_turn_spawn=False; my_home=None; ally_cx=9; ally_cy=9
 def rE(s): return s.objs_by_team(s.other_team)
 def rA(s): return s.objs_by_team(s.our_team)
 def init_turn(state):
-    global planned,enemy_set,ally_set,next_turn_spawn,focus_id
+    global planned,enemy_set,ally_set,next_turn_spawn,my_home,ally_cx,ally_cy
     planned={}; next_turn_spawn=((state.turn+1)%10)==0
     E=rE(state); A=rA(state)
     enemy_set=set((e.coords.x,e.coords.y) for e in E)
     ally_set=set((a.coords.x,a.coords.y) for a in A)
-    focus_id=None
-    if E and A:
-        def sc(e): return (e.health, min(a.coords.walking_distance_to(e.coords) for a in A))
-        focus_id=min(E,key=sc).id
+    if A:
+        ally_cx=sum(a.coords.x for a in A)/len(A); ally_cy=sum(a.coords.y for a in A)/len(A)
+    if my_home is None and A:
+        sx=sum(a.coords.x for a in A)//len(A); sy=sum(a.coords.y for a in A)//len(A)
+        my_home=Coords(sx,sy)
 def inb(c): return 0<=c.x<MAP_SIZE and 0<=c.y<MAP_SIZE
 def free(s,c):
     if not inb(c) or s.obj_by_coords(c) is not None or planned.get((c.x,c.y)): return False
@@ -38,19 +39,31 @@ def robot(state,unit):
             if best is None or sc>best[0]: best=(sc,d,nc)
         if best: planned[(best[2].x,best[2].y)]=True; return Action.move(best[1])
     adj=adjE(state,unit.coords)
+    # only attack if it's a favorable trade: this enemy is low, or we have >=2 allies also hitting it
     if adj:
-        adj.sort(key=lambda t:(t[1].health,0 if t[1].id==focus_id else 1))
-        return Action.attack(adj[0][0])
-    tgt=state.obj_by_id(focus_id) if focus_id else None
-    nearest=min(E,key=lambda e:unit.coords.walking_distance_to(e.coords))
-    if tgt is None: tgt=nearest
-    elif nearest.coords.walking_distance_to(unit.coords)+4<tgt.coords.walking_distance_to(unit.coords): tgt=nearest
+        adj.sort(key=lambda t:(t[1].health,-cA(t[1].coords)))
+        d,e=adj[0]
+        allies_on=cA(e.coords)
+        # attack if enemy weak OR we outnumber locally
+        if e.health<=2 or allies_on>=1 or len(adj)==1:
+            # but retreat if we're getting ganged (2+ enemies adjacent) and not killing
+            if len(adj)>=2 and e.health>1 and unit.health<=3:
+                for d2 in DIRECTIONS:
+                    nc=unit.coords+d2
+                    if free(state,nc) and cE(nc)<len(adj):
+                        planned[(nc.x,nc.y)]=True; return Action.move(d2)
+            return Action.attack(d)
+    # advance cautiously: only step adjacent to enemy if we won't be outnumbered
+    tgt=min(E,key=lambda e:unit.coords.walking_distance_to(e.coords))
     best=None
     for d in DIRECTIONS:
         nc=unit.coords+d
         if not free(state,nc): continue
+        th=cE(nc); su=cA(nc)
+        if th>su+1: continue  # never overextend
         dist=nc.walking_distance_to(tgt.coords)
-        k=(dist,cE(nc)-cA(nc))
-        if best is None or k<best[0]: best=(k,d,nc)
+        cdist=abs(nc.x-ally_cx)+abs(nc.y-ally_cy)
+        best_key=(dist,th-su,cdist,th)
+        if best is None or best_key<best[0]: best=(best_key,d,nc)
     if best: planned[(best[2].x,best[2].y)]=True; return Action.move(best[1])
     return None

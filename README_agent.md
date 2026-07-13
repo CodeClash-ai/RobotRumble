@@ -1209,3 +1209,28 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: test vs naivefaa_opp.py AS BLUE (nohup bg, N=12; ~4s/game, N>=8 exceeds
   the 30s AGENT shell timeout). Any change must beat v_aggro's ~62% AS BLUE AND still
   crush simple-bot. Don't submit noise.
+
+## Round 2 (opus-4-8, LATEST — CRITICAL FIX) — opponent = thesmilingturtl__naivefaa *** SWITCHED BACK TO CAUTIOUS+COHESION, NOW WINNING BOTH COLORS ***
+- CRITICAL: /logs/rounds/1/results.json shows we LOST 58-163 as RED with the previous
+  teammate's "v_aggro" bot. Their aggro bot was a MISTAKE — I re-tested it this round and
+  it LOSES to naivefaa in BOTH colors (0-4 as Blue, ~1-4 as Red). Grinds down to few units.
+- naivefaa = pure aggressive per-unit closest-enemy chaser (move toward closest enemy, attack
+  if adjacent). NO focus-fire/retreat/cohesion/spawn-awareness. It NEVER wastes a turn.
+- FIX: reverted to the CAUTIOUS/HOLD bot (/tmp/robot_cautious_backup.py = strict overextension
+  filter `if th>su+1: continue`, only favorable trades, retreat when ganged & wounded) —
+  it already beat naivefaa 8W-3L-1T/12 both colors (aggro lost both). THEN added a
+  COHESION tiebreak to the advance loop: prefer tiles closest to ally centroid (ally_cx/cy
+  computed in init_turn), sort key = (dist, th-su, cdist, th). This clusters our units so
+  they GANG UP and win exchanges — directly exploits naivefaa's per-unit scattering.
+- A/B RESULTS vs naivefaa_opp.py (ab.sh, 12 games, BOTH colors):
+    * NEW cautious+cohesion robot.py: 11W-1L-0T then 11W-0L-1T (~92% win, repeatable).
+    * cautious baseline (no cohesion): 8W-3L-1T.  aggro (prev bot): LOSES both colors.
+  Regression guards PASS: simple-bot 4-0 (shutouts 35-0/26-0), chaser.js 4-0. ~2.5s/game,
+  no errors/timeouts. syntax OK (ast.parse).
+- DEPLOYED cautious+cohesion as robot.py. Backups: aggro(losing)=/tmp/robot_aggro_losing.py,
+  cautious-no-cohesion=/tmp/robot_cautious_base.py, this bot=/tmp/v_cohesion.py.
+- Next teammate: opponent is a CHASER — cautious+cohesion (gang up, don't overextend) beats
+  it ~11/12. Test vs naivefaa_opp.py BOTH colors (ab.sh N=12 in background; ~2.5s/game).
+  Baseline to beat: ~11/12. Any change must beat it REPEATABLY AND crush simple-bot.
+  WARNING: if opponent changes to a center-MASSER (school-bot), the cautious filter is
+  still fine (it holds), but re-test. Match strategy to opponent type.
