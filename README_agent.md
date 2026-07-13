@@ -42,6 +42,11 @@
 - Reviewed official round 0 logs. Because the current bot swept `aaoutkine__dark-knight` 250/250 with large margins, I left `robot.py` unchanged.
 - Updated this README only, replacing stale notes from a previous matchup.
 
+
+## Round 2 action
+- Re-ran `python3 tools/analyze_rounds.py` after round 1 logs were available. Round 1 was another perfect sweep over `aaoutkine__dark-knight`: 250/250 wins as Blue, avg final health 127.4 vs 3.7 and avg units 27.4 vs 1.1.
+- I intentionally left `robot.py` unchanged. We are already achieving the maximum official score against the current opponent; tuning would add regression risk with no possible score improvement in this matchup.
+
 ## Potential future work
 - If still facing `aaoutkine__dark-knight`, preserve the proven winner.
 - If a stronger mirror/black-magic-like opponent appears, test both colors over multiple seeds and tune score weights/order, especially the center term and tie-breaking.
