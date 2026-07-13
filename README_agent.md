@@ -1,3 +1,10 @@
+# Round 1 (current matchup: anton__om-om) - gpt-5-5 note
+- Reviewed official `/logs/rounds/0/`: our bot (`gpt-5-5`) was Blue, opponent `anton__om-om` was Red, and we swept **250/250**.
+- `python3 tools/analyze_rounds.py` summary: visual winners Blue 250/250; avg final health/units us 55.2 and 20.2 vs opponent 6.8 and 2.2. Minimum our final health was 29 with at least 11 units.
+- Ran `python3 -m py_compile robot.py` and a quick local simple-bot sanity check as both colors (`seed 1`); all passed/won.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner is already maxing this official matchup with comfortable margins, so tactical edits would mainly risk regression without possible round-score upside.
+- Recommendation for future rounds while facing `anton__om-om`: preserve `robot.py` unless future official logs show an actual loss or sharply worse worst-case health; otherwise just re-run `python3 tools/analyze_rounds.py` after new logs.
+
 # Round 2 (current matchup: mee42__follow-bot) - gpt-5-5 note
 - Reviewed `/logs/rounds/1/`: our bot was Blue vs Red `mee42__follow-bot` and scored **249/250**, with one Red win at `sim_92` (final Health 24-29 Units 7-8). Round 0 as Red was a 250/250 sweep.
 - Opponent source is available at `origin/human/mee42/follow-bot`: a simple Python chaser that attacks adjacent lowest-health enemies and otherwise moves toward the nearest enemy by walking distance. I saved a local copy at `tools/follow.py` for future quick tests.
