@@ -244,3 +244,70 @@ already 100% defeated. `robot.py` is unchanged from `robot_r1_backup.py`.
     ./rumblebot run term --results-only robot.py "$f" 2>&1 | tail -3
   done
   ```
+
+## Round 4 update (this session)
+
+Reviewed `/logs/rounds/0/` and `/logs/rounds/1/` results.json + sim logs:
+our bot (`robot.py`, unchanged since round 1) has won **250-0** both times
+against the real ladder opponent (`happysquid__test`), once as Red
+(23 units vs 1, health 115 vs 3) and once as Blue (27 vs 0, health 135 vs 0
+in a fresh confirmation run). This is a complete, repeated wipeout — there
+is no score headroom left against this specific opponent, and the opponent
+has been the same across all rounds so far.
+
+### Bug found & fixed in the trial-analysis tooling
+Recreated `/tmp/run_trials.sh` (per earlier round's instructions) and
+discovered the **health-diff averaging in this helper (and possibly in
+previous rounds' identical script) had an off-by-one `awk` field bug**:
+`Final state: Health A B Units C D` has "Health" itself as a field, so
+`{print $3}`/`{print $4}` grabbed `"Health"` and `A` instead of `A` and `B`.
+Fixed to `$4`/`$5`. This means **some average-health-diff numbers quoted in
+earlier rounds' notes (round 2/3 sections above) may be wrong/meaningless**
+— though the win/loss/tie counts in those tables were derived from `grep`
+on "Blue won"/"Red won" text, which is unaffected by this bug and should
+still be trustworthy.
+
+### Re-measured variance vs builtin bots (with the fixed script)
+With the corrected script, re-ran larger samples against a couple of
+opponents to sanity-check the claims in earlier rounds:
+- `heuristic-bot.js`, N=8: **6W/2L**, avg health diff +23.5 — consistent
+  with earlier rounds' notes (we're clearly ahead here, though not
+  dominant).
+- `black-magic.js`, N=6: **0W/6L**, avg health diff -37.3 — confirms this
+  remains a real loss matchup (as documented in rounds 2/3), unchanged.
+- `flail.js`: **this one is much less clear-cut than earlier rounds'
+  tables suggested.** Combined over 20 trials (two batches of N=8 and
+  N=12): **8W/10L/2T** — essentially a coin flip, not the "reliable win"
+  (10W/6L or 41-12 health) claimed in round-1/round-2 notes. flail.js moves
+  randomly, so matches against it seem to have very high position-dependent
+  variance (who starts closer to whom, whether our "retreat when
+  outnumbered locally" logic causes us to dodge productive fights, etc).
+  This does **not** matter for the real ladder matchup (happysquid__test is
+  not flail-like and we crush it 250-0 either way), but flagging it here so
+  nobody assumes flail.js is an easy/solved matchup based on older notes —
+  if you rerun any A/B tuning that uses flail.js as a benchmark, use a
+  large N (20+) and don't trust small-sample health-diff numbers from
+  before this fix.
+
+### Decision: no code changes this round (again)
+Same reasoning as rounds 2 and 3: we are already beating the actual
+opponent as decisively as possible (250-0, near-total unit wipeout, twice
+in a row), the opponent has shown no sign of changing strategy, and no
+previously-attempted change (focus-fire experiment, retreat-ratio tuning)
+has shown a clear, statistically solid improvement even against the
+tougher synthetic bots. Given the step budget for this session, I chose to
+spend it on (a) verifying no regressions/timing issues (all builtin-bot
+matches still complete in 1-2s, far under the 60s budget) and (b) fixing
+the measurement tooling bug above so future rounds get accurate signal,
+rather than gambling on an unproven tweak. `robot.py` is byte-identical to
+`robot_r1_backup.py`.
+
+### For future teammates
+- If a future round's real-match result is ever NOT a 250-0 wipeout, that's
+  the signal to revisit strategy (black-magic-style 1-ply lookahead is
+  still the most promising unexplored direction — see round 2 notes).
+- Use the **fixed** `/tmp/run_trials.sh` (field indices `$4`/`$5`, not
+  `$3`/`$4`) if recreating it, and prefer N>=20 for any matchup you plan to
+  make tuning decisions from — variance is high (see flail.js above).
+- `robot_focusfire_experiment.py` remains unused/unadopted; still there if
+  someone wants to revisit it with a bigger, bug-fixed sample.
