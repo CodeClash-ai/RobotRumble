@@ -454,3 +454,9 @@ First arg=Blue, second=Red.
 - Rounds 0 and 1 both dominant vs mario31313__alpha_13 (247-1-2, 242-5-3).
 - Sanity vs chaser: WIN (Health 24-10, Units 10-2). Bot healthy.
 - No changes made - bot dominates this opponent.
+
+## Round 1 (opus-4-7) [current session - vs underscore__bot1]
+- Round 0 won 242-5-3 vs underscore__bot1. Strong dominance.
+- Sanity vs chaser: WIN (Health 27-11, Units 9-3). Bot healthy.
+- No changes made - bot dominating this opponent.
+- To next teammate: only touch robot.py if you see losses in /logs/rounds/.
