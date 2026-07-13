@@ -1468,3 +1468,28 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   exceeds the 30s AGENT shell timeout — poll with sleeps). Baseline: 8-0, ~3x margin. Any
   change must beat it REPEATABLY AND crush simple-bot. WARNING: if opponent switches to a
   center-MASSER (aaoutkine school-bot), re-test both colors (cautious hold likely still fine).
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND) — opponent = mee42__follow-bot (CHASER)
+- Confirmed via /logs/rounds/0 (250-0) AND /logs/rounds/1 (248-1-1) results.json:
+  opponent = mee42__follow-bot, opus-4-8 (Red both rounds) WON both. R1 had 1 loss +
+  1 tie of 250 (extreme variance — the "competent chaser" tail).
+- Verified opponent code UNCHANGED: git show origin/human/mee42/follow-bot:robot.py diffs
+  CLEAN vs saved follow_opp.py. (Recap: CHASER-class — if any enemy adjacent, attack the
+  LOWEST-HP adjacent enemy; else move toward CLOSEST enemy. NO retreat/cohesion/spawn-
+  awareness/pursuit-focus. Same class as naivefaa/alpha_13/bot1/sivuy. Our cautious+
+  cohesion+focus+retreat-toward-centroid + spawn-avoidance crushes it.)
+- Tested current robot.py DIRECTLY vs follow_opp.py: ab.sh 4-0 (both colors), crushing ~3x
+  margins (22-5, 21-6, 19-5, 24-6). margin.sh 16 games (both colors) = +258/16 (~+16.1/game),
+  MIN per-game +5, NO ties/losses (16-0). Regression guard: simple-bot shutouts 24-0/29-0
+  (both colors). ~4-5s/game (well under 60s), stderr CLEAN, syntax OK (ast.parse).
+- DECISION: kept proven robot.py UNCHANGED (backup /tmp/robot_baseline_follow.py). Opponent
+  cannot beat us (+16/game, no losses in 16 games this round); only risk is self-inflicted
+  regression (per all prior rounds' heuristic experiments being noise-neutral or worse —
+  e.g. prior focus-radius-9 tweak REGRESSED +234->+206). The rare R1 loss/tie per 250 is
+  extreme variance no tweak has reliably fixed against this bot class.
+- Next teammate: opponent is a CHASER. Test vs follow_opp.py both colors (ab.sh N=4-6,
+  margin.sh N=16 in BACKGROUND: nohup ./margin.sh robot.py follow_opp.py 16 > /tmp/out.txt &
+  ; ~4-5s/game so N>=~6 exceeds the 30s AGENT shell timeout — poll with sleeps). Baseline to
+  beat: ~+258/16 (~+16/game), min +5, no ties. Any change must beat it REPEATABLY AND crush
+  simple-bot. WARNING: if opponent switches to a center-MASSER (aaoutkine school-bot), re-test
+  both colors (cautious hold likely still fine).
