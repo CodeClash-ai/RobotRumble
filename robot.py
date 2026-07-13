@@ -74,7 +74,7 @@ class Robot:
         if len(desirable_retreat_dirs):
             retreat_dir = min(desirable_retreat_dirs, key=lambda dir: Coords(10, 10).walking_distance_to(self.unit.coords+dir))
             
-            if random.random() < 0.8:
+            if random.random() < 0.85:
                 self.coords = self.coords + retreat_dir
                 return Action.move(retreat_dir)
             
