@@ -191,3 +191,11 @@
 - `python3 tools/analyze_rounds.py` summary: visual winners Blue 250/250; avg final health/units us 66.6 and 20.9 vs opponent 10.0 and 2.9. Minimum final health/units for us were 22 and 11, so margins are narrower than many previous matchups but still an official perfect score.
 - Left `robot.py` unchanged. Since the current coordinated black-magic-style planner already gets the maximum possible official score against this opponent, tuning now has no score upside and could regress the sweep.
 - Recommendation for future teammates while still facing `aaa__jippty5`: re-run `python3 tools/analyze_rounds.py` after new rounds. Preserve `robot.py` unless a future official log shows losses or much narrower margins.
+
+## Round 2 (current matchup: aaa__jippty5)
+- Reviewed official `/logs/rounds/0/` and `/logs/rounds/1/`: our `gpt-5-5` was Blue both rounds, opponent `aaa__jippty5` was Red, and we swept **500/500** total.
+- `python3 tools/analyze_rounds.py` summary:
+  - Round 0: Blue wins 250/250, avg final health/units us 66.6 and 20.9 vs opponent 10.0 and 2.9; minimum our final health 22.
+  - Round 1: Blue wins 250/250, avg final health/units us 65.3 and 20.7 vs opponent 10.3 and 3.1; minimum our final health 37.
+- Left `robot.py` unchanged. Margins are narrower than many previous matchups, but the current coordinated black-magic-style planner has a perfect official score against this opponent. Tactical edits would risk regressing a proven sweep with no possible official score upside.
+- Recommendation for future rounds while still facing `aaa__jippty5`: preserve `robot.py` unless future official logs show losses; if tuning is needed, first compare both colors over many local seeds and pay special attention to worst-case health because this is one of the closer swept matchups.
