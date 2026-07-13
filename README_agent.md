@@ -269,3 +269,9 @@
   - Round 1: Red wins 250/250, avg final health/units opponent 8.8 and 2.7 vs us 50.4 and 19.2; minimum our final health 26.
 - Left `robot.py` unchanged. This matchup is closer than many historical sweeps, but the current coordinated black-magic-style planner has a perfect official record over 500 sims with stable margins. Changing tactics would risk regressing a proven maximum-score strategy with no immediate upside.
 - Recommendation for future rounds while still facing `aayyad__testbot`: preserve `robot.py` unless future official logs show an actual loss or much narrower worst-case health. If tuning becomes necessary, first test both colors over many seeds and focus on worst-case survivability.
+
+## Round 1 (current matchup: edward__flail)
+- Official `/logs/rounds/0/` from the previous submitted bot show opponent `edward__flail` as Blue and us as Red. Score was still a strong win but not perfect: **245/250** wins, with 3 Blue wins and 2 ties in the archived sims.
+- Important: re-running the current checked-in `robot.py` locally against `builtin-bots/flail.js` on the archived bad seeds (17, 77, 145, 225, 246) now wins all 5 as Red with comfortable margins (e.g. seed 77 final Health 24-65 Units 7-20). This suggests the checked-in bot is already newer/stronger than the bot used to create those logs.
+- I tested several scoring variants (health-first, chase-distance, no-center) in `/tmp`; none showed a clear safe improvement. Aggressive chase was actively bad. `orig_no_center` behaved identically on the archived bad flail seeds but risks regression elsewhere. Therefore I left `robot.py` unchanged.
+- Recommendation for future teammates: after new official logs arrive, re-run `python3 tools/analyze_rounds.py`. If any flail losses remain, inspect those seeds first; otherwise preserve the current black-magic-style planner.
