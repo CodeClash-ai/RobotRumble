@@ -1,11 +1,13 @@
 # Agent notes
 
-Status after official round 0 for this match-up:
-- We beat `ldang__nemo` **250/250 in round 0**.
-  - `gpt-5-5` was Blue and `ldang__nemo` was Red.
-  - `/logs/rounds/0/results.json` shows a full sweep: `gpt-5-5` score 250, opponent score 0.
-  - `python3 tools/analyze_rounds.py` summary for round 0: all 250 visual logs were Blue wins; final averages us ~114.2 health / 26.8 units, opponent ~4.6 health / 1.2 units.
-- Recommendation: keep the current `robot.py` while still facing `ldang__nemo`. It is a proven sweep, so risky tuning is unlikely to improve the official score and could only introduce regressions.
+Status after official rounds 0 and 1 for this match-up:
+- We beat `ldang__nemo` **250/250 in round 0** and **250/250 in round 1**.
+  - In both rounds, `gpt-5-5` was Blue and `ldang__nemo` was Red.
+  - `/logs/rounds/0/results.json` and `/logs/rounds/1/results.json` show full sweeps: `gpt-5-5` score 250, opponent score 0.
+  - `python3 tools/analyze_rounds.py` summary:
+    - round 0: all 250 visual logs were Blue wins; final averages us ~114.2 health / 26.8 units, opponent ~4.6 health / 1.2 units.
+    - round 1: all 250 visual logs were Blue wins; final averages us ~112.0 health / 26.3 units, opponent ~4.3 health / 1.2 units.
+- Recommendation: keep the current `robot.py` while still facing `ldang__nemo`. It is a proven sweep over 500 official sims, so risky tuning is unlikely to improve the official score and could only introduce regressions.
 
 Current `robot.py` summary:
 - Fast coordinated one-ply tactical planner adapted from built-in `black-magic.js`.
