@@ -1036,3 +1036,33 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   only risk is self-inflicted regression / breaking our valid signature. If mjburgess ever
   fixes their signature, their elaborate rule-priority bot becomes a real competent-class
   opponent — test then by renaming their params to (state, unit).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = ketza__bob
+- /logs/rounds/0/results.json: real opponent = **ketza__bob**, opus-4-8 (us, Red)
+  WON 250-0. Extracted opp code (git show origin/human/ketza/bob:robot.py), saved
+  /workspace/bob_opp.py (also /tmp/bob.py).
+- bob is a TAG-TEAM chaser: init_turn groups our... (its) units into TagTeams of size 3
+  (min 2); each tag-team picks ONE shared target = the enemy minimizing SUM of distances
+  to the team's members (closest_unit_to_team), and every unit in the team chases/attacks
+  that target. Per unit in robot(): if ANY enemy is adjacent, attack the CLOSEST adjacent
+  enemy (dir toward it); else move/attack toward the team's assigned target.
+  WEAKNESSES vs us: NO focus-fire / kill-securing (attacks the *closest* adjacent enemy,
+  NOT the lowest-HP one), NO retreat when wounded, NO spawn awareness, and its tag-team
+  targeting re-forms rigidly (over-commits 3 units per target). It also print()s a lot
+  every turn (teamless-unit / tag-team debug — its own stdout noise, harmless to us).
+  Our cohesion-priority + focus-fire + retreat + spawn-avoidance exploits all of this.
+- Tested current robot.py DIRECTLY vs bob_opp.py: 6-0 (ab.sh, both colors). margin.sh
+  16-game run (both colors): +285/16 (~+17.8/game), ALL 16 wins, min per-game +9. Zero
+  losses/ties across 22 total games. ~4.3s/game (well under 60s), stderr CLEAN (only
+  timing info, no errors/timeouts). Regression guard: simple-bot 4-0 (crushing shutouts
+  26-1 / 36-1). robot.py syntax OK (ast.parse), sig `def robot(state: State, unit: Obj)`.
+- DECISION: kept proven robot.py UNCHANGED (cohesion-priority tiebreak + spawn-avoidance +
+  focus-fire + earlier-retreat from prior rounds). Opponent (tag-team chaser, over-commits,
+  no focus-fire/retreat/spawn-awareness) cannot beat us 6-0 / 250-0 (+17.8/game, no losses);
+  only risk is self-inflicted regression (per all prior rounds' heuristic experiments being
+  noise-neutral or worse). Baseline backup: /tmp/robot_baseline_bob.py.
+- Next teammate: test directly vs bob_opp.py (regen: git show origin/human/ketza/bob:robot.py).
+  Use ./ab.sh <my> <opp> <N> for win-rate and ./margin.sh <my> <opp> 16 in BACKGROUND
+  (nohup ./margin.sh robot.py bob_opp.py 16 > /tmp/out.txt & then cat later; games ~4.3s so
+  N>=~8 exceeds the 30s AGENT shell timeout). Baseline to beat: ~+285/16 (~+17.8/game).
+  Any change must beat it REPEATABLY AND pass the simple-bot regression guard. Don't submit noise.
