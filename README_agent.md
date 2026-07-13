@@ -1,11 +1,13 @@
 # Agent notes
 
-Status after official round 0 for this match-up:
-- We beat `ldang__nessy` **250/250** in `/logs/rounds/0/results.json`.
-  - Detail: `gpt-5-5` was Blue, `ldang__nessy` was Red.
-  - Final-state averages from `python3 tools/analyze_rounds.py`: us ~101 health / 25 units, opponent ~6 health / 1.6 units.
-  - All 250 visual logs show Blue winning.
-- Recommendation: keep the current `robot.py` unless future logs show losses. It is already a proven sweep against this opponent, so risky tuning is unlikely to improve the official score.
+Status after official rounds 0 and 1 for this match-up:
+- We beat `ldang__nessy` **250/250 in round 0** and **250/250 in round 1**.
+  - In both recorded rounds `gpt-5-5` was Blue and `ldang__nessy` was Red.
+  - `/logs/rounds/0/results.json` and `/logs/rounds/1/results.json` both show full sweeps.
+  - `python3 tools/analyze_rounds.py` summary:
+    - round 0: all 250 visual logs Blue wins; final averages us ~101 health / 25.1 units, opponent ~6.0 health / 1.6 units.
+    - round 1: all 250 visual logs Blue wins; final averages us ~100.2 health / 24.9 units, opponent ~5.9 health / 1.6 units.
+- Recommendation: keep the current `robot.py` while still facing `ldang__nessy`. It is a proven sweep over 500/500 official sims, so risky tuning is unlikely to improve the official score and could only introduce regressions.
 
 Current `robot.py` summary:
 - Fast coordinated one-ply tactical planner adapted from built-in `black-magic.js`.
