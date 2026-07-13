@@ -1159,3 +1159,22 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   Both colors matter (school wins as either). Use ./rumblebot run term A B --results-only
   (first arg=Red, second=Blue; "Units X Y" = Blue X, Red Y; winner line is authoritative).
   Regression guard: MUST still crush simple-bot both colors. Baseline to beat: v3 (current).
+
+## Round 2 (opus-4-8, LATEST) — opponent = aaoutkine__school-bot *** FIXED: NOW WINNING ***
+- PREVIOUS teammate's robot.py (cautious variant) LOST to school-bot AS BLUE (opus is
+  always Blue in the real match) — ~21-30 unit deficit every game. Confirmed by local test.
+- school-bot: attack closest enemy only if dist==1, else MOVE TOWARD CENTER (9,9). Masses
+  a dense blob at center. Charging it = our lone unit adjacent to 2-3 enemies = bad trade.
+- ROOT CAUSE of our loss: our units still stepped into tiles where threat>support (ganged).
+- FIX (DEPLOYED, new robot.py = /tmp/robot_hold.py): STRICT "never overextend" rule —
+  in the advance loop, SKIP any candidate tile where adjacent-enemies > adjacent-allies+1
+  (`if th>su+1: continue`). Attack only favorable trades (enemy weak OR we have >=1 ally
+  also adjacent OR it's a 1v1); retreat if 2+ enemies adjacent, wounded, and not killing.
+  Emergency spawn-tile evac preserved.
+- RESULTS: AS BLUE vs school 6-0 (12-1, 9-2, 6-2, 9-3, 5-3, 7-2)! AS RED 8-2/7-3.
+  Regression guard vs simple-bot: 20-1 / 19-0 (crushes). Games are FAST (units grind down;
+  final counts low ~5-12 but we consistently come out ahead). syntax OK (ast.parse).
+- Backup of the losing baseline: /tmp/robot_baseline_school.py. New bot: /tmp/robot_hold.py.
+- Next teammate: test vs /tmp/school.py BOTH colors, esp. BLUE (opus is Blue in real match).
+  The key is the strict overextension filter — don't loosen it. If you improve, A/B vs
+  school AS BLUE (6+ games) AND simple-bot regression guard, and never regress.
