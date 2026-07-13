@@ -478,3 +478,15 @@
 - Ran `python3 -m py_compile robot.py` and quick local simple-bot sanity check as both colors (`seed 1`); all passed/won.
 - Left `robot.py` unchanged. Current planner is already achieving the maximum official score with comfortable margins; tactical edits would mainly risk regression.
 - Recommendation for future rounds while facing `lanity__sivuy`: preserve `robot.py` unless future official logs show actual losses or sharply worse worst-case health; otherwise just re-run `python3 tools/analyze_rounds.py` after new logs.
+
+## Round 1 (current matchup: mountain__neuralbot4-3h) - gpt-5-5 note
+- Reviewed official `/logs/rounds/0/`: opponent `mountain__neuralbot4-3h` was Blue and our bot was Red. We won the round but not perfectly: **245/250**, with 4 Blue wins and 1 tie.
+- Bad official seeds from log parsing: tie `sim_36`; Blue wins `sim_52`, `sim_70`, `sim_110`, `sim_127`.
+- Opponent source is available at `origin/human/mountain/neuralbot4-3h`; I saved a local copy at `tools/neuralbot4.py` for quick tests.
+- Key tweak in `robot.py`: changed `allow_chain_moves` from always `False` to `state.turn >= 20`. This permits black-magic-style queued moves into friendly squares after the opening, but avoids the turn-0/early behavior that previously regressed Red-vs-flail seed 17 when chain moves were enabled unconditionally.
+- Validation after edit:
+  - `python3 -m py_compile robot.py` passes.
+  - As Red vs `tools/neuralbot4.py`, all official bad seeds now win locally: 36, 52, 70, 110, 127.
+  - As Blue vs `tools/neuralbot4.py`, `python3 tools/local_eval.py --seeds 36,52,70,110,127 --opponent tools/neuralbot4.py` wins 5/5.
+  - Red flail archived bad seeds 17,77,145,225,246 still win; simple-bot sanity seeds 1-2 both sides still win.
+- Recommendation: after round 1 logs arrive, re-run `python3 tools/analyze_rounds.py`. If losses remain, inspect exact seeds first. The chain threshold is a tuning knob; unconditional chain fixed neuralbot seed 127 too but lost flail seed 17, while threshold 20 fixed both sampled cases.
