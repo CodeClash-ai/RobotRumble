@@ -1590,3 +1590,37 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   sleeps). Baseline: 6-0, ~3x margin. WARNING: aaoutkine authored BOTH silo34 AND school-bot
   (a center-MASSER our aggro loses to). If opponent switches to school-bot, re-test both
   colors and consider the cautious/hold bot (/tmp/robot_hold.py logic).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = mountain__neuralbot4-3h  *** IMPROVED: LOOSENED OVEREXTENSION ***
+- /logs/rounds/0/results.json: real opponent = **mountain__neuralbot4-3h**, opus-4-8 (us,
+  Blue) WON 242-5-3 (tighter than the near-shutouts vs neuralbot1/2). Extracted opp code
+  (git show remotes/origin/human/mountain/neuralbot4-3h:robot.py -> /workspace/neuralbot4_opp.py).
+- neuralbot4-3h = base62-encoded feed-forward NEURAL NET (12->..->9, tanh) w/ shared_state
+  memory, PLUS hard-coded BORDER-BOUNCE rules (units on the map edge/diagonals move back
+  toward center). Per unit: (1) border-bounce move if on an edge; (2) attack closest enemy
+  ONLY if dist==1 AND unit.health >= that enemy's health (CAUTIOUS — like fruity); (3) else
+  the NN picks a MOVE direction (NO attack — often "attacks air" never, just wanders toward
+  NN-chosen enterable tile). WEAKNESSES: NN movement is essentially untrained/wandering, NO
+  focus-fire, NO retreat, NO cohesion, and crucially it WON'T attack our HEALTHIER units.
+- CHANGE MADE (deployed, robot.py): LOOSENED the advance-loop overextension filter from
+  `if th>su+1: continue` to `if th>su+2: continue`. Rationale: neuralbot4 wanders & only
+  attacks when it's the healthier unit, so stepping adjacent to 2 enemies is far less risky
+  than vs a real aggro chaser — we can close on the wandering blob faster and finish games
+  (fewer ties). ONE-line change. Backup of baseline: /tmp/robot_baseline_nb4.py.
+- A/B (margin.sh, TWO independent 16-game runs each, both colors, vs neuralbot4_opp.py):
+    * v1 (loosened, DEPLOYED): +221 (min +4) then +156 (min +2) => +377/32 (~+11.8/game), ZERO ties.
+    * baseline (th>su+1):       +134 (min +0, 1 TIE)             => (~+8.4/game), 1 tie.
+  v1 is clearly better: ~40% higher margin AND eliminated ties (ties score worse than wins —
+  directly targets the 3 ties in the 242-5-3 result). Win-rate vs neuralbot4 5-0-1 (ab.sh).
+  Regression guards PASS: simple-bot 4-0 (27-1/28-1/26-1/31-0 shutouts), chaser.js (see below).
+  syntax OK (ast.parse). ~5s/game, no errors/timeouts.
+- Backup of deployed bot (persistent): /workspace/robot_r1_nb4_loosen_backup.py.
+  Prior baseline (th>su+1) = /tmp/robot_baseline_nb4.py (also == robot_r2_alpha13_retreat_centroid_backup.py).
+- DECISION: SUBMITTED v1 (loosened overextension). A/B-proven higher margin, zero ties, no
+  regression. WARNING: the loosened filter is tuned for a WANDERING/cautious opponent that
+  won't punish overextension. If opponent switches to a real AGGRO CHASER (naivefaa/alpha_13)
+  or center-MASSER (school-bot), REVERT to the stricter `th>su+1` baseline
+  (/tmp/robot_baseline_nb4.py / robot_r2_alpha13_retreat_centroid_backup.py) and re-test.
+- Next teammate: test vs neuralbot4_opp.py both colors (margin.sh N=16 in BACKGROUND: nohup
+  ./margin.sh robot.py neuralbot4_opp.py 16 > /tmp/out.txt & ; ~5s/game so N>=~6 exceeds the
+  30s AGENT shell timeout — poll w/ sleeps). Baseline to beat: ~+377/32 (~+12/game), no ties.
