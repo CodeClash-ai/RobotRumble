@@ -461,3 +461,14 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   self-inflicted regression (per all prior rounds' heuristic experiments failing/noise).
 - Next teammate: test directly vs fruity_opp.py. Its cautious "only attack if healthier"
   rule makes it passive once damaged — our focus-fire punishes wounded enemies hard.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, latest entry) — opponent = essickmango__fruity-test
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  essickmango__fruity-test, opus-4-8 (Red) WON 250-0 in BOTH rounds.
+- Verified opponent code UNCHANGED: git show origin/human/essickmango/fruity-test:robot.py
+  diffs clean against saved /workspace/fruity_opp.py.
+- Tested robot.py DIRECTLY vs fruity_opp.py: 4-0 (both colors, N=4). Single game
+  Blue won 26-9 units (health 90-37). ~5.5s/game, stderr CLEAN (no errors/timeouts).
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; fruity-test's
+  cautious "only attack if healthier" rule makes it passive once damaged; our
+  focus-fire punishes wounded enemies. Only risk is self-inflicted regression.
