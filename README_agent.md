@@ -99,3 +99,83 @@ happened in competitive play (e.g. `/logs/rounds/0/` showed the old bot's
 
 `robot_old_backup.py` is kept in the repo root for reference/diffing; feel
 free to delete once no longer useful.
+
+## Round 2 update
+
+Round 1 result: **sonnet-5 won 250-0** against the real opponent
+(`anton__anton3000`) — see `/logs/rounds/1/results.json` and
+`/logs/rounds/1/sim_*.txt` (final state was Health 0(them) vs 85(us),
+Units 0 vs 17 — a total wipeout). The "group brawler" bot described above
+is working very well against the actual competitive opponent.
+
+This round I experimented with adding a **shared "focus fire" target**
+(computed once per turn in `init_turn`, cached in `_turn_cache`, biasing
+all units' advance direction towards whichever enemy is weakest / already
+has the most allies converging on it — not just each unit's own nearest
+enemy) on top of the existing retreat/attack logic. Idea: make our own
+units gang up the way `black-magic.js` gangs up on us (it always has each
+enemy attack whichever adjacent ally has the lowest health, and its scoring
+function explicitly rewards "surround").
+
+**Result: inconclusive / slightly worse, not adopted.** I A/B tested the
+experimental version (saved as `robot_focusfire_experiment.py`, NOT the
+active `robot.py`) against the proven round-1 bot using
+`/tmp/run_trials.sh <bot> <opponent.js> <N>` (recreate this script if it's
+gone — it's just a loop calling `./rumblebot run term --results-only` and
+parsing the `Final state: Health A B Units C D` line; A/B are Blue/Red
+health). With N=6 trials per matchup (small sample, high variance —
+starting positions/board seed differ each run, so treat this as a rough
+signal, not gospel):
+
+| Opponent | old bot (r1) avg health diff | focus-fire experiment avg health diff |
+|---|---|---|
+| flail.js         | +13 (4W/2L)  | +12 (4W/2L) — basically a wash |
+| heuristic-bot.js | +18 (5W/1L)  | +14 (3W/2L/1T) — old bot looked better |
+| black-magic.js   | -33 (0W/6L)  | -40 (0W/6L) — old bot looked (slightly) better |
+
+Given the extra complexity and no clear win, I **reverted `robot.py` back
+to the exact round-1 version** (identical to `robot_r1_backup.py`) rather
+than risk a regression. The focus-fire code is preserved in
+`robot_focusfire_experiment.py` in case a future teammate wants to pick it
+up, debug/tune it further (e.g. `FOCUS_ALLY_WEIGHT`, `FOCUS_HEALTH_WEIGHT`,
+`FOCUS_SCAN_RADIUS`, or the "don't bias if focus target is >3 tiles further
+than nearest enemy" heuristic — all currently pretty arbitrary/untuned), or
+run a much larger N to get a statistically meaningful comparison (N=6 is
+really not enough given how much variance there is even for the *same*
+bot/opponent pair — see the flail.js numbers in the previous round's table
+in this same file, which don't match what I measured this round for the
+supposedly-identical old bot).
+
+**Still unresolved from round 1**: both the shipped bot and the focus-fire
+experiment lose consistently to `black-magic.js` (a real 1-ply hill-climbing
+lookahead bot, see `builtin-bots/black-magic.js`) and are inconsistent
+against `heuristic-bot.js`. Since we're crushing the *actual* human/agent
+opponent (`anton__anton3000`) 250-0, this may not matter competitively, but
+if a future opponent plays more like black-magic.js, it's worth another
+serious look. Ideas if you pick this up:
+- Implement a real (even shallow, 1-ply) lookahead like black-magic.js does:
+  for each unit try all legal actions, simulate the immediate result
+  (including "what would enemies adjacent to us do"), and score with
+  something like unit-count-diff + health-diff + surround-diff, taking the
+  best-scoring action greedily per unit. This is a bigger rewrite than the
+  focus-fire tweak and would need careful testing (also watch the 60s time
+  budget — with up to ~20-25 units per side this could get slow if not
+  careful, e.g. avoid recomputing the same simulated board per unit from
+  scratch if possible, or cap the number of enemies/allies considered per
+  simulation).
+- Rerun the A/B script above with N=20+ per matchup to get real signal
+  before adopting any change — 6 trials was not enough this round given
+  time constraints (30-step budget).
+
+### Tools left in the repo
+- `robot.py` — active bot, currently == `robot_r1_backup.py` (round-1
+  winning version, unchanged this round).
+- `robot_r1_backup.py` — explicit copy of the round-1 winning bot, kept as
+  a stable reference/baseline to A/B test against.
+- `robot_focusfire_experiment.py` — this round's untried/inconclusive
+  focus-fire variant, not currently used, but may be worth iterating on.
+- `robot_old_backup.py` — the original (broken, "never moves") bot from
+  before round 1, kept for historical reference only.
+- Recreate `/tmp/run_trials.sh` (see above) if you want quick win/loss +
+  average-health-diff stats over N trials instead of eyeballing single-game
+  terminal output.
