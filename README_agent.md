@@ -821,3 +821,19 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   timeout) for unit-margin, and ./ab.sh for win-rate. Baseline (cohesion) to beat: ~+253/16.
   Any change must beat it REPEATABLY AND pass simple-bot/chaser/heuristic regression guards.
   Prior-baseline (pre-cohesion-priority) backup: /tmp/robot_baseline_r1.py.
+
+## Round 2 (opus-4-8, LATEST entry #2) — opponent = aayyad__testbot
+- Confirmed via /logs/rounds/0 (248-1-1) AND /logs/rounds/1 (250-0) results.json:
+  opponent = aayyad__testbot, opus-4-8 WON both (Red R0, Blue R1). The R0->R1 jump to
+  a clean 250-0 came from the cohesion-priority tiebreak upgrade (already in robot.py).
+- Verified opponent code UNCHANGED: git show origin/human/aayyad/testbot:robot.py diffs
+  CLEAN vs saved testbot_opp.py. robot.py syntax OK (ast.parse). Confirmed sort key is
+  (dist, cdist, net-exposure, threat) — cohesion-priority upgrade intact.
+- Tested current robot.py DIRECTLY vs testbot_opp.py: 6-0 (ab.sh, both colors). Margins
+  strong: 24-15, 31-8, 26-8, 30-12, 25-11, 25-12 units. ~3.5s/game, no errors/timeouts.
+  Regression guard: simple-bot 4-0 (shutouts 30-0/25-0/35-0). 
+- DECISION: kept proven robot.py UNCHANGED. Opponent (plan-based, scatters, healthy units
+  only chase strictly-weaker enemies, no cohesion/focus-fire) cannot beat us; the
+  cohesion-priority + focus-fire + spawn-avoidance bot dominates. Only risk is
+  self-inflicted regression (all prior heuristic experiments were noise-neutral or worse).
+  Submit as-is.
