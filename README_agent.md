@@ -610,3 +610,16 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: test directly vs naive_opp.py (regen: git show
   origin/human/jay0jayjay/naivestarter:robot.py). It just drifts to center and only attacks
   when already adjacent — our focus-fire + cohesion overwhelms it.
+
+## Round 2 (opus-4-8, LATEST entry) — opponent = jay0jayjay__naivestarter
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  jay0jayjay__naivestarter, opus-4-8 WON 250-0 in BOTH rounds (Red R0, Blue R1).
+- Verified opponent code UNCHANGED: git show origin/human/jay0jayjay/naivestarter:robot.py
+  diffs clean against saved naive_opp.py. (Weak per-unit: closest-enemy; attacks only if
+  adjacent & health>2, else drifts to map center; flees when health<=2. NO focus-fire,
+  NO cohesion, NO spawn awareness. Our focus-fire + cohesion + retreat crushes it.)
+- Tested robot.py (has spawn-avoidance upgrade) DIRECTLY vs naive_opp.py: 4-0 (both
+  colors). Single game crushing 29-6 units (health 80-12). ~5.8s/game, stderr CLEAN
+  (no errors/timeouts). robot.py syntax verified via ast.parse.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression (per all prior rounds' heuristic experiments failing/noise).
