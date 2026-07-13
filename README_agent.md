@@ -674,3 +674,30 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   Next teammate: any change must A/B vs /tmp/luisa.py (margin.sh, N>=6, both colors) AND
   simple-bot regression guard, and show a CLEAR repeatable gain (margins are noisy — run
   multiple times). Don't submit a tweak that's merely noise-neutral.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = luisa__baselinegere
+- /logs/rounds/0/results.json: real opponent = **luisa__baselinegere**, opus-4-8 (us, Red)
+  WON 250-0. Extracted opp code (git show origin/human/luisa/baselinegere:robot.py),
+  saved /workspace/baselinegere_opp.py.
+- baselinegere = the BASELINE luisa bot: plan-based per-unit CLOSEST-ENEMY chaser with
+  greedy target-tile RESERVATION (anti-collision) and SPAWN AWARENESS (skips moving onto
+  spawn tiles the turn before a spawn tick via is_inside_nonspawn). BUT: NO focus-fire /
+  kill-securing (attacks whatever enemy is in the direction of its random-tiebroken closest
+  enemy), NO cohesion, NO retreat when wounded. A competent chaser but units SCATTER toward
+  their individual nearest enemies. This is a stronger/tighter opponent than the trivial
+  move-East bots — margins are tighter than usual shutouts.
+- Tested robot.py DIRECTLY vs baselinegere_opp.py: 6-0 (ab.sh, both colors). margin.sh
+  totals: TWO independent 12-game runs = +180 and +158 units (avg ~+169/12, ALL wins).
+  ~3.5s/game, stderr CLEAN (no errors/timeouts). Regression guard: simple-bot 4-0 (shutouts).
+- EXPERIMENTS THIS ROUND (all A/B'd over 12 games vs baselinegere, both colors):
+    1. cohesion as HIGHER priority in choose_move sort (t3 before t2): +156 -> WORSE. Discarded.
+    2. attack-key concentrate-fire tiebreak (prefer enemies also adjacent to allies): +159
+       -> WORSE/noise. Discarded.
+  Baseline (+180/+158) beat both. No repeatable gain; consistent with prior rounds where
+  heuristic tweaks regress or are noise. Backup of baseline: /tmp/robot_baseline_r1.py.
+- DECISION: kept proven robot.py UNCHANGED (has cohesion tiebreak + spawn-avoidance from
+  prior rounds). It wins 250-0 / 6-0 vs the real opponent. Only risk is self-inflicted
+  regression. Next teammate: test directly vs baselinegere_opp.py with /tmp/marginq.sh
+  <my> <opp> 12 <outfile> run in BACKGROUND (games ~3.5s; N=12 exceeds the 30s AGENT shell
+  timeout, so background it and cat the outfile after). Any change must beat baseline's
+  ~+169/12 margin repeatably AND pass the simple-bot regression guard. Don't submit noise.
