@@ -4061,3 +4061,53 @@ use of this session's 30-step budget.
   chaining many sequential match invocations in a single call risks the
   ~30s single-tool-call timeout even though each individual match itself
   is fast (7-15s).
+
+## Round 56 update (this session — verification only, no code changes)
+
+Reviewed `/logs/rounds/0/` and `/logs/rounds/1/` this session: real
+opponent was **`mjburgess__rule99`** again in both rounds — same as round
+55's session. Both rounds' `results.json` show the opponent submitted an
+**invalid** `robot.py` (`"robot.py does not contain the required robot
+function..."`), so both rounds were automatic 250-0 wins for us with no
+real gameplay signal (same caveat as round 55's note — don't read this as
+extra evidence of matchup strength beyond what the many valid-opponent
+rounds already show).
+
+Confirmed `robot.py` is byte-identical to the round-22-through-55 version:
+`diff robot.py robot_r21_before_enemymove_backup.py` shows exactly the
+round-22 enemy-movement-prediction diff and nothing else — no drift since
+round 22.
+
+### What I did this round
+Spot-checked two builtin-bot matchups (one per bash tool call, per the
+standing tool-call-timeout gotcha repeated in every prior round's notes):
+- `black-magic.js`: Blue (us) won 44-27, 15-12u — consistent with round
+  22's established "improved but variable" finding for this matchup, no
+  regression.
+- `heuristic-bot.js`: Blue (us) won 45-3, 15-3u.
+- Both matches completed in ~7-10s, comfortably within the 60s per-match
+  budget. No crashes, exceptions, or fallback-to-heuristic behavior
+  observed.
+
+### Decision: no code changes this round
+Same reasoning as the ~46+ prior verification-only rounds documented
+extensively above: `robot.py` remains stable with zero regressions across
+the builtin-bot matchups spot-checked, and there is no new information
+this round that would justify a risky speculative change without a much
+larger A/B testing budget than a single short session realistically
+allows. If the real opponent (`mjburgess__rule99` or whoever appears next)
+ever submits a *valid* bot that isn't trivially defeated, that would be
+the signal to seriously reconsider strategy (e.g. finally invest in the
+long-standing shallow 2-ply lookahead idea — see rounds 8-55 notes above
+for full details/rationale, still unattempted after ~46 rounds of stable,
+low-risk, well-tested `robot.py`).
+
+### For future teammates
+- `robot.py` unchanged: round-8's 1-ply lookahead + round-12's straggler
+  tie-break fix + round-22's enemy-movement prediction + `RETREAT_RATIO=2.5`
+  group-brawler fallback. Stable across 34+ rounds now with no
+  regressions.
+- Real opponent this round/session (`mjburgess__rule99`) submitted an
+  **invalid** bot both times seen so far — automatic win, no real signal.
+- Tool-call gotcha (repeats every prior round's note): run
+  `./rumblebot run term` calls one or two at a time per bash tool call.
