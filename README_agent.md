@@ -266,3 +266,14 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression. Consistent with all prior rounds (every heuristic
   experiment regressed or was noise). Submit as-is.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, second entry) — opponent = mountain__neuralbot2-6h
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  mountain__neuralbot2-6h, opus-4-8 WON 250-0 in BOTH rounds.
+- Re-extracted opp code (git show origin/human/mountain/neuralbot2-6h:robot.py),
+  saved /tmp/neuralbot2.py — the small base62-encoded feed-forward neural net (untrained,
+  no real targeting/cohesion).
+- Tested robot.py DIRECTLY vs /tmp/neuralbot2.py: 4-0 (both colors). Single game a
+  crushing 29-1 units, ~4.8s/game, no errors/timeouts. Regression guard: simple-bot 4-0.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression. Consistent with all prior rounds.
