@@ -1178,3 +1178,34 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: test vs /tmp/school.py BOTH colors, esp. BLUE (opus is Blue in real match).
   The key is the strict overextension filter — don't loosen it. If you improve, A/B vs
   school AS BLUE (6+ games) AND simple-bot regression guard, and never regress.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = thesmilingturtl__naivefaa *** SWITCHED TO AGGRO ***
+- /logs/rounds/0/results.json: opponent = **thesmilingturtl__naivefaa**, opus was BLUE,
+  we WON only 172-45-33 (TIGHT — 45 losses, 33 ties of 250). Extracted opp code
+  (git show origin/human/thesmilingturtl/naivefaa:robot.py -> /workspace/naivefaa_opp.py):
+      target = closest enemy; if dist>1 move toward it else attack toward it.
+  A PURE AGGRESSIVE CHASER (per-unit closest-enemy pursue+attack). NO focus-fire, NO
+  retreat, NO cohesion, NO spawn awareness. It NEVER wastes a turn (always advancing/hitting).
+- *** KEY FINDING: the inherited "cautious/hold" robot.py (strict overextension filter +
+  retreat) was LOSING to naivefaa AS BLUE (3W-5L of 8)! ***  The cautious/retreat approach
+  UNDER-ENGAGES vs a pure chaser: retreating wounded units just gets them chased & hit
+  anyway, and refusing to engage cedes tempo. Old aggressive r1_backup.py was even worse
+  (0-8). A focus-fire+retreat variant (v_focus) was WORST (1-11).
+- *** FIX DEPLOYED (new robot.py = /tmp/v_aggro.py): PURE AGGRO + FOCUS-FIRE, NO RETREAT,
+  NO cautious filter. *** init_turn picks global focus_id = lowest-HP enemy nearest our
+  team. Each unit: (1) spawn-tile evac before spawn tick; (2) if adjacent enemy, ATTACK
+  lowest-HP (focus_id tiebreak); (3) else ADVANCE toward focus target (nearest if much
+  closer), tiebreak by (dist, enemy_adj - ally_adj). NO overextension skip, NO retreat.
+- A/B vs naivefaa_opp.py AS BLUE (real match color), two 12-game bg runs:
+    * v_aggro (NEW robot.py): run1 5W-4L-3T, run2 10W-2L-0T  => ~15-6-3 (~62% win).
+    * cautious (old robot.py): 3W-5L of 8 (~37%). CLEAR improvement.
+  Regression guard: v_aggro CRUSHES simple-bot both colors (26-1, 22-1). syntax OK.
+- Backups: old cautious bot = /tmp/robot_cautious_backup.py. r1 aggressive = robot_r1_backup.py.
+- *** WARNING for next teammate: the cautious/hold bot was built to beat aaoutkine__school-bot
+  (a center-MASSER). v_aggro (pure aggro) may LOSE to school-bot again. IF the opponent
+  changes back to school-bot or another center-masser, revert to /tmp/robot_cautious_backup.py.
+  But vs naivefaa (a pursuer/chaser), AGGRO + focus-fire is far better. Match strategy to
+  opponent type: CHASER => aggro; MASSER => cautious/hold.
+- Next teammate: test vs naivefaa_opp.py AS BLUE (nohup bg, N=12; ~4s/game, N>=8 exceeds
+  the 30s AGENT shell timeout). Any change must beat v_aggro's ~62% AS BLUE AND still
+  crush simple-bot. Don't submit noise.
