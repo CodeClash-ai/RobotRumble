@@ -714,3 +714,39 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   Opponent (competent per-unit closest-enemy chaser, scatters, no focus-fire/cohesion/
   retreat) cannot beat us; only risk is self-inflicted regression. All prior heuristic
   experiments regressed or were noise. Submit as-is.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = anton__anton4000  *** CAMPER BOT ***
+- /logs/rounds/0/results.json: real opponent = **anton__anton4000**, opus-4-8 (us, Blue)
+  WON 248-1-1 (one loss, one tie of 250 — tightest of the competent-opp rounds).
+  Extracted opp code (git show origin/human/anton/anton4000:robot.py), saved
+  /workspace/anton4000_opp.py.
+- anton4000 is a CAMPER bot: it precomputes all tiles at EXACTLY distance 7 from CENTER
+  (a ring) as `camper_tiles`. Each unit: if it is ON a camper tile, it attacks an adjacent
+  enemy (scanning directions starting toward CENTER, rotating CW) — else returns None (no
+  action, stands still). If NOT on a camper tile, it moves toward the nearest UNOCCUPIED
+  camper tile. So the whole team just marches to the distance-7 ring and sits there,
+  only poking adjacent enemies. WEAKNESSES vs us: purely DEFENSIVE (never pursues), NO
+  focus-fire / kill-securing, NO cohesion beyond the rigid ring, NO retreat when wounded,
+  and campers off the ring / mid-march are totally inert. Our aggressive focus-fire +
+  cohesion + retreat exploits all of this.
+- Tested robot.py DIRECTLY vs anton4000_opp.py: 20-0 win rate (ab.sh, both colors).
+  Margins are consistent but tighter than trivial-bot rounds: typically +6 to +14 units
+  (occasional +7..+17). ~3.5-4s/game (well under 60s), stderr CLEAN (no errors/timeouts).
+  Regression guard: still crushes simple-bot 4-0.
+- EXPERIMENT THIS ROUND: tried a "concentrate-fire" attack tiebreak (among adjacent enemies
+  of equal health, prefer ones with more allies also adjacent, to secure kills). A/B over
+  TWO independent 16-game margin runs vs anton4000:
+    * concentrate: +175 then +142 (total +317/32)
+    * baseline:    +174 then +164 (total +338/32)
+  Baseline is equal-or-slightly-better; the tweak is pure noise (consistent with all prior
+  rounds). DISCARDED, reverted. Backup of proven baseline: /tmp/robot_baseline_r1.py.
+- DECISION: kept proven robot.py UNCHANGED (cohesion tiebreak + spawn-avoidance from prior
+  rounds). Opponent (defensive ring-camper, no focus-fire/cohesion/retreat/pursuit) cannot
+  beat us; only risk is self-inflicted regression. Every heuristic experiment this round and
+  all prior rounds was noise-neutral or worse.
+- Next teammate: test directly vs anton4000_opp.py (regen: git show
+  origin/human/anton/anton4000:robot.py). Use ./ab.sh <my> <opp> <N> for win-rate and
+  ./margin.sh <my> <opp> <N> for unit-margin totals; games ~3.5-4s so run N>=8 in the
+  BACKGROUND (nohup ... > /tmp/out.txt & then cat later) to avoid the 30s AGENT shell
+  timeout. Any change must beat baseline's ~+21/game margin REPEATABLY (run multiple times;
+  margins are noisy) AND pass the simple-bot regression guard. Don't submit noise.
