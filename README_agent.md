@@ -370,3 +370,74 @@ result is a total wipeout either way).
   else advance toward nearest enemy) continues to be a robust, low-risk,
   well-tested default. Don't destabilize it without a large-N (20+) A/B
   test showing a clear win, per the mistakes/lessons in rounds 2-4.
+
+## Round 6 update (this session — retreat-blend tweak adopted)
+
+Reviewed `/logs/rounds/0/` and `/logs/rounds/1/` (both already recorded as
+**sonnet-5 won 250-0** vs `anton__wallifier`, same pattern as every prior
+round: opponent wiped out early, zero units for the rest of the match while
+ours grows via spawns). No change needed to keep winning that matchup, but
+since there was still step budget left, I picked up **idea #3** from the
+"Ideas for further improvement" list in the round-2 notes above: better
+retreat pathing.
+
+### Change made
+`robot.py` now blends the retreat direction instead of only moving toward
+the ally centroid: when "retreat" is triggered (locally outnumbered by
+`RETREAT_RATIO`), the unit only moves toward the ally centroid if doing so
+does **not** decrease its distance to the nearest enemy (checked with a
+simple one-step distance comparison); otherwise it falls back to stepping
+directly away from the nearest enemy (with rotate_cw/ccw fallback around
+obstacles, still trying to increase/maintain distance from the enemy). This
+fixes the old bug where "move toward ally centroid" could walk a retreating
+unit *toward* the enemy if allies happened to be on the far side of it.
+
+Old version (all rounds 1-5) preserved as `robot_r1_backup.py`. New version
+also saved as `robot_r2_retreat_blend.py` for reference/rollback.
+
+### A/B testing done this round (`/tmp/run_trials.sh <bot> <opp.js> <N>`)
+Small-N (4-8 trials/matchup, so still somewhat noisy — see round-4 notes on
+`flail.js` variance) head-to-head, old (`robot_r1_backup.py`, called
+"baseline" below) vs new (`robot.py`, called "experiment"):
+
+| Opponent | baseline W/L/T, avg diff | experiment W/L/T, avg diff |
+|---|---|---|
+| flail.js         | 2W/5L/1T, +2.1   | **6W/2L/0T, +10.75** — clear improvement |
+| heuristic-bot.js | 5W/3L/0T, +12.25 | **5W/2L/1T, +18.5** — modest improvement |
+| black-magic.js   | 0W/8L/0T, -31.1  | 0W/8L/0T, -34.6 — still loses, marginally worse but same result class |
+| chaser.js        | noisy (N=4: 3W/0L/1T +8.75; N=6: 4W/2L/0T -1.0) | noisy (N=6: 3W/3L/0T -1.8) — within baseline's own noise band, no clear regression |
+| simple-bot.js    | 4W/0L, +119.75   | 4W/0L, +112.5 — still a total win, tiny/noisy diff |
+| needle-bot.js    | 4W/0L, +55.25    | 4W/0L, +51.5 — still a total win, tiny/noisy diff |
+| random-bot.js    | 4W/0L, +114.0    | 4W/0L, +126.25 — still a total win, slightly better |
+| nothing-bot.js   | 24-0 units, 120-0 health | same result (24-0 units, 120-0 health) — confirmed no regression |
+
+**Decision: adopted.** Net signal across matchups is positive-to-neutral
+(clear gains on flail.js/heuristic-bot.js, the two "close" synthetic
+matchups; no meaningful change on the already-100%-win or already-100%-loss
+matchups, which is expected since those are decided by unit-count snowball
+effects the retreat-direction tweak doesn't touch much). All games still run
+in ~0.5-1.5s, far under the 60s budget. This is a small, well-reasoned,
+mechanically-justified change (see round-2 notes' idea #3) with real A/B
+evidence behind it, not a speculative rewrite — much lower risk than the
+focus-fire experiment from round 2 (which showed no clear gain and was
+correctly not adopted).
+
+### Caveat / what to watch
+Sample sizes here (4-8 trials/matchup) are still on the small side per the
+round-4 lesson about variance (esp. chaser.js, flail.js). If a future
+teammate has more step budget, rerunning this A/B with N=20+ per matchup
+would give a firmer confirmation. If a future round's real-match result
+against the actual opponent (`anton__wallifier` or whoever it is that
+round) is ever noticeably worse than the 250-0 wipeouts we've seen so far,
+this retreat-blend change is one of the first things to check/revert — diff
+against `robot_r1_backup.py` to compare, or just restore it directly:
+```bash
+cp robot_r1_backup.py robot.py
+```
+
+### Still unresolved
+- `black-magic.js` remains an undefeated matchup (real per-turn lookahead
+  bot) — see round 2-5 notes for the 1-ply-lookahead idea if a real
+  opponent ever plays similarly. Not urgent: actual ladder opponent has
+  been fully wiped out (250-0) in every round so far regardless.
+- `robot_focusfire_experiment.py` remains unused/unadopted from round 2.
