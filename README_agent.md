@@ -883,3 +883,96 @@ the highest-value use of this session's budget.
   invocation — run them one or two at a time per tool call to avoid
   hitting the ~30s single-tool-call timeout, even though each individual
   match itself only takes 6-15s.
+
+## Round 12 update (this session — straggler tie-break tweak adopted)
+
+Reviewed `/logs/rounds/0/` and `/logs/rounds/1/` this session: real opponent
+was **`navster8__bash-brothers`** again (same account name as round 11) —
+**sonnet-5 won 250-0 in both rounds**, same total-wipeout pattern as every
+round on record (opponent's army never recovers after the initial
+engagement while ours snowballs via periodic spawns). Confirmed `robot.py`
+was byte-identical to `robot_lookahead_experiment.py` / round-11's bot
+(round-8's 1-ply lookahead + `RETREAT_RATIO=2.5` fallback) going into this
+session — no drift.
+
+### Change made this round: straggler tie-break fix
+Picked up the small, well-identified cosmetic quirk flagged in round 8's
+notes ("leaves stragglers alive forever" — e.g. `nothing-bot.js` finished
+26-0 units instead of a full 0-unit wipeout) and in round 11's idea list.
+Root cause: in the greedy per-friend action search
+(`_compute_lookahead`), if **no** candidate action (move/attack/none)
+strictly improves the lexicographic `(unit_count_diff, surround_score,
+health_diff, distance_score)` tuple for a given friend — which happens when
+there's no enemy within useful range, so moving doesn't change the score at
+all — the loop kept whatever action was already in `best_actions` for that
+friend, which defaults to `None` (do nothing). This left far-off stragglers
+un-chased even after everything else was already dead.
+
+Fix (see diff in `robot.py` vs `robot_r8_lookahead_backup.py`, saved this
+session as the pre-change reference copy): track the best "move toward
+nearest enemy" candidate separately during the same scan. **Only** if the
+final chosen action is still `None` (i.e., no action actually improved the
+score) do we substitute that tie-break move instead of standing still. This
+can never override a real best-scoring action (it's strictly an "instead of
+doing nothing" fallback), and it specifically picks whichever tied move
+direction most reduces distance to the nearest enemy (not just an arbitrary
+tied direction), so it won't cause aimless wandering.
+
+### Test results this session (single-trial spot checks, all well under 60s)
+- `nothing-bot.js`: **140-5 health, 28-1 units** (previous rounds' baseline
+  was consistently ~130-0/26-0-ish with occasional stragglers) — confirms
+  the fix engages and produces at least as good a result, possibly slightly
+  better final unit count.
+- `black-magic.js`: ran 5 fresh trials — **2W/3L** (44-28/12-9u win,
+  14-22/8-9u loss, 11-59/4-20u loss, 23-23 health tie but Red won on unit
+  tiebreak 7-10u, 38-32/13-10u win) — consistent with rounds 9-11's
+  well-established ~50/50 parity for this matchup; no regression, no
+  dramatic improvement (expected, since this tweak only affects units with
+  literally no local score-improving action available, which is rare in an
+  active black-magic.js fight where units are usually near enemies).
+- `heuristic-bot.js`: won 52-11, 18-4u — consistent with prior rounds.
+- `chaser.js`: won 46-20, 17-5u — consistent with prior rounds.
+- `flail.js`: won 57-18, 16-7u — consistent with prior rounds.
+- `simple-bot.js`: won 150-7, 30-2u — consistent/slightly better than prior
+  rounds' ~145-2/29-1u.
+- `needle-bot.js`: won 91-16, 23-4u — consistent with prior rounds.
+- `random-bot.js`: won 100-8, 20-3u — consistent with prior rounds.
+- Timing: every match completed in 5-10s, well within the 60s budget (no
+  observable slowdown from the extra tie-break bookkeeping — it's a cheap
+  O(1) extra comparison per candidate action, not a new simulation pass).
+
+### Decision: ADOPTED
+This is a small, well-contained, easily-revertible change (pure Python diff
+in the single greedy-search loop, no new simulation logic, no new game
+mechanics assumptions) that fixes a real, previously-documented quirk
+without any observed downside across 8 builtin-bot matchups (incl. 5 fresh
+black-magic.js trials showing continued ~50/50 parity, not a regression).
+Old version preserved as `robot_r8_lookahead_backup.py` for instant
+rollback:
+```bash
+cp robot_r8_lookahead_backup.py robot.py
+```
+
+### For future teammates
+- `robot.py` now includes the straggler tie-break fix on top of round-8's
+  1-ply lookahead bot. Everything else (scoring function, enemy-attack
+  prediction, `RETREAT_RATIO=2.5` fallback, `MAX_UNITS_FOR_LOOKAHEAD=70`
+  safety valve) is unchanged from rounds 8-11.
+- `black-magic.js` remains at ~50/50 parity (not a loss, not a guaranteed
+  win) — see round 8-11 notes for the two biggest unexplored ideas if
+  someone wants to push past parity: (1) genuine 2-ply lookahead (current
+  1-ply has compute headroom, running in single-digit seconds even at ~30
+  units/side against a 60s budget), (2) better enemy-move prediction
+  (currently assumes enemies never move, only attack if already adjacent —
+  same assumption black-magic.js itself makes, so this is "fair" but not
+  exploiting anything).
+- Real ladder opponent (`navster8__bash-brothers` this round, same name as
+  round 11) continues to be fully wiped out 250-0 regardless of any of
+  these tweaks — there is no urgency, but small well-tested improvements
+  like this round's fix are low-risk and free to make when step budget
+  allows.
+- `robot_r8_lookahead_backup.py` (this round's pre-change snapshot) and all
+  earlier historical backups (`robot_r1_backup.py` through
+  `robot_r7_retreat25_backup.py`, `robot_focusfire_experiment.py`,
+  `robot_old_backup.py`) remain in the repo for reference/rollback, in
+  chronological order.

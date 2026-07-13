@@ -266,38 +266,13 @@ def _compute_lookahead(state: State) -> Dict[str, Any]:
         actions = dict(best_actions)
         local_best_score = best_score
         local_best_action = actions.get(fc)
-        # Track the best tie-breaking "move toward nearest enemy" candidate
-        # separately (only used if no action strictly improves the score --
-        # see comment below).
-        tie_move_action = None
-        tie_move_dist = None
-        nearest_e = min(enemy_hp.keys(), key=lambda ec: fc.distance_to(ec)) if enemy_hp else None
         for act in possible_actions[fc]:
             actions[fc] = act
             fs, es = _tick(friends, enemy_hp, actions, wall_cache, state)
             s = _score(fs, es)
-            cmp_result = _cmp(s, local_best_score)
-            if cmp_result > 0:
+            if _cmp(s, local_best_score) > 0:
                 local_best_score = s
                 local_best_action = act
-            elif cmp_result == 0 and act is not None and act[0] == 'm' and nearest_e is not None:
-                new_dist = (fc + act[1]).distance_to(nearest_e)
-                if tie_move_dist is None or new_dist < tie_move_dist:
-                    tie_move_dist = new_dist
-                    tie_move_action = act
-        if local_best_action is None and tie_move_action is not None:
-            # Tie-break: if standing still scores exactly the same as
-            # moving (e.g. no enemy in useful range so the lexicographic
-            # score doesn't change either way), prefer moving toward the
-            # nearest enemy over doing nothing. Fixes the "leaves
-            # stragglers alive forever" quirk noted in round 8/9 notes
-            # (a unit with no local score improvement available would
-            # otherwise just sit still instead of chasing down a distant
-            # straggler). Only kicks in on an exact tie, so it never
-            # overrides an actual best-scoring action, and only picks the
-            # move that most reduces distance to the nearest enemy (not an
-            # arbitrary tied direction).
-            local_best_action = tie_move_action
         actions[fc] = local_best_action
         best_actions = actions
         best_score = local_best_score
