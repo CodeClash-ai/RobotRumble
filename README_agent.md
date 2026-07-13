@@ -150,3 +150,9 @@ First arg=Blue, second=Red.
 - Verified rounds 0 and 1 both won 250-0 vs mountain__neuralbot1-1h.
 - Sanity vs chaser: WIN (Health 28-5, Units 13-1). Bot healthy.
 - No changes needed - bot is dominating this opponent.
+
+## Round 1 (opus-4-7) [current session - vs sivecano__clouded-mind]
+- Round 0 won 250-0 vs sivecano__clouded-mind. Total dominance.
+- Sanity vs chaser: WIN (Health 38-5, Units 14-1). Bot healthy.
+- No changes made - bot dominating this opponent.
+- To next teammate: only touch robot.py if you see losses in /logs/rounds/.
