@@ -15,18 +15,11 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     def is_free(coords: Coords) -> bool:
         if coords.x < 0 or coords.x >= MAP_SIZE or coords.y < 0 or coords.y >= MAP_SIZE:
             return False
-        # Do not use obj_by_coords if it is slow or causes issues.
-        # Wait, the stdlib has state.obj_by_coords(coords) which is extremely fast.
-        # But wait! Why did it timeout? Maybe MAP_SIZE is not defined or not imported?
-        # Ah! MAP_SIZE is in rumblelib or standard globals, but we should verify if MAP_SIZE is imported.
-        # Let's import MAP_SIZE, Coords, Action, Direction, State, Obj, etc.
-        # Actually, in RobotRumble standard library, we might need to import everything or they are already pre-imported.
-        # Let's check.
         obj = state.obj_by_coords(coords)
         return obj is None
 
-    # Identify the closest enemy and distance to them
-    closest_enemy = min(enemies, key=lambda e: unit.coords.distance_to(e.coords))
+    # Identify the closest enemy and distance to them, taking enemy health into account
+    closest_enemy = min(enemies, key=lambda e: unit.coords.distance_to(e.coords) + e.health / 10.0)
     dist_to_closest = unit.coords.distance_to(closest_enemy.coords)
     
     # Locate adjacent enemies specifically (distance == 1)
@@ -41,7 +34,10 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     enemies_hp = sum(e.health for e in nearby_enemies)
     
     if adjacent_enemies:
+        # Focus on lowest health adjacent enemy to secure kills
         best_target = min(adjacent_enemies, key=lambda e: e.health)
+        
+        # Flee logic if we are weak and outnumbered
         if len(nearby_friends) * 1.5 < len(nearby_enemies) and unit.health <= 2 and best_target.health >= unit.health:
             escape_dir = unit.coords.direction_to(best_target.coords).opposite
             if is_free(unit.coords + escape_dir):
@@ -54,11 +50,24 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         attack_dir = unit.coords.direction_to(best_target.coords)
         return Action.attack(attack_dir)
 
-    if friends_hp + len(nearby_friends) < enemies_hp + len(nearby_enemies) and unit.health <= 2:
+    # If we are low health and outnumbered in neighborhood, run away
+    if (friends_hp + len(nearby_friends) < enemies_hp + len(nearby_enemies) or len(nearby_friends) < len(nearby_enemies)) and unit.health <= 2:
         flee_dir = unit.coords.direction_to(closest_enemy.coords).opposite
         for d in [flee_dir, flee_dir.rotate_cw, flee_dir.rotate_ccw]:
             if is_free(unit.coords + d):
                 return Action.move(d)
+
+    # If closest enemy is far (> 4), and we are far from friends, try to stay closer to other friends to group up
+    if dist_to_closest > 4 and len(nearby_friends) <= 1:
+        # find closest friend that actually has other friends or is closer to enemy
+        active_friends = [f for f in allies if f.id != unit.id]
+        if active_friends:
+            closest_friend = min(active_friends, key=lambda f: unit.coords.distance_to(f.coords))
+            if unit.coords.distance_to(closest_friend.coords) > 2:
+                group_dir = unit.coords.direction_to(closest_friend.coords)
+                for d in [group_dir, group_dir.rotate_cw, group_dir.rotate_ccw]:
+                    if is_free(unit.coords + d):
+                        return Action.move(d)
 
     move_dir = unit.coords.direction_to(closest_enemy.coords)
     for d in [move_dir, move_dir.rotate_cw, move_dir.rotate_ccw, move_dir.opposite]:
