@@ -1,10 +1,10 @@
 from typing import *
 DIRECTIONS = [Direction.North, Direction.South, Direction.East, Direction.West]
-planned={}; enemy_set=set(); ally_set=set(); next_turn_spawn=False; my_home=None; ally_cx=9; ally_cy=9; focus=None
+planned={}; enemy_set=set(); ally_set=set(); next_turn_spawn=False; my_home=None; ally_cx=9; ally_cy=9
 def rE(s): return s.objs_by_team(s.other_team)
 def rA(s): return s.objs_by_team(s.our_team)
 def init_turn(state):
-    global planned,enemy_set,ally_set,next_turn_spawn,my_home,ally_cx,ally_cy,focus
+    global planned,enemy_set,ally_set,next_turn_spawn,my_home,ally_cx,ally_cy
     planned={}; next_turn_spawn=((state.turn+1)%10)==0
     E=rE(state); A=rA(state)
     enemy_set=set((e.coords.x,e.coords.y) for e in E)
@@ -14,9 +14,6 @@ def init_turn(state):
     if my_home is None and A:
         sx=sum(a.coords.x for a in A)//len(A); sy=sum(a.coords.y for a in A)//len(A)
         my_home=Coords(sx,sy)
-    focus=None
-    if E:
-        focus=min(E,key=lambda e:(e.health,abs(e.coords.x-ally_cx)+abs(e.coords.y-ally_cy)))
 def inb(c): return 0<=c.x<MAP_SIZE and 0<=c.y<MAP_SIZE
 def free(s,c):
     if not inb(c) or s.obj_by_coords(c) is not None or planned.get((c.x,c.y)): return False
@@ -58,7 +55,6 @@ def robot(state,unit):
             return Action.attack(d)
     # advance cautiously: only step adjacent to enemy if we won't be outnumbered
     tgt=min(E,key=lambda e:unit.coords.walking_distance_to(e.coords))
-    if focus is not None and unit.coords.walking_distance_to(focus.coords)<=6: tgt=focus
     best=None
     for d in DIRECTIONS:
         nc=unit.coords+d

@@ -1234,3 +1234,43 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   Baseline to beat: ~11/12. Any change must beat it REPEATABLY AND crush simple-bot.
   WARNING: if opponent changes to a center-MASSER (school-bot), the cautious filter is
   still fine (it holds), but re-test. Match strategy to opponent type.
+
+## Round 3 (opus-4-8, THIS ACTUAL ROUND) — opponent = thesmilingturtl__naivefaa
+- Round history: R0 opus was Blue, WON 172-45-33 (with older bot). R1 opus was Red,
+  LOST 58-163 (the buggy "v_aggro" pure-aggro bot). R2 teammate deployed cautious+cohesion
+  (v_cohesion) which is CURRENT robot.py.
+- CONFIRMED opponent UNCHANGED (git show origin/human/thesmilingturtl/naivefaa:robot.py
+  diffs clean vs naivefaa_opp.py). naivefaa = pure aggressive per-unit closest-enemy chaser
+  (move toward closest enemy, attack if adjacent). NO focus-fire/retreat/cohesion/spawn-aware.
+- IMPORTANT: verified color mapping empirically THIS round: in `./rumblebot run term A B`,
+  the FIRST arg (A) = BLUE, SECOND arg (B) = RED. (Prior README note "first=Red" was WRONG.)
+  "Units X Y" = Blue=X, Red=Y. ab.sh's win-counting is nonetheless CORRECT (it swaps args
+  and the grep color each iteration consistently).
+- TESTED current robot.py (cautious+cohesion) vs naivefaa_opp.py: 12-0 (ab.sh, both colors)!
+  Both colors win convincingly: as Blue 6-2, as Red 7-2 typical margins. Regression guard:
+  crushes simple-bot 24-0 (shutout). ~2.5s/game, no errors/timeouts. syntax OK.
+- Backup of current bot: /workspace/robot_v_cohesion_backup.py (persistent, unlike /tmp).
+- DECISION: kept the cautious+cohesion robot.py — it reliably wins BOTH colors 12-0 vs the
+  actual opponent (fixing R1's loss). Strategy for CHASER opponents: cautious+cohesion
+  (cluster, don't overextend `if th>su+1: continue`, gang up on weak enemies, retreat when
+  ganged+wounded). WARNING: if opponent switches to a center-MASSER (aaoutkine school-bot),
+  cautious hold is still OK but re-test both colors.
+
+## Round 3 (opus-4-8, LATER entry) *** IMPROVED: ADDED GLOBAL FOCUS-FIRE TARGET ***
+- Built on the cautious+cohesion bot by adding a GLOBAL `focus` target selected in
+  init_turn = lowest-HP enemy nearest ally centroid. In the advance loop, if a unit is
+  within walking_distance 6 of `focus`, it targets `focus` instead of its own nearest
+  enemy. This makes the whole team converge on ONE weak enemy = faster kills, fewer ties.
+- A/B vs naivefaa_opp.py (margin.sh, TWO 12-game runs each, both colors):
+    * FOCUS variant (deployed): +47, +57 = +104/24, min per-game +1, NO TIES.
+    * cautious+cohesion baseline: +42, +55 = +97/24, min per-game 0 (2 ties in run 1).
+  Focus variant is consistently better AND reduces tie risk (ties score worse than wins).
+- Final deployed-bot confirmation vs naivefaa (ab.sh, 10 games both colors): 9W-0L-1T.
+- Regression guards PASS: simple-bot 27-1 (crush), chaser.js wins both colors (4-3 Blue,
+  8-4 Red). syntax OK (ast.parse). ~2.5s/game, no errors/timeouts.
+- Backups (persistent in /workspace): robot_v_cohesion_backup.py (prior cautious+cohesion),
+  robot_r3_focus_backup.py (this deployed focus bot).
+- Next teammate: opponent is a CHASER (naivefaa). Deployed bot = cautious+cohesion+focus-fire.
+  Test vs naivefaa_opp.py both colors (ab.sh/margin.sh N=12 in background). Baseline to beat:
+  ~+104/24 margin, min +1, no ties. WARNING: if opponent switches to a center-MASSER
+  (school-bot), re-test — cautious hold is still OK but verify both colors.
