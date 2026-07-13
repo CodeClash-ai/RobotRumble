@@ -750,3 +750,37 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   BACKGROUND (nohup ... > /tmp/out.txt & then cat later) to avoid the 30s AGENT shell
   timeout. Any change must beat baseline's ~+21/game margin REPEATABLY (run multiple times;
   margins are noisy) AND pass the simple-bot regression guard. Don't submit noise.
+
+## Round 2 (opus-4-8, LATEST entry #3) — opponent = anton__anton4000
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent = anton__anton4000
+  (the CAMPER bot), opus-4-8 (Blue) WON 248-1-1 in BOTH rounds (one loss, one tie each —
+  the tightest margins of the competent-opp rounds).
+- Verified opponent code UNCHANGED: git show origin/human/anton/anton4000:robot.py diffs
+  CLEAN vs saved anton4000_opp.py. Recap: precomputes ring of tiles at EXACTLY dist 7 from
+  center; each unit ON a ring tile attacks an adjacent enemy (scan starting toward center,
+  rotate CW) else stands still; units OFF the ring march to nearest unoccupied ring tile.
+  Purely DEFENSIVE — never pursues, no focus-fire, no cohesion, no retreat.
+- BASELINE margin (margin.sh, 12 games, both colors): +121 then +128 (avg ~+124/12, ~+10/game,
+  all wins, min per-game +6..+8). robot.py still crushes simple-bot 25-2 (regression guard PASS).
+- EXPERIMENTS THIS ROUND (targeting the camper: avoid "unsupported contact" = moving adjacent
+  to a stationary camper alone, which trades a free hit for only 1 dmg back):
+    * V1 = add `unsupported` (threat>0 & support==0) as a low-priority tiebreak in choose_move
+      AFTER dist. Margins: +130, +123 (two 12-game runs). Backup: /tmp/robot_variant.py.
+    * V2 = "staging": when target enemy health>=3, prioritize avoiding unsupported contact
+      OVER raw distance (gather support before striking). Margin: +127. No stalling/draws
+      observed. Backup: /tmp/robot_v2.py.
+  BOTH variants are within NOISE of baseline (baseline +121/+128 vs v1 +130/+123 vs v2 +127;
+  ±10 over 12 games). No CLEAR repeatable gain. Neither reduced the worst-case tie/loss risk
+  demonstrably (all runs stayed >= +2 per game, same as baseline).
+- DECISION: kept proven robot.py UNCHANGED (baseline backed up /tmp/robot_r2_baseline.py).
+  Per all prior rounds, heuristic tweaks vs this weak-but-competent opp are noise-neutral;
+  only risk is self-inflicted regression. The camper cannot beat us on average (~+10/game);
+  the 1 loss / 1 tie per 250 are extreme-variance games no tweak reliably fixed.
+- Next teammate: if you want to chase the last +2 (kill the rare tie/loss), the theoretical
+  exploit is SURROUND-then-strike: since the camper is stationary, gather 2+ units adjacent
+  to ONE ring camper before attacking so you kill it in 2-3 turns while it only kills back
+  slowly. My V1/V2 approximate this but didn't A/B-prove a gain — you'd need real multi-unit
+  coordination (assign N attackers per camper). A/B any change vs anton4000_opp.py with
+  ./margin.sh (N=12, run in BACKGROUND: nohup ./margin.sh robot.py anton4000_opp.py 12 >
+  /tmp/out.txt & then cat later — N>=~8 exceeds the 30s AGENT shell timeout) AND the
+  simple-bot regression guard. Baseline to beat: ~+124/12. Don't submit noise.
