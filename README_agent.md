@@ -179,3 +179,68 @@ serious look. Ideas if you pick this up:
 - Recreate `/tmp/run_trials.sh` (see above) if you want quick win/loss +
   average-health-diff stats over N trials instead of eyeballing single-game
   terminal output.
+
+## Round 3 update (this session)
+
+Reviewed `/logs/rounds/0/results.json` and `sim_*.txt`: our bot (`robot.py`,
+unchanged "group brawler" logic from round 1) played as **Red** against
+opponent `happysquid__test` (Blue) and won **250-0** — a total wipeout
+(final state Health 0-110..120, Units 0-1 vs 22-24 for us, across the
+recorded games). This confirms the current bot dominates the actual
+ladder opponent completely; there is no headroom left to improve the score
+against this specific opponent (already 0 for them).
+
+### What I did this round
+- Re-verified `robot.py` is byte-identical to `robot_r1_backup.py` (the
+  proven round-1 winner) — confirmed, no drift.
+- Re-ran the full builtin-bot test suite (see commands below) to confirm
+  no regressions / no crashes / timing well within budget (all games
+  complete in ~0.5-2s, far under the 60s limit):
+  - chaser.js, simple-bot.js, needle-bot.js, random-bot.js, nothing-bot.js,
+    flail.js, heuristic-bot.js: **all won**, similar margins to round 1's
+    notes.
+  - black-magic.js: still **loses** (re-confirmed with an 8-trial sweep
+    using `/tmp/run_trials.sh robot.py builtin-bots/black-magic.js 8` →
+    0W/7L/1T, avg health diff ≈ -31.5). This remains the one opponent
+    archetype (real greedy hill-climbing lookahead) that beats us, but
+    since the actual ladder opponent (`happysquid__test`) is far weaker
+    and already fully defeated (250-0), I decided **not** to risk
+    destabilizing the proven winning logic chasing black-magic.js parity
+    this round — see "Decision" below.
+- Recreated `/tmp/run_trials.sh <bot> <opponent.js> <N>` (N-trial
+  win/loss/tie + avg health-diff sweep helper) since it doesn't persist
+  between sessions; copy of the script contents is inlined in this file's
+  git history / round-2 notes above if you need to recreate it again.
+
+### Decision: no code changes this round
+Given:
+1. We already beat the real opponent as decisively as the scoring allows
+   (250-0, complete unit wipeout), and
+2. The opponent is the *same* team across all 5 rounds (per task setup),
+   so there is no new information suggesting they'll suddenly play like
+   black-magic.js,
+3. Every prior attempt (see round 2 notes above, `robot_focusfire_experiment.py`)
+   to improve beyond the round-1 baseline showed no measurable gain (or a
+   slight loss) in only marginal test sizes,
+
+...the highest-expected-value action this round was to **avoid regression
+risk** rather than gamble on an unproven change against an opponent we've
+already 100% defeated. `robot.py` is unchanged from `robot_r1_backup.py`.
+
+### For future teammates
+- If a future round's `/logs/rounds/<n>/results.json` ever shows a
+  *closer* result (not 250-0) against the real opponent, that's a signal
+  they've changed strategy or a different opponent has been substituted —
+  worth revisiting the black-magic-style lookahead idea (see round-2 notes,
+  point 1 in "Ideas for further improvement") at that point.
+- `robot_focusfire_experiment.py` is still sitting there unused if someone
+  wants to pick up focus-fire coordination again with a bigger sample size
+  (N=20+ trials) than previous attempts used.
+- Test suite command reminder:
+  ```bash
+  cd /workspace
+  for f in builtin-bots/*.js; do
+    echo "=== $f ==="
+    ./rumblebot run term --results-only robot.py "$f" 2>&1 | tail -3
+  done
+  ```
