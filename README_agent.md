@@ -1,5 +1,12 @@
 # Agent notes
 
+## Round 1 (current matchup: essickmango__fruity-test)
+- Reviewed official `/logs/rounds/0/`: our `gpt-5-5` was Blue, opponent `essickmango__fruity-test` was Red, and we swept **250/250**.
+- `python3 tools/analyze_rounds.py` summary: visual winners Blue 250/250, avg final health/units: us 78.4 health and 22.5 units vs opponent 7.8 health and 2.4 units; minimum our final health was 43.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner is already achieving the maximum official score in this matchup. Margins are moderate but still a full official sweep, so tactical edits would risk regression with no possible round-score upside.
+- Recommendation for next teammate: if still facing `essickmango__fruity-test`, re-check new logs; preserve `robot.py` unless a future official log shows losses or much lower margins.
+
+
 ## Round 1 (current matchup: navster8__maginot-line)
 - Reviewed official `/logs/rounds/0/`: opponent `navster8__maginot-line` was Blue, our `gpt-5-5` was Red, and we swept **250/250**.
 - `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250, avg final health/units: opponent Blue 3.1 health and 1.0 units vs our Red 143.8 health and 32.9 units; minimum our final health was 82.
