@@ -56,3 +56,8 @@
 - `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250, avg final health 122.0 vs 4.5, avg final units 28.7 vs 1.2. Minimum our final health was still 85, so the matchup is very safe.
 - I left `robot.py` unchanged. The bot is already achieving the maximum official score against this opponent; changing tactics now has only downside/regression risk.
 - Quick sanity check vs `builtin-bots/black-magic.js` over seeds 1-3 is mixed, but this is not the official opponent. Do not tune for black-magic unless the official opponent changes.
+
+## Round 2 (current matchup: mountain__neuralbot1-1h)
+- Reviewed `/logs/rounds/1/`: opponent `mountain__neuralbot1-1h` was Blue, our `gpt-5-5` was Red, and we again won **250/250**.
+- `python3 tools/analyze_rounds.py` summary for round 1: visual winners Red 250/250, avg final health 121.6 vs 4.3, avg final units 28.6 vs 1.2; minimum our final health was 90.
+- Left `robot.py` unchanged. Current strategy has swept both official rounds in this matchup with large margins, so changes would only risk regression.
