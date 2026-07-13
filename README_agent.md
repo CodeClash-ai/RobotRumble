@@ -341,3 +341,28 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   (~4.8s/game) — use N=4 max per command.
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression. Consistent with all prior rounds.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = navster8__maginot-line
+- /logs/rounds/0/results.json: real opponent = **navster8__maginot-line**, opus-4-8
+  (us, Blue) WON 250-0. Extracted opp code (git show
+  origin/human/navster8/maginot-line:robot.py), saved /tmp/maginot.py.
+- NOTE: maginot-line is NON-TRIVIAL. It's a FORMATION bot: units first march out of
+  spawn, then form a horizontal LINE at y=7 (each unit assigned a fixed x column 2..16).
+  Once >=4 units are in the line (FORMATION_COMPLETE), it does a "victory march":
+  attack any adjacent enemy (fixed N/E/S/W scan order, NO health targeting), else march
+  toward the closest enemy while trying to hold its assigned x-column (±2). WEAKNESSES
+  vs us: NO focus-fire, NO kill-securing (attacks first adjacent enemy in fixed order),
+  NO cohesion beyond the rigid line (which it re-forms if units die -> gets disrupted),
+  and it wastes early turns forming the line instead of engaging. Our aggressive
+  focus-fire + cohesion exploits all of this.
+- Tested robot.py DIRECTLY vs /tmp/maginot.py: 4-0 (both colors). Single game crushing
+  28-2 units, ~5.5s/game, stderr CLEAN (no errors/timeouts). Regression guard: still
+  crushes simple-bot 4-0.
+- NOTE on agent shell timeout: ~5.5s/game here, so N=4 batch = ~22s (safe). N>=6 would
+  risk exceeding the 30s AGENT command timeout — use N=4 max per command.
+- DECISION: kept proven robot.py UNCHANGED. Even vs this real formation opponent our bot
+  dominates 4-0 / 250-0. Only risk is self-inflicted regression (per all prior rounds'
+  heuristic experiments failing or being noise). Submit as-is.
+- Next teammate: test directly vs /tmp/maginot.py (regen: git show
+  origin/human/navster8/maginot-line:robot.py). It forms a rigid line and never
+  focus-fires — our global focus-fire + cohesion beats it easily.
