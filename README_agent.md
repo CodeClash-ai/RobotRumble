@@ -132,6 +132,9 @@ small samples).
   — older historical snapshots, roughly chronological.
 - `robot_focusfire_experiment.py` — round-2's untried/inconclusive
   focus-fire variant, never adopted.
+- `robot_2ply_experiment.py` — this session's tried-and-rejected 2nd
+  refinement-sweep variant (see "Latest session update" above); A/B'd
+  worse win rate AND ~2x slower than baseline at N=11 vs N=15, not adopted.
 - `robot_lookahead_experiment.py` — identical to round-8's `robot.py` at
   the time, kept as a named reference copy.
 - `README_agent_full_history.md` — the complete round-by-round log (rounds
@@ -154,6 +157,54 @@ diff robot.py robot_r21_before_enemymove_backup.py
 ```
 `/logs/rounds/<n>/results.json` + `sim_*.txt` contain real-match records —
 useful for confirming the opponent identity/result each session.
+
+## Latest session update (this round — tried the "shallow 2-ply" idea from
+the known-weak-spot section; result: negative, NOT adopted)
+
+**Verification first**: ran fresh spot-checks of unchanged `robot.py`
+this session: `black-magic.js` 4/4 wins standalone, plus `heuristic-bot.js`
+and `chaser.js` both won cleanly. `diff robot.py robot_r21_before_enemymove_backup.py`
+still shows only the expected round-22 diff (no drift). `/logs/rounds/`
+only has round 0 on disk this session (real ladder opponent
+`suddenlyseals__control-center`) — **sonnet-5 won 250-0** again, consistent
+with every prior round's total-wipeout pattern.
+
+**Experiment tried**: implemented the "shallow 2-ply" idea suggested in the
+Known-weak-spot section above — added a second coordinate-ascent refinement
+sweep (`robot_2ply_experiment.py`) that re-optimizes each *engaged* friend's
+action (within `ENGAGE_RADIUS = 3` of any enemy) a second time, after the
+first sweep's actions for every unit are already committed. This is still
+plain coordinate ascent on the same lexicographic score, restricted to
+engaged units only to bound cost.
+
+**A/B result vs `black-magic.js`** (background sweeps via
+`/tmp/sweep.sh`, run concurrently so wall-clock times below are inflated by
+CPU contention — see caveat):
+- Baseline `robot.py`: **11W / 4L** (N=15, 73%)
+- `robot_2ply_experiment.py`: **7W / 4L** (N=11, 64%) — sweep was killed
+  early to stay within this session's step budget, but trend at N=11 is
+  already *worse* than baseline's N=15, not better.
+- Per-match wall time also gave a real signal independent of the win rate:
+  baseline matches took ~10-12s each; the experiment's matches took
+  ~19-27s each (roughly 2x), even accounting for the two sweeps sharing
+  CPU. The extra sweep's cost is non-trivial and didn't pay for itself.
+
+**Conclusion: did NOT adopt.** `robot.py` is unchanged this session (see
+diff check above). `robot_2ply_experiment.py` is kept in the repo as a
+reference/negative-result — do not re-attempt this *exact* formulation
+(single extra sweep restricted to `ENGAGE_RADIUS=3` engaged units) without
+a new idea for why it'd do better; the current evidence suggests the
+first sweep's per-friend sequential update (which already re-reads
+already-updated actions of earlier-processed friends within the same
+sweep) captures most of the available coordination benefit, and a second
+full sweep mostly just adds compute without materially improving the
+outcome at this sample size. If a future teammate wants to revisit 2-ply
+lookahead, consider a fundamentally different angle instead: e.g. actually
+simulating one full extra *turn* (both sides move again) rather than
+re-optimizing the same turn's actions, or looking at whether the enemy
+movement *prediction* (round 22's biggest win) has more room to improve
+(e.g. predicting 2 enemies' coordinated attack on the same target) instead
+of adding more search depth on our own side.
 
 ## Latest session update (this round — verification + README cleanup only)
 Reviewed `/logs/rounds/0/` and `/logs/rounds/1/`: real opponent was
