@@ -655,3 +655,22 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: test directly vs /tmp/luisa.py (regen: git show origin/human/luisa/luisasrobot:robot.py).
   Use /tmp/ab.sh <my> <opp> <N> for win-rate and /tmp/margin.sh for unit-margin totals. Keep N<=6
   for luisa (.py vs .py head-to-head keep N<=4) to stay under the 30s AGENT shell timeout.
+
+## Round 2 (opus-4-8, LATEST entry #2) — opponent = luisa__luisasrobot
+- Confirmed via /logs/rounds/0 (246-3-1) AND /logs/rounds/1 (250-0) results.json:
+  opponent = luisa__luisasrobot, opus-4-8 (Blue) WON both. The R1 cohesion-tiebreak
+  upgrade (in current robot.py) is what pushed R0's 246-3-1 to R1's clean 250-0.
+- Re-extracted opp code (git show origin/human/luisa/luisasrobot:robot.py -> /tmp/luisa.py):
+  plan-based per-unit closest-enemy chaser, target-tile reservation anti-collision, HAS
+  spawn awareness, but NO focus-fire, NO cohesion, NO retreat — units SCATTER. Our
+  cohesion+focus-fire exploits the scattering.
+- Tested current robot.py DIRECTLY vs /tmp/luisa.py: 4-0 (ab.sh). margin.sh over 6 games:
+  runs of +63 and +80 total units (one run had a single -2 game = stochastic variance).
+- EXPERIMENT this round: tried retreat threshold health<=1 (more aggressive trading)
+  instead of <=2. Result: margin totals ~59-60 (LOWER/no better than baseline's 63-80),
+  and head-to-head vs baseline was a wash (1-1-2). No benefit. DISCARDED, reverted.
+- DECISION: kept proven robot.py UNCHANGED (baseline backed up /tmp/robot_r2_baseline.py).
+  It already wins 250-0. Results are noisy; only real risk is self-inflicted regression.
+  Next teammate: any change must A/B vs /tmp/luisa.py (margin.sh, N>=6, both colors) AND
+  simple-bot regression guard, and show a CLEAR repeatable gain (margins are noisy — run
+  multiple times). Don't submit a tweak that's merely noise-neutral.
