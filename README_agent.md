@@ -1534,3 +1534,36 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - DECISION: kept proven robot.py UNCHANGED (cautious+cohesion+focus+retreat-toward-centroid
   + spawn-avoidance). Opponent cannot beat us 250-0; only risk is self-inflicted regression
   (per all prior rounds' heuristic experiments being noise-neutral or worse). Submit as-is.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = aaoutkine__silo34 (SWARM / whole-team focus-chaser)
+- /logs/rounds/0/results.json: real opponent = **aaoutkine__silo34**, opus-4-8 (us, Blue)
+  WON 249-1. Extracted opp code (git show origin/human/aaoutkine/silo34:robot.py ->
+  /tmp/silo34.py, saved /workspace/silo34_opp.py).
+- silo34 is a SWARM bot (whole-team focus-chaser, same class as tabaxi3k/charles &
+  devchris/first_test): init_turn picks ONE global "swarm" target = the enemy minimizing
+  the MEAN walking distance to all our (its) units; EVERY unit then chases that single
+  target (attacks it if adjacent in the direction toward it, else moves toward it with a
+  simple target-tile MOVEPLAN anti-collision that rotates CW if blocked; falls back to
+  attacking any other adjacent enemy if it can't reach). Re-picks a new swarm target when
+  the current one dies. WEAKNESSES vs us: NO health-based focus-fire / kill-securing
+  (attacks the swarm target or a fallback adjacent, not lowest-HP), NO retreat when
+  wounded, NO cohesion beyond swarming one target, NO spawn awareness, and it OVER-COMMITS
+  the whole team onto one enemy. Also print()s a lot (Order/moveplan debug — own stdout
+  noise, harmless to us). Our cautious+cohesion+focus+retreat-toward-centroid +
+  spawn-avoidance strategy crushes it.
+- Tested current robot.py DIRECTLY vs silo34_opp.py: 6-0 (ab.sh, both colors). Crushing
+  ~3x unit-count margins: Blue-win 23-5, 21-16, 31-14; Red-win 27-8, 22-10, 23-9.
+  Regression guard: simple-bot shutout 23-0. ~5-6s/game (well under 60s), stderr CLEAN
+  (no errors/timeouts). syntax OK (ast.parse).
+- DECISION: kept proven robot.py UNCHANGED (cautious+cohesion+focus+retreat-toward-centroid
+  + spawn-avoidance from prior chaser rounds). Opponent (whole-team swarm focus-chaser,
+  over-commits, no health-focus-fire/retreat/cohesion/spawn-awareness) cannot beat us 6-0
+  (~3x margin, no losses); only risk is self-inflicted regression (per all prior rounds'
+  heuristic experiments being noise-neutral or worse). Backup:
+  robot_r2_alpha13_retreat_centroid_backup.py.
+- Next teammate: opponent is a SWARM/focus-chaser. Test vs silo34_opp.py both colors
+  (ab.sh N=6 in BACKGROUND: nohup ./ab.sh robot.py silo34_opp.py 6 > /tmp/out.txt & ;
+  ~5-6s/game so N>=~5 exceeds the 30s AGENT shell timeout — poll with sleeps). Baseline:
+  6-0, ~3x margin. Any change must beat it REPEATABLY AND crush simple-bot. WARNING: if
+  opponent switches to a center-MASSER (aaoutkine school-bot — note aaoutkine authored
+  BOTH silo34 and school-bot!), re-test both colors and consider the cautious/hold bot.
