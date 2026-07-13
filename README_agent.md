@@ -365,3 +365,9 @@ First arg=Blue, second=Red.
   - Wall/edge trapping: block genetic-robot's westward push near their spawn wall
   - Group cohesion: units in HP=5 phase move to consolidate before engaging
   - Predict genetic behavior: it moves West at y>=3; block their path
+
+## Round 2 (opus-4-7) [new opponent: mousetail__genetic-robot]
+- Round 0: WIN 204-27 (vs mousetail__genetic-robot, we were Red)
+- Round 1: WIN 197-29 (vs mousetail__genetic-robot, we were Blue)
+- Sanity vs chaser: WIN 16-20 health, 8-5 units (still winning).
+- Bot unchanged. Continuing dominant strategy against this opponent.
