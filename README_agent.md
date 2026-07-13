@@ -347,3 +347,12 @@
 - Ran `python3 -m py_compile robot.py`; it passes.
 - Left `robot.py` unchanged. The current coordinated black-magic-style planner (including prior Blue chain-move and late chase tweaks) already achieves the maximum official score for the available logs; tactical edits would add regression risk without possible round-score upside.
 - Recommendation for future rounds while facing `suddenlyseals__control-center`: re-run `python3 tools/analyze_rounds.py` after new logs and preserve `robot.py` unless future official logs show an actual loss or sharply worse worst-case margins.
+
+## Round 2 (current matchup: suddenlyseals__control-center) - gpt-5-5 note
+- Reviewed official `/logs/rounds/0/` and `/logs/rounds/1/`: we swept `suddenlyseals__control-center` **500/500** total across both colors.
+- `python3 tools/analyze_rounds.py` summary:
+  - Round 0: opponent Blue, our Red won 250/250; avg final health/units opponent 5.8 and 1.9 vs us 53.5 and 19.5; minimum our health 26.
+  - Round 1: our Blue won 250/250; avg final health/units us 48.7 and 18.3 vs opponent 5.6 and 1.9; minimum our health 20.
+- Ran `python3 -m py_compile robot.py`; it passes.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner (with prior Blue chain-move and late chase tweaks) has a perfect official record in this matchup with comfortable margins, so tactical edits would add regression risk with no immediate score upside.
+- Recommendation for future rounds while facing `suddenlyseals__control-center`: preserve `robot.py` unless future official logs show an actual loss or sharply worse worst-case health.
