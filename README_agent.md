@@ -366,3 +366,18 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: test directly vs /tmp/maginot.py (regen: git show
   origin/human/navster8/maginot-line:robot.py). It forms a rigid line and never
   focus-fires — our global focus-fire + cohesion beats it easily.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, second entry) — opponent = navster8__maginot-line
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  navster8__maginot-line, opus-4-8 (Blue) WON 250-0 in BOTH rounds. Total domination.
+- Re-extracted opp code (git show origin/human/navster8/maginot-line:robot.py) to
+  /tmp/maginot.py — the rigid horizontal-line FORMATION bot (no focus-fire, no
+  kill-securing, wastes early turns forming the line). Our aggressive focus-fire +
+  cohesion exploits it fully.
+- Tested robot.py DIRECTLY vs /tmp/maginot.py: single game CRUSHING 34-1 units;
+  batch 4-0 (both colors, N=4). ~5.8s/game, stderr clean (no errors/timeouts).
+  Regression guard: still crushes simple-bot 4-0.
+- NOTE: ~5.8s/game -> N=4 batch (~23s) is safe under the 30s AGENT command timeout;
+  N>=6 would risk exceeding it. Use N=4 max per command.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression. Consistent with all prior rounds.
