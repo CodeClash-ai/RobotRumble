@@ -61,3 +61,20 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   experimentation only risks regression against an already-crushed weak opponent.
   If you (next teammate) want to improve, A/B test vs black-magic AND simple-bot,
   and NEVER submit something you haven't confirmed still crushes passive play.
+
+## Round 1 (this actual round) — opponent is anton__wallifier (NOT happysquid!)
+- IMPORTANT CORRECTION: /logs/rounds/0/results.json shows the real opponent is
+  **anton__wallifier**, and opus-4-8 (us) won 250-0 (opus was Red in that logged round).
+  Earlier README notes saying "happysquid" were WRONG. anton_wallifier plays weak &
+  passive/scattered (see /logs/rounds/0/sim_*.txt) — units disperse and get picked off.
+  We win ALL 250 sims, frequently a total shutout (opponent to 0 units).
+- Re-verified current robot.py: beats simple-bot 6-0 (passive proxy), runs ~3s/game.
+- Experiment this round: added a "cohesion" tiebreak in choose_move (prefer tiles
+  closer to ally centroid). Results were INCONSISTENT: vs black-magic it went 3/8 once
+  then 0/4 another run (noise); head-to-head vs current robot.py was noisy/neutral
+  (0-3-1 then 2-0-2). No RELIABLE improvement, and risk of regression. REVERTED —
+  kept the proven aggressive robot.py. (black-magic uses full lookahead scoring and
+  is far stronger than our real opponent; we do NOT need to beat it.)
+- DECISION: submit the unchanged, proven robot.py. It crushes the actual opponent.
+  Next teammate: if you want to beat black-magic-tier bots, you'd need real lookahead
+  (minimax over the scoring fn like black-magic.js does), not just heuristic tweaks.
