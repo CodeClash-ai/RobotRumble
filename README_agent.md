@@ -311,3 +311,62 @@ rather than gambling on an unproven tweak. `robot.py` is byte-identical to
   make tuning decisions from — variance is high (see flail.js above).
 - `robot_focusfire_experiment.py` remains unused/unadopted; still there if
   someone wants to revisit it with a bigger, bug-fixed sample.
+
+## Round 5 update (this session)
+
+Reviewed `/logs/rounds/0/` (only round-log directory present this session,
+`results.json` + 250 `sim_*.txt` files) — this time the real opponent is
+named **`anton__wallifier`** (previous rounds faced `anton__anton3000` and
+`happysquid__test`), so the opponent identity/account has changed again
+across rounds. Result: **sonnet-5 (us) won 250-0** — checked several
+`sim_*.txt` files (e.g. `sim_249.txt`) and the pattern is the same as every
+previous round: opponent starts with the normal 4 units, gets rapidly wiped
+out within the first ~10-20 turns, and then simply has **0 units for the
+rest of the 100-turn match** (no respawns ever appear for them) while our
+army grows via periodic spawns to 25-29 units. This looks like either a
+very weak/non-adaptive opponent bot or an opponent that errors out early
+(can't tell from logs alone, but functionally it doesn't matter — the
+result is a total wipeout either way).
+
+### What I did this round
+- Confirmed `robot.py` is still byte-identical to `robot_r1_backup.py` (the
+  original round-1 "group brawler" logic) — no drift, matches what rounds
+  2-4 also found.
+- Re-ran the full builtin-bot regression suite (all games <2s, well inside
+  the 60s budget, no crashes):
+  - **Won**: chaser.js (17-7, 4-2u), flail.js (39-16, 9-6u),
+    heuristic-bot.js (18-6, 8-6u), needle-bot.js (47-0, 14-0u),
+    nothing-bot.js (125-5, 25-1u), random-bot.js (120-12, 24-4u),
+    simple-bot.js (145-5, 29-1u).
+  - **Lost** (only remaining loss, unchanged since round 2): black-magic.js
+    (9-39, 3-14u) — this is the one synthetic opponent with real per-turn
+    lookahead/scoring, and it remains undefeated by our current heuristic
+    bot. See rounds 2-4 notes above for detailed ideas on closing this gap
+    (1-ply lookahead / minimax-style local scoring) if a future opponent
+    ever plays similarly.
+- Did **not** change any code this round. Rationale is identical to rounds
+  3 and 4: we are already winning the real ladder matchup as decisively as
+  the scoring system allows (250-0, complete and sustained unit wipeout —
+  opponent never got a single unit back for the entire 100-turn match), the
+  opponent keeps getting fully defeated regardless of account name changes,
+  and every previously-attempted tuning/rewrite (focus-fire experiment,
+  retreat-ratio sweeps) has failed to show a clear, well-sampled
+  improvement even against the tougher synthetic bots. Given the 30-step
+  budget, spending it on a risky, likely-marginal rewrite against a
+  real opponent we already 100%-beat is negative expected value; verifying
+  no regressions and keeping notes accurate for the next teammate is higher
+  value.
+
+### For future teammates
+- If a future round ever shows a real-match result that is **not** a
+  100% wipeout (e.g. opponent keeps units alive past the first ~20 turns,
+  or actively contests our spawn regrowth), that's the signal the opponent
+  has actually improved/changed strategy — that's the time to seriously
+  invest in the black-magic-style 1-ply lookahead idea (see round 2's "Ideas
+  for further improvement", point 1) since our heuristic bot's one known
+  weakness is against opponents with real per-turn action lookahead.
+- Otherwise, this bot ("group brawler": attack weakest adjacent enemy,
+  retreat toward allies when locally outnumbered by `RETREAT_RATIO=1.5`,
+  else advance toward nearest enemy) continues to be a robust, low-risk,
+  well-tested default. Don't destabilize it without a large-N (20+) A/B
+  test showing a clear win, per the mistakes/lessons in rounds 2-4.
