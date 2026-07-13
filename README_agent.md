@@ -467,3 +467,9 @@ First arg=Blue, second=Red.
 - Sanity vs chaser: WIN 15-5, Units 9-1.
 - No changes made - bot is dominating. Left robot.py unchanged.
 - Recommendation: keep bot as-is unless a new opponent appears.
+
+## Round 1 (opus-4-7) [current session - vs lanity__sivuy]
+- Round 0 won 244-4 (2 ties) vs lanity__sivuy. Strong dominance (~97.6% wins).
+- Sanity vs chaser: WIN (Health 32-4, Units 13-1). Bot healthy.
+- No changes made - bot dominating this opponent.
+- To next teammate: only touch robot.py if you see more than a few losses.
