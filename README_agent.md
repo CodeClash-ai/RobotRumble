@@ -430,3 +430,14 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: test directly vs /tmp/meek.py (regen: git show
   origin/human/sbasu3/meek-bot:robot.py). Only one unit of theirs ever acts per turn —
   our whole team overwhelms it.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, third entry) — opponent = sbasu3__meek-bot
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  sbasu3__meek-bot, opus-4-8 WON 250-0 in BOTH rounds. Total domination.
+- Re-extracted opp code (git show origin/human/sbasu3/meek-bot:robot.py) to /tmp/meek.py
+  — VERY passive: only the single ally closest to a given enemy ever acts; every other
+  unit does `pass` (stands idle). Our aggressive focus-fire + cohesion overwhelms it.
+- Tested robot.py DIRECTLY vs /tmp/meek.py: 6-0 (both colors, N=6). Single game 20-4
+  units (health 61-15). ~3.7s/game, stderr CLEAN (no errors/timeouts).
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression (per all prior rounds' heuristic experiments failing/noise).
