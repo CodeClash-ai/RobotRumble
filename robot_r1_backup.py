@@ -4,18 +4,10 @@ from typing import *
 # KEY RULE: Winner is decided by UNIT COUNT alive at the end (not health).
 #   UNIT_HEALTH=5, ATTACK_POWER=1. Grid 19x19 circle map. Attack range = adjacent (dist 1).
 #   Every 10 turns, 4 new units spawn per team at spawn ring (spawn tiles cleared first).
-# Strategy: focus-fire to secure KILLS, gang up when locally advantaged, avoid getting
-#   ganged, cluster to fight cohesively, retreat near-dead units to preserve unit count.
+# Strategy: focus-fire to secure KILLS, gang up when advantaged, avoid getting ganged,
+#   retreat near-dead units to preserve unit count.
 
 DIRECTIONS = [Direction.North, Direction.South, Direction.East, Direction.West]
-
-planned: Dict[Any, bool] = {}
-focus_id: Optional[str] = None
-enemy_set: set = set()
-ally_set: set = set()
-ally_centroid = None
-n_allies = 0
-n_enemies = 0
 
 
 def robot_enemies(state):
@@ -26,24 +18,21 @@ def robot_allies(state):
     return state.objs_by_team(state.our_team)
 
 
+planned: Dict[Any, bool] = {}
+focus_id: Optional[str] = None
+enemy_set: set = set()
+ally_set: set = set()
+
+
 def init_turn(state: State) -> None:
-    global planned, focus_id, enemy_set, ally_set, ally_centroid, n_allies, n_enemies
+    global planned, focus_id, enemy_set, ally_set
     planned = {}
     enemies = robot_enemies(state)
     allies = robot_allies(state)
     enemy_set = set((e.coords.x, e.coords.y) for e in enemies)
     ally_set = set((a.coords.x, a.coords.y) for a in allies)
-    n_allies = len(allies)
-    n_enemies = len(enemies)
-    if allies:
-        sx = sum(a.coords.x for a in allies)
-        sy = sum(a.coords.y for a in allies)
-        ally_centroid = Coords(sx // len(allies), sy // len(allies))
-    else:
-        ally_centroid = None
     focus_id = None
     if enemies and allies:
-        # Focus the enemy that is lowest-health and nearest our cluster.
         def score(e):
             total = min(a.coords.walking_distance_to(e.coords) for a in allies)
             return (e.health, total)
@@ -74,6 +63,7 @@ def adjacent_enemies(state, coords):
 
 
 def count_enemy_adj(coords):
+    """How many enemy units are orthogonally adjacent to `coords`."""
     cnt = 0
     for d in DIRECTIONS:
         nc = coords + d
@@ -92,8 +82,7 @@ def count_ally_adj(coords):
 
 
 def choose_move(state, unit, target_coords, avoid_gang=True):
-    """Pick a move toward target, penalising tiles where we'd be ganged up on
-    (more adjacent enemies than adjacent allies)."""
+    """Pick a move toward target, penalising tiles where we'd be ganged up on."""
     candidates = []
     for d in DIRECTIONS:
         nc = unit.coords + d
@@ -101,20 +90,19 @@ def choose_move(state, unit, target_coords, avoid_gang=True):
             continue
         dist = nc.walking_distance_to(target_coords)
         threat = count_enemy_adj(nc)
-        support = count_ally_adj(nc)
-        # net exposure: how outnumbered we'd be at nc
-        net = threat - support
-        candidates.append((dist, net, threat, d, nc))
+        candidates.append((dist, threat, d, nc))
     if not candidates:
         return None
     if avoid_gang:
-        # Prefer tiles where we won't be outnumbered by adjacent enemies.
-        safe = [c for c in candidates if c[1] <= 0]
+        # Avoid tiles where 2+ enemies could hit us, unless it's the only way
+        # to close distance and no safer option reduces distance.
+        safe = [c for c in candidates if c[1] <= 1]
         pool = safe if safe else candidates
     else:
         pool = candidates
-    pool.sort(key=lambda t: (t[0], t[1], t[2]))
-    dist, net, threat, d, nc = pool[0]
+    # sort by distance to target, then by threat
+    pool.sort(key=lambda t: (t[0], t[1]))
+    dist, threat, d, nc = pool[0]
     planned[(nc.x, nc.y)] = True
     return Action.move(d)
 
@@ -129,6 +117,10 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # Retreat if very low health and can't secure a kill this turn.
     can_kill_now = any(e.health <= 1 for d, e in adj)
     if unit.health <= 2 and adj and not can_kill_now:
+        # Flee away from the nearest adjacent enemy.
+        nearest_adj = min(adj, key=lambda t: t[1].health)[1]
+        away = nearest_adj.coords.direction_to(unit.coords)
+        # try to move to a tile far from enemies
         best = None
         for d in DIRECTIONS:
             nc = unit.coords + d
@@ -140,6 +132,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         if best is not None:
             planned[(best[2].x, best[2].y)] = True
             return Action.move(best[1])
+        # cornered: attack the weakest
         return Action.attack(min(adj, key=lambda t: t[1].health)[0])
 
     if adj:
@@ -151,23 +144,13 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         adj.sort(key=akey)
         return Action.attack(adj[0][0])
 
-    # No adjacent enemy. Decide between engaging and regrouping.
+    # No adjacent enemy: advance on the focus target (or a much closer enemy).
     target = state.obj_by_id(focus_id) if focus_id else None
     nearest = min(enemies, key=lambda e: unit.coords.walking_distance_to(e.coords))
     if target is None:
         target = nearest
     elif nearest.coords.walking_distance_to(unit.coords) + 4 < target.coords.walking_distance_to(unit.coords):
         target = nearest
-
-    # If we are badly outnumbered overall and this unit is far ahead of the pack,
-    # regroup toward the allied centroid instead of charging in alone.
-    if ally_centroid is not None and n_enemies > n_allies:
-        d_to_centroid = unit.coords.walking_distance_to(ally_centroid)
-        d_to_target = unit.coords.walking_distance_to(target.coords)
-        if d_to_centroid > 3 and d_to_target > 2:
-            mv = choose_move(state, unit, ally_centroid, avoid_gang=True)
-            if mv is not None:
-                return mv
 
     mv = choose_move(state, unit, target.coords, avoid_gang=True)
     if mv is not None:
