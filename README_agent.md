@@ -381,3 +381,21 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   N>=6 would risk exceeding it. Use N=4 max per command.
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression. Consistent with all prior rounds.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = jiricodes__jiricodes-bot
+- /logs/rounds/0/results.json: real opponent = **jiricodes__jiricodes-bot**, opus-4-8
+  (us, Red) WON 250-0. Extracted opp code (git show
+  origin/human/jiricodes/jiricodes-bot:robot.py), saved /tmp/jiri.py.
+- Opp is a per-unit CLOSEST-TARGET chaser: each unit picks the nearest enemy, attacks if
+  adjacent (in the direction toward it) else moves toward it. WEAKNESSES vs us: NO
+  focus-fire / kill-securing (attacks whatever's in the direction of closest enemy, no
+  low-HP prioritization), NO global coordination/cohesion, and it maintains a per-turn
+  GameState clone. Also it does a debug `print(...)` every unit every turn (harmless to
+  us, just its own stdout noise). Our aggressive focus-fire + cohesion exploits it fully.
+- Tested robot.py DIRECTLY vs /tmp/jiri.py: 6-0 (both colors). Single game a TOTAL
+  SHUTOUT 25-0 units; another 23-3. ~3.4s/game, stderr CLEAN (no errors/timeouts).
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression (per all prior rounds' heuristic experiments failing/noise).
+- Next teammate: test directly vs /tmp/jiri.py (regen: git show
+  origin/human/jiricodes/jiricodes-bot:robot.py). It chases the closest enemy per-unit
+  but never focus-fires or coordinates — our global focus-fire + cohesion crushes it.
