@@ -98,7 +98,7 @@ def score(friends, enemies):
     # the goal is to convert close 100-turn unit-count ties into wins by catching
     # isolated stragglers without disturbing proven battle micro.
     chase_score = 0.0
-    if TURN >= 45 and friends and enemies:
+    if False and TURN >= 45 and friends and enemies:
         # Stronger cleanup pressure for evasive/runaway opponents: reduce the
         # total distance from every surviving enemy to its nearest pursuer,
         # especially when we are behind/even on unit count late.  This remains
@@ -122,7 +122,7 @@ def score(friends, enemies):
         dx = f[0] - cx
         dy = f[1] - cy
         center_score -= ((dx * dx + dy * dy) ** 0.5) * 0.03
-    return (unit_score, health_score, surround_score, distance_score, chase_score, center_score)
+    return (unit_score, surround_score, health_score, distance_score, chase_score, center_score)
 
 
 def better(a, b):
@@ -194,92 +194,26 @@ def init_turn(state):
         if u.health is not None:
             enemies[k(u.coords)] = u.health
 
-    # For this walk-retreat chaser, queued moves into friendly squares tend to
-    # create long late-game conga lines that fail to finish retreating enemies by
-    # turn 100.  Require each planned step to be immediately empty; this was the
-    # main improvement from round 0 to round 1 against mitch84__walk_retreat and
-    # is safer for cleanup than black-magic-style chain moves in this matchup.
-    allow_chain_moves = False
+    # Current opponent is tabaxi3k__black-magic-1, essentially the public
+    # black-magic planner.  Use the same generic adjacent-attack enemy model
+    # instead of the previous mitch walk/retreat-specific chaser model, and
+    # allow queued/chain moves into friendly squares like black-magic does.
+    allow_chain_moves = True
 
     best_actions = {}
 
-    def tuple_direction_to(src, dst):
-        # Exact Coords.direction_to quadrant/tie behavior without atan2.
-        vx = dst[0] - src[0]
-        vy = dst[1] - src[1]
-        if vx < 0 and -vx >= abs(vy):
-            return Direction.West
-        if vy > 0 and vy >= abs(vx):
-            return Direction.South
-        if vy < 0 and -vy >= abs(vx):
-            return Direction.North
-        if vx > 0:
-            return Direction.East
-        return None
-
-    def tuple_in_spawn(pos, turn_offset=0):
-        # Jammy's bot evacuates terrain-adjacent spawn squares only on clearing
-        # turns. Approximate terrain with off-board/illegal adjacent cells; use the opponent's Direction iteration order when choosing an exit.
-        if (state.turn + turn_offset) % 10 != 0:
-            return False
-        for d in DIRS:
-            if add(pos, d) not in LEGAL:
-                return True
-        return False
-
-    # Opponent model for current mitch84__walk_retreat matchup.  Their bot:
-    #   * retreats to the first blank Direction (N,S,E,W enum order) when more
-    #     than one enemy is adjacent;
-    #   * otherwise attacks the closest enemy only when Euclidean distance == 1;
-    #   * otherwise walks toward the closest enemy, choosing an unoccupied step
-    #     on the larger axis (with first-blank fallback).
-    # Modeling this simple chaser is much safer here than the older Jammy-specific
-    # prefire model, which predicted attacks at range 2 and badly overestimated
-    # the current opponent's tactical reach.
-    def first_blank_around(pos):
-        blanks = []
-        for d in (Direction.North, Direction.South, Direction.East, Direction.West):
-            dst = add(pos, d)
-            if dst in LEGAL and dst not in friends and dst not in enemies:
-                blanks.append(d)
-        return blanks
-
     for epos, eh in enemies.items():
         best_actions[epos] = None
-        if not friends:
-            continue
-        blanks = first_blank_around(epos)
-        adjacent_friends = 0
-        for d in (Direction.North, Direction.South, Direction.East, Direction.West):
-            if add(epos, d) in friends:
-                adjacent_friends += 1
-        if adjacent_friends > 1 and blanks:
-            best_actions[epos] = (MOVE, blanks[0])
-            continue
-
-        # Python min preserves state object order on ties; use tuple order as a
-        # deterministic approximation.  Walking distance is Manhattan distance.
-        target = min(friends, key=lambda f: abs(f[0] - epos[0]) + abs(f[1] - epos[1]))
-        dx = target[0] - epos[0]
-        dy = target[1] - epos[1]
-        if dx * dx + dy * dy == 1:
-            edir = tuple_direction_to(epos, target)
-            if edir is not None:
-                best_actions[epos] = (ATTACK, edir)
-            continue
-
-        xdir = Direction.East if dx > 0 else Direction.West
-        ydir = Direction.South if dy > 0 else Direction.North
-        if abs(dx) > abs(dy) and xdir in blanks:
-            best_actions[epos] = (MOVE, xdir)
-        elif abs(dy) >= abs(dx) and ydir in blanks:
-            best_actions[epos] = (MOVE, ydir)
-        elif xdir in blanks:
-            best_actions[epos] = (MOVE, xdir)
-        elif ydir in blanks:
-            best_actions[epos] = (MOVE, ydir)
-        elif blanks:
-            best_actions[epos] = (MOVE, blanks[0])
+        lowest_health = 1000
+        for d in DIRS:
+            target = add(epos, d)
+            if target not in friends:
+                continue
+            h = friends[target]
+            if h > lowest_health:
+                continue
+            lowest_health = h
+            best_actions[epos] = (ATTACK, d)
 
     possible = {}
     spawn_danger = (state.turn % 10 == 0)
@@ -307,7 +241,7 @@ def init_turn(state):
     best_score = score(fs, es)
 
     # Greedily improve one friendly action at a time.
-    for fpos in friends:
+    for fpos in list(friends)[::-1]:
         chosen = best_actions.get(fpos)
         for act in possible[fpos]:
             old = best_actions.get(fpos)
