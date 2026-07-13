@@ -2409,3 +2409,70 @@ unexplored idea below.
   chaining many sequential match invocations in a single call risks the
   ~30s single-tool-call timeout even though each individual match itself
   is fast (6-15s).
+
+## Round 32 update (this session — verification only, no code changes)
+
+This is round 2 of the current 5-round task cycle. Reviewed `/logs/rounds/0/`
+and `/logs/rounds/1/` this session: real opponent was
+**`essickmango__fruity-test`** (same account name as round 1 of this cycle)
+— **sonnet-5 won 250-0 in both rounds** (round 0 as Red, round 1 as Blue
+per `results.json`), continuing the unbroken streak of total wipeouts
+against the real ladder opponent across every round on record in this
+whole multi-round series. Confirmed `robot.py` is byte-identical to the
+round-22-through-31 version — `diff robot.py
+robot_r21_before_enemymove_backup.py` shows exactly the round-22
+enemy-movement-prediction diff (22 lines) and nothing else, no drift since
+round 22.
+
+### What I did this round
+Spot-checked a few builtin-bot matchups (one per bash tool call, per the
+standing tool-call-timeout gotcha repeated in every prior round's notes):
+- `black-magic.js`: 2 fresh trials — 1L (Red won 22-35, 7-14u), 1W (Blue
+  won 50-14, 19-8u) — consistent with round 22's post-enemy-move-prediction
+  improvement (still not a guaranteed win, but clearly better than the
+  pre-round-22 ~50/50-or-worse baseline; see round 22's N=10 evidence:
+  baseline 3W/7L → experiment 8W/2L).
+- `heuristic-bot.js`: Blue (us) won 62-11, 21-7u.
+- `chaser.js`: Blue (us) won 48-6, 20-2u.
+- All matches completed in 7-14s, comfortably within the 60s per-match
+  budget. No crashes, exceptions, or fallback-to-heuristic behavior
+  observed.
+
+### Decision: no code changes this round
+Same reasoning as the many prior verification-only rounds documented
+extensively above: the real ladder opponent continues to be completely
+wiped out (250-0) regardless of account name, `robot.py` remains stable
+with zero regressions across every builtin-bot matchup spot-checked, and
+black-magic.js continues to perform at the round-22-established improved
+level. There is no new information this round (no closer-than-usual real
+match result, no builtin-bot regression, no timing concern) that would
+justify a risky speculative change without a much larger A/B testing
+budget than a single short session realistically allows. Verifying
+stability and keeping notes accurate remains the highest-value use of
+this session's 30-step budget.
+
+### For future teammates (unchanged standing items)
+- `robot.py`: round-8's 1-ply lookahead + round-12's straggler tie-break
+  fix + round-22's enemy-movement prediction + `RETREAT_RATIO=2.5`
+  group-brawler fallback (used if `MAX_UNITS_FOR_LOOKAHEAD=70` is exceeded
+  or any exception occurs). Stable across 10+ rounds now with zero
+  regressions.
+- The one standing unexplored idea (unattempted across every round since
+  round 8): a **shallow 2-ply lookahead**. Current 1-ply search runs in
+  7-15s vs a 60s budget even at ~20-30 units/side, so there's real compute
+  headroom. Could stack with round 22's enemy-move-prediction improvement
+  for a further edge specifically against black-magic.js-style opponents
+  (the only synthetic bot not at a comfortable/guaranteed win rate). A/B
+  test with N>=20 before adopting (per the standing variance lesson for
+  this specific matchup).
+- Real ladder opponent (`essickmango__fruity-test` this cycle, same
+  account name across both rounds seen so far) continues to show zero sign
+  of needing anything beyond what's already in `robot.py`. If a future
+  round's real-match result is ever *not* a 250-0 wipeout, that remains
+  the actionable signal to seriously revisit strategy (e.g. finally invest
+  in the 2-ply lookahead idea above).
+- Tool-call gotcha (repeats every prior round's note): run
+  `./rumblebot run term` calls one or two at a time per bash tool call —
+  chaining many sequential match invocations in a single call risks the
+  ~30s single-tool-call timeout even though each individual match itself
+  is fast (7-15s).
