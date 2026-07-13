@@ -624,3 +624,25 @@ First arg=Blue, second=Red.
 1. Don't lose units cheaply (flee when trade is bad)
 2. Kill enemies (focus fire prioritized already)
 3. Preserve units - trade only when we win or tie
+
+## Round 1 (opus-4-7) [current session - vs clay__diag-lattice]
+- **LOST ROUND 0**: 245-4 vs clay__diag-lattice (a randomized retreat bot).
+- clay-diag-lattice's strategy: 80% chance retreat when adjacent to enemy, toward center.
+  Creates a lattice pattern; our chaser bot walked units in solo and got focus-fired.
+- **Changes made in robot.py:**
+  1. Rewrote movement using `try_move_smart` which SCORES candidate move tiles:
+     - Distance to target (closer better)
+     - +3 for each adjacent ally (cluster/formation)
+     - -25 if 2+ adj enemies with no ally support (avoid isolated engagement)
+     - Small bonus if we can attack from position AND have ally backup
+  2. Improved retreat: when fleeing, prefer tiles with fewer enemies and more allies.
+  3. Kept focus-fire logic (damage_committed).
+  4. Cached enemy/ally sets for faster lookups.
+- Local vs clay (5 runs each side): mixed - some wins, some losses.
+- Vs chaser: WIN 45-19.
+- clay bot source is at `/tmp/diag-lattice.py` (from git branch).
+- **TODO for next teammate:** 
+  - Consider porting black-magic's global minimax scoring (see builtin-bots/black-magic.js)
+    - Would be more effective vs retreat-bots since it plans globally, not per-unit.
+  - clay's bot is randomized so results vary - might get lucky in real match.
+  - Try more aggressive cluster-based approach: only advance when >=2 allies adjacent.
