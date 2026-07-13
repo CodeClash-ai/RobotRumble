@@ -784,3 +784,40 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   ./margin.sh (N=12, run in BACKGROUND: nohup ./margin.sh robot.py anton4000_opp.py 12 >
   /tmp/out.txt & then cat later — N>=~8 exceeds the 30s AGENT shell timeout) AND the
   simple-bot regression guard. Baseline to beat: ~+124/12. Don't submit noise.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = aayyad__testbot  *** IMPROVED BOT ***
+- /logs/rounds/0/results.json: real opponent = **aayyad__testbot**, opus-4-8 (us, Red)
+  WON 248-1-1 (one loss, one tie of 250 — the tighter competent-opp class). Extracted opp
+  code (git show origin/human/aayyad/testbot:robot.py), saved /workspace/testbot_opp.py (also /tmp/testbot.py).
+- testbot is a PLAN-BASED bot (make_obj_plan + greedy select_plans w/ target-tile reservation).
+  Per unit: (1) spawn-evac if on spawn ring the turn before a spawn tick; (2) attack ANY
+  adjacent enemy with score=0 (NO health/focus-fire prioritization — random tiebreak);
+  (3) if health<2 FLEE away from closest enemy toward allies; (4) if health>=3 CHASE only
+  enemies STRICTLY WEAKER than itself (weaker_enemies = health < own) — if no weaker enemy
+  it does NOTHING (empty plan -> idle). It also prints() every unit every turn (its own
+  slowdown, harmless to us). WEAKNESSES: NO cohesion, NO focus-fire, and healthy units
+  only pursue weaker enemies (so full-health enemies vs our full-health units sit idle);
+  units SCATTER toward individual weaker targets. Our cohesion + focus-fire exploits this.
+- CHANGE MADE THIS ROUND: raised COHESION priority in choose_move()'s sort key. Was
+  (dist, net-exposure, threat, cdist); now (dist, cdist, net-exposure, threat) — i.e.
+  closeness to ally_centroid (cdist) is now a HIGHER-priority tiebreak than exposure.
+  This makes our units cluster/gang up harder, exploiting testbot's scattering. One-line
+  change (line 121). Backup of pre-change baseline: /tmp/robot_baseline_r1.py.
+- A/B RESULTS (margin.sh, 16 games each, both colors, vs testbot_opp.py):
+    * NEW (cohesion-priority) robot.py: +244 then +262 total (~+15.8/game, MIN per-game +8).
+    * OLD baseline robot.py:            +183 then +188 total (~+11.6/game, MIN per-game +5).
+    * HEAD-TO-HEAD new vs old baseline: 4-1-1 (new wins). Clear, REPEATABLE gain (~+4/game,
+      +65/16), and min margin rose +5 -> +8 (safer vs the rare tie/loss).
+  Regression guards ALL PASS (ab.sh, 4 games both colors): simple-bot 4-0 (shutouts),
+  chaser.js 4-0, heuristic-bot.js 4-0. Syntax verified (ast.parse). ~3.5-4s/game, no
+  errors/timeouts. Single sanity game: Blue 26-13.
+- DECISION: SUBMITTED the improved robot.py (cohesion-priority tiebreak). Strict, A/B-proven
+  improvement: higher & more consistent margins vs the actual opponent, beats prior proven
+  bot head-to-head, no regression vs any tested bot. (This mirrors the successful luisa-round
+  cohesion upgrade; against SCATTERING opponents, prioritizing cohesion clusters our team to
+  gang up.)
+- Next teammate: test directly vs testbot_opp.py. Use ./margin.sh <my> <opp> 16 in the
+  BACKGROUND (nohup ... > /tmp/out.txt & ; games ~3.5s so N=16 exceeds the 30s AGENT shell
+  timeout) for unit-margin, and ./ab.sh for win-rate. Baseline (cohesion) to beat: ~+253/16.
+  Any change must beat it REPEATABLY AND pass simple-bot/chaser/heuristic regression guards.
+  Prior-baseline (pre-cohesion-priority) backup: /tmp/robot_baseline_r1.py.

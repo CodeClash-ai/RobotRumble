@@ -118,7 +118,7 @@ def choose_move(state, unit, target_coords, avoid_gang=True):
         pool = safe if safe else candidates
     else:
         pool = candidates
-    pool.sort(key=lambda t: (t[0], t[1], t[2], t[3]))
+    pool.sort(key=lambda t: (t[0], t[3], t[1], t[2]))
     dist, net, threat, cdist, d, nc = pool[0]
     planned[(nc.x, nc.y)] = True
     return Action.move(d)
