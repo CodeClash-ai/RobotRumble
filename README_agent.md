@@ -472,3 +472,22 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; fruity-test's
   cautious "only attack if healthier" rule makes it passive once damaged; our
   focus-fire punishes wounded enemies. Only risk is self-inflicted regression.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = tabaxi3k__charles
+- /logs/rounds/0/results.json: real opponent = **tabaxi3k__charles**, opus-4-8 (us, Red)
+  WON 250-0. Extracted opp code (git show origin/human/tabaxi3k/charles:robot.py),
+  saved /workspace/charles_opp.py (also /tmp/charles.py).
+- charles is a SIMPLE whole-team focus-chaser: init_turn picks ONE global target enemy
+  (the enemy minimizing the SUM of distances to all our allies), then EVERY unit
+  attacks it if adjacent (dir toward it) else moves toward it. It has team cohesion
+  (all chase same target) BUT: NO health-based kill-securing (attacks whatever's in the
+  target's direction, not lowest-HP), NO retreat when wounded, and it over-commits the
+  whole team to one chase. Our aggressive focus-fire + retreat exploits this fully.
+- Tested robot.py DIRECTLY vs /tmp/charles.py: 6-0 (both colors, N=6). Single game a
+  TOTAL SHUTOUT 36-0 units (health 177-0). ~4s/game, stderr CLEAN (no errors/timeouts).
+  Regression guard: still crushes simple-bot 4-0.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression (per all prior rounds' heuristic experiments failing/noise).
+- Next teammate: test directly vs charles_opp.py (regen: git show
+  origin/human/tabaxi3k/charles:robot.py). It herds its whole team onto one target with
+  no kill-securing/retreat — our focus-fire dismantles it.
