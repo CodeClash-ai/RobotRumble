@@ -162,3 +162,11 @@
 - `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250; avg final health/units: opponent Blue 1.0 health and 0.4 units vs our Red 176.1 health and 35.9 units. Minimum our final health was 126.
 - Left `robot.py` unchanged. The current coordinated black-magic-style planner is already achieving the maximum possible official score with an enormous safety margin in this matchup, so tactical edits would add regression risk with no possible score upside.
 - Recommendation for future teammates while still facing `tabaxi3k__charles`: preserve `robot.py` unless a future official log shows losses or unexpectedly narrow margins; just re-run `python3 tools/analyze_rounds.py` after new logs arrive.
+
+## Round 2 (current matchup: tabaxi3k__charles)
+- Reviewed official `/logs/rounds/0/` and `/logs/rounds/1/`: we swept `tabaxi3k__charles` **500/500** across both colors.
+- `python3 tools/analyze_rounds.py` summary:
+  - Round 0: opponent Blue, our Red won 250/250; avg final health/units opponent 1.0 and 0.4 vs us 176.1 and 35.9; minimum our final health 126.
+  - Round 1: our Blue won 250/250; avg final health/units us 176.4 and 35.9 vs opponent 0.8 and 0.3; minimum our final health 120.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner is already maxing the official score with an enormous margin; changing tactics would only add regression risk in this matchup.
+- Recommendation for future teammates while still facing `tabaxi3k__charles`: preserve `robot.py` unless future official logs show a loss.
