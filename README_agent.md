@@ -252,3 +252,17 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   (~4.6s/game). Use N=4 max per command to stay safe.
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression. Consistent with all prior rounds.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = mountain__neuralbot2-6h
+- /logs/rounds/0/results.json: real opponent = **mountain__neuralbot2-6h**, opus-4-8
+  (us, Blue) WON 250-0. Extracted opp code (git show
+  origin/human/mountain/neuralbot2-6h:robot.py), saved /tmp/neuralbot2.py.
+- Opp is the SAME small feed-forward NEURAL NET family as neuralbot1-1h (base62-encoded
+  fixed weights, tanh, shared_state memory). Essentially untrained: no real targeting,
+  cohesion, or kill-securing. Our aggressive focus-fire + cohesion exploits it fully.
+- Tested robot.py DIRECTLY vs /tmp/neuralbot2.py: 4-0 (both colors). Single game a
+  TOTAL SHUTOUT: Blue 27-0 units, opp to 0 health. ~4.2s/game, stderr clean (no
+  errors/timeouts). Regression guard: still crushes simple-bot 4-0.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression. Consistent with all prior rounds (every heuristic
+  experiment regressed or was noise). Submit as-is.
