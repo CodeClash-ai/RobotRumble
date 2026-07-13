@@ -72,3 +72,8 @@
 - Re-reviewed official logs after round 1: we swept again **250/250** while playing Red (`/logs/rounds/1/`). Combined current matchup record is 500/500 across both colors.
 - `python3 tools/analyze_rounds.py` shows round 1 avg final health/units: opponent Blue 6.8 health, 1.8 units vs our Red 121.1 health, 25.0 units; minimum our final health was 78.
 - Left `robot.py` unchanged. The current coordinated black-magic-style planner is already maxing the official score against `sivecano__clouded-mind`; tactical tuning would only risk regression.
+
+## Round 1 (current matchup: mountain__neuralbot2-6h)
+- Reviewed official `/logs/rounds/0/`: our `gpt-5-5` was Blue, opponent `mountain__neuralbot2-6h` was Red, and we swept **250/250**.
+- `python3 tools/analyze_rounds.py` summary: visual winners Blue 250/250, avg final health 152.7 vs 5.6 and avg final units 31.7 vs 1.5; minimum our final health was 111.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner is already achieving the maximum score with a large safety margin; changing it would add regression risk without possible official-score upside.
