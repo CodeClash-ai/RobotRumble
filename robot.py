@@ -201,72 +201,73 @@ def init_turn(state):
     allow_chain_moves = (state.turn >= 20)
 
     best_actions = {}
-    # Generic enemy model for simple chasers: adjacent enemies attack our
-    # lowest-health adjacent unit; otherwise they move toward the friend that is
-    # most central to their team. The current wolfsleuth__simple opponent is a
-    # global-target chaser, but overfitting its exact buggy attack order was
-    # locally fragile; this conservative model keeps our battle micro sound.
-    target_pos = None
-    if friends and enemies:
-        best_total = None
-        for fpos in friends:
-            total = 0.0
-            for epos in enemies:
-                total += dist(fpos, epos)
-            if best_total is None or total < best_total:
-                best_total = total
-                target_pos = fpos
 
-    for epos in enemies:
-        best_actions[epos] = None
-        best_key = 999
-        best_dir = None
+    def tuple_direction_to(src, dst):
+        # Exact Coords.direction_to quadrant/tie behavior without atan2.
+        vx = dst[0] - src[0]
+        vy = dst[1] - src[1]
+        if vx < 0 and -vx >= abs(vy):
+            return Direction.West
+        if vy > 0 and vy >= abs(vx):
+            return Direction.South
+        if vy < 0 and -vy >= abs(vx):
+            return Direction.North
+        if vx > 0:
+            return Direction.East
+        return None
+
+    def tuple_in_spawn(pos, turn_offset=0):
+        # Jammy's bot evacuates terrain-adjacent spawn squares only on clearing
+        # turns. Approximate terrain with off-board/illegal adjacent cells; use the opponent's Direction iteration order when choosing an exit.
+        if (state.turn + turn_offset) % 10 != 0:
+            return False
         for d in DIRS:
-            dst = add(epos, d)
-            if dst in friends:
-                key = friends[dst]
-                if key < best_key:
-                    best_key = key
-                    best_dir = d
-        if best_dir is not None:
-            best_actions[epos] = (ATTACK, best_dir)
+            if add(pos, d) not in LEGAL:
+                return True
+        return False
+
+    # Opponent-specific model for jammyliu__sixty-nine-line: on spawn clear
+    # turns it first steps away from terrain; otherwise it finds the closest
+    # enemy distance group, selects the weakest unit in that group, pre-fires at
+    # walking distance <= 2, and moves directly toward that target when farther.
+    # The original retreat branch accidentally still returns the forward move,
+    # so health does not alter the predicted movement here.
+    for epos, eh in enemies.items():
+        best_actions[epos] = None
+        if tuple_in_spawn(epos, 0):
+            for d in (Direction.North, Direction.South, Direction.East, Direction.West):
+                dst = add(epos, d)
+                if dst in LEGAL and not tuple_in_spawn(dst, 0):
+                    best_actions[epos] = (MOVE, d)
+                    break
+            if best_actions[epos] is not None:
+                continue
+        if not friends:
             continue
-        # Model simple center-clumpers that pre-fire when a target is two
-        # walking steps away; this avoids walking into queued attacks.
-        best_key2 = 999
-        best_dir2 = None
+        min_wd = 999
+        closest = []
         ex, ey = epos
         for fpos, fh in friends.items():
-            dx = fpos[0] - ex
-            dy = fpos[1] - ey
-            wd = abs(dx) + abs(dy)
-            if wd == 2:
-                # Approximate Coords.direction_to: prefer the dominant axis.
-                if abs(dx) > abs(dy):
-                    pd = Direction.East if dx > 0 else Direction.West
-                elif dy != 0:
-                    pd = Direction.South if dy > 0 else Direction.North
-                else:
-                    pd = Direction.East if dx > 0 else Direction.West
-                if fh < best_key2:
-                    best_key2 = fh
-                    best_dir2 = pd
-        if best_dir2 is not None:
-            best_actions[epos] = (ATTACK, best_dir2)
+            wd = abs(fpos[0] - ex) + abs(fpos[1] - ey)
+            if wd == 0:
+                continue
+            if wd < min_wd:
+                min_wd = wd
+                closest = [(fpos, fh)]
+            elif wd == min_wd:
+                closest.append((fpos, fh))
+        if not closest:
             continue
-        if target_pos is None:
+        target, th = min(closest, key=lambda item: item[1])
+        edir = tuple_direction_to(epos, target)
+        if edir is None:
             continue
-        vx = target_pos[0] - epos[0]
-        vy = target_pos[1] - epos[1]
-        if abs(vx) > abs(vy):
-            move_dir = Direction.East if vx > 0 else Direction.West
-        elif vy != 0:
-            move_dir = Direction.South if vy > 0 else Direction.North
-        elif vx != 0:
-            move_dir = Direction.East if vx > 0 else Direction.West
+        if min_wd <= 2:
+            best_actions[epos] = (ATTACK, edir)
         else:
-            continue
-        best_actions[epos] = (MOVE, move_dir)
+            dst = add(epos, edir)
+            if not tuple_in_spawn(dst, 1):
+                best_actions[epos] = (MOVE, edir)
 
     possible = {}
     spawn_danger = (state.turn % 10 == 0)
