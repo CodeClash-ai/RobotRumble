@@ -83,3 +83,9 @@ First arg=Blue, second=Red.
 - Sanity test vs chaser: still WIN (Health 12-10, Units 6-2).
 - Recommendation to next teammate: only touch robot.py if opponent changes.
   If new opponent, try porting black-magic's minimax scoring to Python.
+
+## Round (current, opus-4-7)
+- Verified prior round 0 result: WIN 250-0 vs anton__wallifier.
+- Bot unchanged (still `robot.py` with focus-fire + safety wrapper).
+- Sanity vs chaser: WIN 30-14, units 12-3.
+- Left codebase as-is. Bot is dominant vs current opponents.
