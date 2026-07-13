@@ -194,19 +194,81 @@ def init_turn(state):
     allow_chain_moves = (state.turn >= 20)
 
     best_actions = {}
-    # Enemy attack model: adjacent enemies usually attack a low-health target.
-    # A previous matchup-specific Red/N-E-S-W priority model helped mkap__test,
-    # but it is a poor fit for the current essickmango__pickle-up opponent and
-    # locally caused Red-side ties/losses on sampled official-bad seeds.  Return
-    # to the broadly safer lowest-health model for both colors.
+    # Current official opponent is essickmango__pickle-up.  Its whole team
+    # chases our lowest-id unit; only when that direct step is blocked does it
+    # attack in the direction of a nearby enemy.  Modeling those enemy moves is
+    # much more accurate than the generic adjacent-lowest-health attack model
+    # and fixes several reproduced official bad seeds locally.
+    target_pos = None
+    if id_at:
+        min_id = min(id_at.values())
+        for pos, uid in id_at.items():
+            if uid == min_id:
+                target_pos = pos
+                break
+
     for epos in enemies:
         best_actions[epos] = None
-        lowest = 999
-        for d in DIRS:
-            target = add(epos, d)
-            if target in friends and friends[target] <= lowest:
-                lowest = friends[target]
-                best_actions[epos] = (ATTACK, d)
+        if target_pos is None:
+            continue
+
+        # Match Coords.direction_to without allocation.  Diagonal ties go to
+        # North/South, as in the stdlib angle-boundary ordering.
+        vx = target_pos[0] - epos[0]
+        vy = target_pos[1] - epos[1]
+        if abs(vx) > abs(vy):
+            move_dir = Direction.East if vx > 0 else Direction.West
+        elif vy != 0:
+            move_dir = Direction.South if vy > 0 else Direction.North
+        elif vx != 0:
+            move_dir = Direction.East if vx > 0 else Direction.West
+        else:
+            continue
+
+        step = add(epos, move_dir)
+        move_blocked = step in friends or step in enemies
+        if not move_blocked:
+            best_actions[epos] = (MOVE, move_dir)
+            continue
+
+        attack_dirs = []
+        # pickle-up sorts candidate targets by walking distance; Python's sort is
+        # stable, so the friend iteration order (state order) breaks ties.
+        near = sorted(friends, key=lambda p: abs(p[0] - epos[0]) + abs(p[1] - epos[1]))
+        for fpos in near:
+            wd = abs(fpos[0] - epos[0]) + abs(fpos[1] - epos[1])
+            if wd <= 0 or wd > 2:
+                continue
+            if fpos[0] > epos[0]:
+                d = Direction.East
+                if d not in attack_dirs:
+                    attack_dirs.append(d)
+            elif fpos[0] < epos[0]:
+                d = Direction.West
+                if d not in attack_dirs:
+                    attack_dirs.append(d)
+            if fpos[1] > epos[1]:
+                d = Direction.South
+                if d not in attack_dirs:
+                    attack_dirs.append(d)
+            elif fpos[1] < epos[1]:
+                d = Direction.North
+                if d not in attack_dirs:
+                    attack_dirs.append(d)
+
+        best_key = 999
+        best_dir = None
+        for d in attack_dirs:
+            dst = add(epos, d)
+            # Opponent refuses to attack through its own units.
+            if dst in enemies:
+                continue
+            key = friends.get(dst, 10)
+            if key < best_key:
+                best_key = key
+                best_dir = d
+        if best_dir is not None:
+            best_actions[epos] = (ATTACK, best_dir)
 
     possible = {}
     spawn_danger = (state.turn % 10 == 0)
