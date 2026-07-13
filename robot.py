@@ -231,6 +231,29 @@ def init_turn(state):
         if best_dir is not None:
             best_actions[epos] = (ATTACK, best_dir)
             continue
+        # Model simple center-clumpers that pre-fire when a target is two
+        # walking steps away; this avoids walking into queued attacks.
+        best_key2 = 999
+        best_dir2 = None
+        ex, ey = epos
+        for fpos, fh in friends.items():
+            dx = fpos[0] - ex
+            dy = fpos[1] - ey
+            wd = abs(dx) + abs(dy)
+            if wd == 2:
+                # Approximate Coords.direction_to: prefer the dominant axis.
+                if abs(dx) > abs(dy):
+                    pd = Direction.East if dx > 0 else Direction.West
+                elif dy != 0:
+                    pd = Direction.South if dy > 0 else Direction.North
+                else:
+                    pd = Direction.East if dx > 0 else Direction.West
+                if fh < best_key2:
+                    best_key2 = fh
+                    best_dir2 = pd
+        if best_dir2 is not None:
+            best_actions[epos] = (ATTACK, best_dir2)
+            continue
         if target_pos is None:
             continue
         vx = target_pos[0] - epos[0]

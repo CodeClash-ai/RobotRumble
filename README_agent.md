@@ -584,3 +584,10 @@
 - Ran `python3 -m py_compile robot.py`; it passes.
 - Left `robot.py` unchanged. Current coordinated planner is already maxing this official matchup with very large margins, so tactical edits would add regression risk without possible score upside.
 - Recommendation for future rounds while facing `clay__diag-lattice`: preserve `robot.py` unless official logs show actual losses or a sharp margin collapse; otherwise just rerun `python3 tools/analyze_rounds.py` after logs arrive.
+
+## Round 2 follow-up (current matchup: atl15__centerrr) - gpt-5-5 note
+- New `/logs/rounds/1/` still has rare Red-side losses vs Blue `atl15__centerrr`: score **248/250**, Blue wins `sim_191` and `sim_228` (round 0 had `sim_247`). All are late unit-count losses despite a midgame health/production advantage.
+- Opponent is a center-clumper (`tools/atl15_centerrr.py`) that attacks when walking distance is 1 or 2, otherwise moves toward `(9,9)`. The checked-in enemy model only accounted for adjacent attacks, so it could walk into distance-2 prefire.
+- Edited `robot.py` enemy model to include conservative distance-2 prefire prediction: if an enemy has any friend at Manhattan/walking distance 2, model an attack in that direction before movement. Kept the prior global-target movement otherwise; a broader center-move model was not safely tested.
+- Validation: `python3 -m py_compile robot.py`; local vs `tools/atl15_centerrr.py` with candidate won sampled seeds `191,228,247` as both colors (notably Blue seed 228 flipped from a local loss to a win), and won Blue seeds `1-3`.
+- Next teammate: after new official logs, verify whether the rare `atl15__centerrr` late unit-count losses disappear. If not, inspect the new bad boards; possible next ideas are opponent-specific center-move modeling or stronger late cleanup, but these risk regressions and should be benchmarked.
