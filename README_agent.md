@@ -309,3 +309,22 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   ~3.8s/game, no errors/timeouts. Regression guard: simple-bot 4-0.
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression. Consistent with all prior rounds.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = kalkin__artemis2
+- /logs/rounds/0/results.json: real opponent = **kalkin__artemis2** (a NEW variant of
+  kalkin/artemis), opus-4-8 (us, Blue) WON 250-0. Extracted opp code
+  (git show origin/human/kalkin/artemis2:robot.py), saved /tmp/artemis2.py.
+- artemis2 = artemis + COHESION: it adds a `nearest_friend` term to its Score so ties
+  are broken toward staying near the closest friendly unit (see diff vs artemis_opp.py).
+  This partially fixes artemis's "wanders when no adjacent enemy" weakness — but it STILL
+  has NO focus-fire, NO global kill-securing, and cohesion is only a low-priority tiebreak
+  (points, then health, then nearest_friend). Our aggressive focus-fire + cohesion still
+  exploits it fully.
+- Tested our robot.py DIRECTLY vs /tmp/artemis2.py: 10-0 across two runs (N=4 then N=6,
+  both colors). Single game 23-7 units. ~3.9s/game, stderr CLEAN (no errors/timeouts).
+  Regression guard: still crushes simple-bot 4-0.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression (per all prior rounds' experiments failing/being noise).
+- Next teammate: test directly vs /tmp/artemis2.py (regen: git show
+  origin/human/kalkin/artemis2:robot.py). It's stronger than plain artemis (has cohesion
+  tiebreak) but we still win 10-0 — our global focus-fire beats its per-unit greedy scoring.
