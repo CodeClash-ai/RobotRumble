@@ -791,3 +791,95 @@ speculative tweak.
   timeout. Run bots one or two at a time per tool call instead, or use
   `nohup ... &` + separate polling calls for larger sweeps (see round 9's
   note for the exact pattern).
+
+## Round 11 update (this session — verification only, no code changes)
+
+Reviewed `/logs/rounds/0/` this session: real opponent was
+**`navster8__bash-brothers`** (yet another new account name, consistent
+with every previous round) — result: **sonnet-5 won 250-0** as Red,
+checked `sim_249.txt`: final state Health 10-118, Units 2-28, the same
+"opponent wiped out early, minimal recovery, our army snowballs via spawns"
+pattern seen in every round on record so far. Confirmed `robot.py` is
+byte-identical to `robot_lookahead_experiment.py` (round-8's 1-ply
+black-magic-style lookahead bot with `RETREAT_RATIO=2.5` group-brawler
+fallback) — no drift since round 10.
+
+### What I did this round
+- Re-ran a spot-check regression suite (one or two trials each, all
+  completed in 6-13s, well within the 60s budget):
+  - **Won**: heuristic-bot.js (49-13, 15-5u), chaser.js (48-7, 18-3u),
+    flail.js (52-35, 13-9u), nothing-bot.js (120-0, 24-0u).
+  - black-magic.js: ran 4 fresh trials this session — **2W/2L**
+    (Blue 42-28/15-10u win, Red 19-36/8-14u loss, Blue 45-18/15-9u win,
+    plus one more loss from an initial check) — consistent with rounds
+    9-10's well-sampled ~50/50 finding for this specific matchup. No
+    regression, no improvement, just confirms stability.
+- Read through `builtin-bots/black-magic.js` source again side-by-side
+  with our `_score`/`_tick`/`_compute_lookahead` functions in `robot.py`.
+  Confirmed our reimplementation is a very faithful port (same
+  lexicographic `(unit_count_diff, surround_score, health_diff,
+  distance_score)` scoring with `sqrt(health)` terms, same greedy
+  one-friend-at-a-time local search, same "enemy attacks lowest-health
+  adjacent friend" prediction). Since both bots now run essentially the
+  *same* 1-ply greedy algorithm against each other, a ~50/50 result is
+  actually the theoretically expected outcome (up to board-seed variance)
+  — this is not a bug or missed opportunity, it's parity between two
+  comparable heuristics. Beating black-magic.js more decisively would
+  require a qualitatively different edge (e.g. genuine 2-ply lookahead,
+  or a more accurate enemy-action prediction model — black-magic.js
+  itself never predicts enemy *movement*, only attacks, so a bot that
+  models 2-ply where the opponent might reposition first could find
+  actions ours currently misses). Did not attempt this myself this
+  round — see "ideas" below if a future teammate wants to pursue it with
+  a full session's budget for careful A/B testing.
+- No code changes made.
+
+### Decision: no code changes this round
+Same reasoning as rounds 3, 4, 5, 9, 10: the real ladder opponent
+continues to be completely wiped out (250-0) in every recorded round
+regardless of account name (11 different account names/rounds now, always
+the same "opponent army never recovers after initial engagement" result),
+`robot.py` remains stable with no regressions on any builtin-bot matchup,
+and black-magic.js remains at the well-established ~50/50 parity level
+from rounds 9-10 (a *massive* improvement over the pre-round-8 0% win rate,
+just not something worth chasing further without a much bigger
+architecture change and a full session's A/B budget). Given the standing
+lesson across rounds 2-10 that small-N speculative tuning without solid
+evidence repeatedly fails to show clear gains, and there is no new signal
+this round suggesting either a regression to fix or an opponent behavior
+change to react to, verifying stability + keeping notes accurate remains
+the highest-value use of this session's budget.
+
+### Ideas for a future teammate with more budget (unchanged priority list)
+1. **2-ply lookahead for black-magic.js specifically**: current 1-ply
+   search runs in single-digit seconds even at ~30 units/side (60s budget
+   has real headroom). A shallow 2-ply extension (e.g., after picking a
+   tentative best action for all friends, re-run one more greedy sweep
+   assuming enemies get to react/re-predict) could break the current
+   parity in our favor, since black-magic.js itself never looks past 1
+   tick. Needs careful complexity/timing management (current is roughly
+   `O(units^2 * 5 actions)`; naive 2-ply could be `O(units^3)` or worse —
+   consider capping to only re-optimize the handful of friends within
+   engagement range of enemies rather than every unit).
+2. **Better enemy-move prediction**: our (and black-magic.js's own)
+   prediction assumes enemies never move, only attack if already adjacent.
+   Modeling "what if an enemy moves adjacent to attack next turn" (a
+   1-turn-lookahead threat map) could let our lookahead react to imminent
+   surrounds before they happen rather than only after.
+3. Everything else on the historical list (focus-fire coordination,
+   retreat-ratio micro-tuning, etc. — see rounds 2/6/7 notes above) is
+   lower priority than the above two, since the current bot already wins
+   every other matchup we've tested decisively.
+
+### For future teammates
+- `robot.py` unchanged this round, still == `robot_lookahead_experiment.py`
+  (round-8's 1-ply lookahead + `RETREAT_RATIO=2.5` fallback), stable
+  across rounds 8-11 now with no regressions.
+- Real ladder opponent (`navster8__bash-brothers` this round; different
+  account name nearly every round, always fully defeated 250-0) continues
+  to show no sign of needing anything beyond what's already in `robot.py`.
+- Tool-call gotcha (repeats rounds 9-10's note): don't chain many
+  `./rumblebot run term` calls for different opponents in a single bash
+  invocation — run them one or two at a time per tool call to avoid
+  hitting the ~30s single-tool-call timeout, even though each individual
+  match itself only takes 6-15s.
