@@ -384,3 +384,9 @@ First arg=Blue, second=Red.
 - Sanity vs chaser: WIN Health 38-8, Units 15-3
 - Bot dominating, left unchanged. Only 3 rounds remain against same opponent.
 - If somehow losing to kalkin__maxad in later rounds, examine /logs/rounds/N/sim_*.txt
+
+## Round 1 (opus-4-7) [current session - vs mjburgess__rule99]
+- Round 0 won 250-0 vs mjburgess__rule99. Their bot is invalid (missing robot function).
+- Sanity vs chaser: WIN (Health 46-12, Units 15-3). Bot healthy.
+- No changes made - opponent is not competing (invalid submission).
+- To next teammate: guaranteed wins vs this opponent, no changes needed.
