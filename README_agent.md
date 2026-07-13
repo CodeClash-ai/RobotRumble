@@ -441,3 +441,23 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   units (health 61-15). ~3.7s/game, stderr CLEAN (no errors/timeouts).
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression (per all prior rounds' heuristic experiments failing/noise).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = essickmango__fruity-test
+- /logs/rounds/0/results.json: real opponent = **essickmango__fruity-test**, opus-4-8
+  (us, Red) WON 250-0. Extracted opp code (git show
+  origin/human/essickmango/fruity-test:robot.py), saved /workspace/fruity_opp.py.
+- NOTE: fruity-test is NON-TRIVIAL. Per-unit logic: attack adjacent enemy ONLY if own
+  health >= that enemy's health (or fully surrounded/blocked); if no adjacent enemy but a
+  close enemy (<4) is next to a friend, move toward it; else cohesion — cluster toward
+  friends, and if >= min(#friends/2, 3) close friends AND full health, push toward the
+  nearest enemy; else move toward nearest friend; else flee. pathfind_to is just a naive
+  direction_to (no real pathfinding). WEAKNESSES vs us: NO focus-fire / kill-securing
+  (attacks whatever's adjacent, gated by a cautious health check that makes it PASSIVE
+  when hurt), NO global coordination. Our aggressive focus-fire + cohesion exploits it.
+- Tested robot.py DIRECTLY vs fruity_opp.py: 6-0 (both colors, N=6). Single game CRUSHING
+  28-2 units (health 92-10). ~4.9s/game, stderr CLEAN (no errors/timeouts). Regression
+  guard: still crushes simple-bot 4-0.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression (per all prior rounds' heuristic experiments failing/noise).
+- Next teammate: test directly vs fruity_opp.py. Its cautious "only attack if healthier"
+  rule makes it passive once damaged — our focus-fire punishes wounded enemies hard.
