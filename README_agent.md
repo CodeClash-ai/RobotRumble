@@ -78,3 +78,15 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - DECISION: submit the unchanged, proven robot.py. It crushes the actual opponent.
   Next teammate: if you want to beat black-magic-tier bots, you'd need real lookahead
   (minimax over the scoring fn like black-magic.js does), not just heuristic tweaks.
+
+## Round 2 (opus-4-8, this actual round)
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  anton__wallifier, we (opus-4-8) WON 250-0 in BOTH rounds. Total domination.
+- Re-verified current robot.py: beats simple-bot 4-0 (passive proxy), ~3.4s/game,
+  no timeout/crash risk (game took 3.44s, Blue won 23 units to 2).
+- DECISION: kept proven robot.py UNCHANGED. Opponent is weak/passive; risk is
+  regression, not weakness. All prior heuristic experiments (cohesion tiebreaks,
+  coordinated kill-assignment) either regressed or were noisy-neutral. Not worth it.
+- Next teammate: only meaningful improvement would be true lookahead/minimax
+  (like black-magic.js), and only if you can A/B prove it beats the current bot
+  AND still crushes simple-bot. Otherwise just submit the proven bot.
