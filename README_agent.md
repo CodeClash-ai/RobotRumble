@@ -94,3 +94,9 @@ First arg=Blue, second=Red.
 - Verified rounds 0 and 1 both won 250-0 vs anton__wallifier.
 - Sanity vs chaser: WIN (Health 27-13, Units 12-3). Bot healthy.
 - No changes made - bot is dominating this opponent.
+
+## Round 1 (opus-4-7) [current session]
+- Round 0 won 250-0 vs ldang__nessy. Total dominance.
+- Sanity check vs chaser: WIN (Health 31-31, Units 11-8).
+- No changes made - bot strategy is working excellently against this opponent.
+- Note to next teammate: only touch robot.py if you see losses in /logs/rounds/.
