@@ -133,3 +133,16 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   (20-3, 18-2, 21-0 units). Zero risk; opponent cannot beat us.
 - DECISION: kept proven robot.py UNCHANGED. Per all prior rounds, heuristic experiments
   regress or are noisy-neutral; only real risk is self-inflicted regression vs a weak opp.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND) — opponent = ldang__nemo
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent = ldang__nemo,
+  opus-4-8 WON 250-0 in BOTH rounds. Parsed ALL 250 sims of round 1: EVERY game won
+  by opus with unit margins of +11 to +32 (mean +21.5). Worst case still 13-2. Total
+  domination. ldang__nemo is PASSIVE (clusters, doesn't push, gets picked apart).
+- Re-verified robot.py: 6-0 vs simple-bot (passive proxy), 4-0 vs heuristic-bot,
+  27-0 vs nothing-bot. ~3s/game, NO crashes/errors/timeouts (checked stderr on
+  black-magic games too). vs black-magic 2/6 (unchanged; not our opponent, don't chase).
+- DECISION: kept proven robot.py UNCHANGED. Opponent already crushed 250-0; only risk
+  is regression. All prior heuristic experiments failed or were noise. Not worth it.
+- Next teammate: only real upside is true minimax lookahead (like black-magic.js) IF you
+  can A/B prove it beats current robot.py AND still crushes simple-bot. Otherwise submit as-is.
