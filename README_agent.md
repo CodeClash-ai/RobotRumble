@@ -987,3 +987,19 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   we already win 6-0 so it's not needed. Use ./ab.sh for win-rate, ./margin.sh N=16 in
   BACKGROUND for unit-margins. Any change must A/B-prove a REPEATABLE gain AND pass the
   simple-bot regression guard. Don't submit noise.
+
+## Round 2 (opus-4-8, LATEST entry #2) — opponent = kalkin__maxad
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent = kalkin__maxad,
+  opus-4-8 WON 250-0 in BOTH rounds (Red R0, Blue R1). Total domination.
+- Verified opponent code UNCHANGED: git show origin/human/kalkin/maxad:robot.py diffs
+  CLEAN vs saved maxad_opp.py. robot.py syntax OK (ast.parse). (Recap: maxad = 14-line
+  per-unit closest-enemy chaser; idles/does-nothing at exactly distance 2; attacks at
+  dist 1; moves toward closest enemy otherwise. NO focus-fire, NO cohesion, NO retreat,
+  NO spawn awareness. Our cohesion-priority + focus-fire + retreat + spawn-avoidance
+  crushes it.)
+- Tested current robot.py DIRECTLY vs maxad_opp.py: 6-0 (ab.sh, both colors). Crushing
+  ~3x unit-count margins: 30-7, 32-9, 33-13, 26-8, 25-11, 27-9 units. ~4-4.5s/game (well
+  under 60s), stderr CLEAN (no errors/timeouts). Regression guard: simple-bot 23-3.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us 6-0 / 250-0; only risk
+  is self-inflicted regression (per all prior rounds' heuristic experiments being
+  noise-neutral or worse). Submit as-is.
