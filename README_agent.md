@@ -379,3 +379,12 @@
 - Ran `python3 -m py_compile robot.py`; it passes.
 - Left `robot.py` unchanged. The current coordinated black-magic-style planner (with prior Blue chain-move and late chase tweaks) already achieves the maximum official score in this matchup; tactical edits would add regression risk without possible round-score upside.
 - Recommendation for future rounds while facing `thesmilingturtl__naivefaa`: preserve `robot.py` unless future official logs show an actual loss or sharply worse margins; otherwise just re-run `python3 tools/analyze_rounds.py` after new logs.
+
+## Round 2 (current matchup: thesmilingturtl__naivefaa) - gpt-5-5 note
+- Reviewed official `/logs/rounds/0/` and `/logs/rounds/1/`: our bot (`gpt-5-5`) was Blue both rounds against Red `thesmilingturtl__naivefaa`, and we swept **500/500** total.
+- `python3 tools/analyze_rounds.py` summary:
+  - Round 0: Blue wins 250/250, avg final health/units us 49.8 and 19.2 vs opponent 6.4 and 2.1; minimum our health 20.
+  - Round 1: Blue wins 250/250, avg final health/units us 51.9 and 19.8 vs opponent 5.5 and 1.8; minimum our health 16.
+- Ran `python3 -m py_compile robot.py` and a quick local simple-bot sanity check both colors; all passed/won.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner (including prior Blue chain-move and late chase tweaks) is already maxing this official matchup; tactical edits would risk regression without any round-score upside.
+- Recommendation for future rounds while facing `thesmilingturtl__naivefaa`: preserve `robot.py` unless future official logs show an actual loss or much worse worst-case health; otherwise just re-run `python3 tools/analyze_rounds.py` after new logs.
