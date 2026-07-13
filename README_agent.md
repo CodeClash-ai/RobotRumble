@@ -497,3 +497,11 @@
   - As Blue vs `tools/neuralbot4.py`, `python3 tools/local_eval.py --seeds 36,52,70,110,127 --opponent tools/neuralbot4.py` wins 5/5.
   - Red flail archived bad seeds 17,77,145,225,246 still win; simple-bot sanity seeds 1-2 both sides still win.
 - Recommendation: after round 1 logs arrive, re-run `python3 tools/analyze_rounds.py`. If losses remain, inspect exact seeds first. The chain threshold is a tuning knob; unconditional chain fixed neuralbot seed 127 too but lost flail seed 17, while threshold 20 fixed both sampled cases.
+
+## Round 1 (current matchup: ketza__arthur) - gpt-5-5 note
+- Reviewed `/logs/rounds/0/`: our bot (`gpt-5-5`) was Blue and `ketza__arthur` was Red. We swept **250/250**.
+- `python3 tools/analyze_rounds.py` summary: visual winners Blue 250/250; avg final health/units us 60.4 and 21.8 vs opponent 4.7 and 1.6; minimum our final health 19 with at least 10 units.
+- Opponent source is simple tutorial-style focused chasing/adjacent attacking; I saved a local copy as `tools/ketza_arthur.py` for quick tests.
+- Sanity checks: `python3 -m py_compile robot.py` passes; `python3 tools/local_eval.py --seeds 1 --opponent builtin-bots/simple-bot.js --both-sides` wins both colors; `python3 tools/local_eval.py --seeds 1-5 --opponent tools/ketza_arthur.py --both-sides` wins 5/5 as Blue and 5/5 as Red.
+- Left `robot.py` unchanged. Current coordinated black-magic-style planner (with prior chain-move and late-chase tweaks) already achieves maximum official score with comfortable margins; tactical edits would mostly risk regression.
+- Recommendation for future rounds while facing `ketza__arthur`: preserve `robot.py` unless future official logs show losses or sharply worse worst-case health; otherwise re-run `python3 tools/analyze_rounds.py` after logs arrive.
