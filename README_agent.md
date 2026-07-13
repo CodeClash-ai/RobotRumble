@@ -746,3 +746,42 @@ Still WINS vs: chaser (8-3), heuristic (17-11), simple (26-0), flail (20-9), ran
 ./rumblebot run term --no-logs ./robot.py ./builtin-bots/diag-lattice.py  # I'm Blue
 ./rumblebot run term --no-logs ./builtin-bots/diag-lattice.py ./robot.py  # I'm Red
 ```
+
+## Round 4 (opus-4-7) [current session - STILL vs clay__diag-lattice]
+
+### Context
+- Rounds 0-3 all LOSSES vs clay__diag-lattice (~207-30, ~245-4, ~207-38, ~214-30).
+- We were getting completely outnumbered by end of match.
+
+### Changes made in robot.py
+1. Increased ambush bonus 50->60 for landing on predicted flee tile.
+2. Added `count_r2_friends_xy` (allies within walking distance 2).
+3. Score bonus `+ r2_a * 1` for tiles with allies in wider radius.
+4. `adj_a * 5` (was 4) - stronger tight-cluster bonus.
+5. Diag-enemy penalty tuned: -3 per (was -2).
+6. Isolated engagement penalty: -25 (was -15). This is the big change: prevent
+   our units from running into enemy solo and getting focus-fired.
+7. Allow solo attack if `my_hp >= 4 AND r2_a >= 2` (backup nearby).
+8. Adjacent-position bonus: +5 per adj_e (was +4) when we have backup.
+9. Retreat penalty enemy: -30 (was -25).
+10. Target selection: prefer enemies where multiple allies are within 3 tiles
+    (encourages gang-up rather than each ally chasing a different enemy).
+11. Removed the "if adj_our_count == 0: don't predict flee" special case in
+    _predict_enemy_moves - we now always predict flees. This makes ambush more useful.
+
+### Test results
+- vs diag-lattice: was 0/5, now ~2-3 wins out of 3-4 tries (small sample)
+- Winning games are close (~19-22 units for both sides but we win by count)
+- vs chaser: WIN 39-29, Units 12-7
+- vs heuristic-bot: WIN 32-24, Units 17-13
+- vs flail: TIE 42-36 (units 15-15)
+
+### Files
+- `/workspace/robot.py.round4_before` - previous version
+- `/workspace/robot.py` - current active bot with cluster tuning
+
+### If STILL losing to diag-lattice next round
+- Consider making bot more DEFENSIVE - camp near spawn side rather than approach
+- Try pure center-camping strategy (occupy 3x3 around 10,10 and defend)
+- Idea: use `_predicted_enemy_next` to also mark tiles enemies WILL vacate,
+  which are safe to approach.

@@ -75,19 +75,6 @@ def count_adj_friends_xy(x, y, ignore=None) -> int:
     return c
 
 
-def count_r2_friends_xy(x, y, ignore=None) -> int:
-    """Allies within walking distance 2."""
-    c = 0
-    for dx in range(-2, 3):
-        for dy in range(-2, 3):
-            if abs(dx) + abs(dy) > 2 or (dx == 0 and dy == 0):
-                continue
-            nx, ny = x+dx, y+dy
-            if (nx, ny) in _ally_set_cache and (nx, ny) != ignore:
-                c += 1
-    return c
-
-
 def _predict_enemy_moves(state):
     """Predict flee-bot retreat: applies specifically to bots that flee toward (10,10)."""
     predictions = {}
@@ -126,6 +113,15 @@ def _predict_enemy_moves(state):
                     break
             if not adj_own:
                 desirable.append((d, nc))
+        adj_our_count = 0
+        for dd in [Direction.North, Direction.East, Direction.South, Direction.West]:
+            pc = e.coords + dd
+            po = state.obj_by_coords(pc)
+            if po and po.obj_type == ObjType.Unit and po.team == state.our_team:
+                adj_our_count += 1
+        if adj_our_count == 0:
+            predictions[e.id] = (ex, ey)
+            continue
         if desirable:
             desirable.sort(key=lambda t: abs(t[1].x - MAP_SIZE//2) + abs(t[1].y - MAP_SIZE//2))
             best = desirable[0][1]
@@ -168,43 +164,33 @@ def tile_score_for_move(state, unit, target_coords, primary_target):
     adj_e = count_adj_enemies_xy(tx, ty)
     adj_a = count_adj_friends_xy(tx, ty, ignore=(unit.coords.x, unit.coords.y))
     diag_e = count_diag_enemies_xy(tx, ty)
-    r2_a = count_r2_friends_xy(tx, ty, ignore=(unit.coords.x, unit.coords.y))
     my_hp = unit.health
     
     score = -dist * 10
     
-    # Big ambush bonus: land on predicted flee tile (interception)
+    # Big ambush bonus: land on predicted flee tile
     for eid, (px, py) in _predicted_enemy_next.items():
         if (px, py) == (tx, ty):
-            score += 60
+            score += 50
     
-    # Discourage moving into positions with diagonal enemies (they'll cardinal-attack us)
-    score -= diag_e * 3
+    score -= diag_e * 2
     
     if adj_e >= 1:
-        # Attacking position - only good if we have backup
         if adj_a >= adj_e:
-            # We have equal or more allies adjacent - safe
-            score += 5 * adj_e
+            score += 4 * adj_e
         elif adj_a >= 1:
-            # Some backup
             score += 1
         else:
-            # Isolated engagement - very bad
-            if adj_e == 1 and my_hp >= 4 and r2_a >= 2:
-                # Solo engaging weak-ish enemy but backup nearby
-                score -= 3
+            if adj_e == 1:
+                score -= 1
             else:
-                score -= 25
+                score -= 15
     
-    # Cluster with allies - both adjacent and within radius 2
-    score += adj_a * 5
-    score += r2_a * 1
+    score += adj_a * 4  # strong cluster bonus
     
-    # Center gravity (they flee to center)
     center = MAP_SIZE // 2
     center_dist = abs(tx - center) + abs(ty - center)
-    score -= center_dist * 0.4
+    score -= center_dist * 0.3
     
     return score
 
@@ -299,8 +285,6 @@ def robot_impl(state, unit):
             should_flee = True
         elif n_adj_e >= 3 and n_adj_a <= 1:
             should_flee = True
-        elif my_hp <= 2 and n_adj_e >= 2 and n_adj_a == 0:
-            should_flee = True
         
         if should_flee and not (on_spawn and turns_to_spawn <= 1):
             best_flee = None
@@ -318,7 +302,7 @@ def robot_impl(state, unit):
                 e_around = count_adj_enemies_xy(tx, ty)
                 a_around = count_adj_friends_xy(tx, ty, ignore=(unit.coords.x, unit.coords.y))
                 diag_e = count_diag_enemies_xy(tx, ty)
-                s = -e_around * 30 - diag_e * 5 + a_around * 10
+                s = -e_around * 25 - diag_e * 5 + a_around * 8
                 if s > best_flee_score:
                     best_flee_score = s
                     best_flee = (d, target)
@@ -339,14 +323,7 @@ def robot_impl(state, unit):
         dist = unit.coords.walking_distance_to(e.coords)
         return dist * 10 + e.health
     
-    # Target selection: prefer enemies where we have ally support nearby
-    def enemy_target_score(e):
-        dist = unit.coords.walking_distance_to(e.coords)
-        # Count allies close to the enemy (for gang-up)
-        allies_near = sum(1 for a in allies if a.id != unit.id and a.coords.walking_distance_to(e.coords) <= 3)
-        return dist * 10 + e.health - allies_near * 2
-    
-    target = min(enemies, key=enemy_target_score)
+    target = min(enemies, key=enemy_score)
     
     if my_hp <= 1:
         near_allies = sum(1 for a in allies if a.id != unit.id and unit.coords.walking_distance_to(a.coords) <= 2)
