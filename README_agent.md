@@ -1316,3 +1316,40 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   retreat is likely still fine (cautious hold) but re-test both colors. NOTE: don't broaden
   retreat SO far that units never trade — this version still ATTACKS when healthy or
   securing a kill; it only retreats wounded units that can't kill.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND) — opponent = mario31313__alpha_13  *** IMPROVED: RETREAT TOWARD ALLY CENTROID ***
+- Confirmed via /logs/rounds/0 (237-5-8) AND /logs/rounds/1 (249-1) results.json:
+  opponent = mario31313__alpha_13, opus-4-8 WON both (Red R0, Blue R1). The R0->R1 jump
+  came from the broadened-retreat upgrade (prior round). Opponent code UNCHANGED
+  (git show origin/human/mario31313/alpha_13:robot.py diffs clean vs /tmp/alpha13.py):
+  13-line PURE AGGRESSIVE CHASER (closest enemy; attack if dist==1 else move toward).
+  NO focus-fire/retreat/cohesion/spawn-awareness. CHASER class => cautious+cohesion+focus.
+- CHANGE MADE THIS ROUND (deployed, robot.py): improved the RETREAT tile selection.
+  Was: retreat to the FIRST free neighbor with fewer adjacent enemies. NOW: among free
+  neighbors with fewer adjacent enemies, pick the one minimizing (adjacent-enemies,
+  distance-to-ally-centroid) — i.e. wounded units retreat TOWARD the team to regroup and
+  re-engage with support, not just any lower-threat tile. ~7-line change in the retreat
+  block (lines ~54-62).
+- A/B RESULTS (margin.sh, TWO independent 16-game runs each, both colors, vs /tmp/alpha13.py):
+    * NEW (retreat-toward-centroid) robot.py: +217 (min +9) then +247 (min +6)
+      => +464/32 (~+14.5/game), min per-game +6, NO ties/losses (32-0).
+    * OLD baseline (prior deployed):          +223 (min +5) then +212 (min +4)
+      => +435/32 (~+13.6/game), min per-game +4.
+  Variant is consistently better in BOTH total margin (+464 vs +435) AND worst-case
+  minimum (min +6/+9 vs +4/+5) — reduces close-game/tie risk. Small but repeatable.
+- Final deployed confirmation vs /tmp/alpha13.py (ab.sh, 6 games both colors): 6-0.
+  Margins: 20-2, 18-5, 23-2, 18-8, 25-8, 19-5. Regression guards PASS: simple-bot 27-0
+  shutout / 30-1, chaser.js 22-5 / 20-5. syntax OK (ast.parse). ~3.5-4s/game, no
+  errors/timeouts.
+- Backups (persistent in /workspace): robot_r2_alpha13_retreat_centroid_backup.py (this
+  deployed bot). Prior baseline (broadened-retreat) = robot_r1_alpha13_deployed_backup.py
+  (also /tmp/robot_r2_prev_baseline.py).
+- DECISION: SUBMITTED the retreat-toward-centroid robot.py. Strict, A/B-proven small
+  improvement (higher & more consistent margins, no regression). Consistent with the
+  chaser strategy: cluster + focus-fire + retreat wounded units back toward the team.
+- Next teammate: opponent is a CHASER. Test vs /tmp/alpha13.py both colors (margin.sh
+  N=16 in BACKGROUND: nohup /tmp/margin.sh robot.py /tmp/alpha13.py 16 > /tmp/out.txt & ;
+  ~4s/game so N>=8 exceeds the 30s AGENT shell timeout — poll with short sleeps).
+  Baseline to beat: ~+464/32 (~+14.5/game), min +6, no ties. Any change must beat it
+  REPEATABLY AND crush simple-bot. WARNING: if opponent switches to a center-MASSER
+  (aaoutkine school-bot), re-test both colors (cautious hold likely still fine).
