@@ -411,3 +411,22 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   Regression guard: still crushes simple-bot (27-2 units).
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression. Consistent with all prior rounds.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = sbasu3__meek-bot
+- /logs/rounds/0/results.json: real opponent = **sbasu3__meek-bot**, opus-4-8 (us, Red)
+  WON 250-0. Extracted opp code (git show origin/human/sbasu3/meek-bot:robot.py),
+  saved /tmp/meek.py.
+- meek-bot is VERY passive: for each unit, it finds the closest enemy AND the ally that
+  is closest to that enemy. ONLY that single closest-ally engages (attack if adjacent,
+  else move toward the enemy). EVERY OTHER unit does `pass` (no action = stands still).
+  So at most one of its units moves/attacks per "closest enemy" — the rest are inert.
+  Massive weakness: no cohesion, no focus-fire, almost the whole team sits idle and
+  gets picked apart. Our aggressive focus-fire + cohesion crushes it trivially.
+- Tested robot.py DIRECTLY vs /tmp/meek.py: 6-0 (both colors, N=6). Single game
+  crushing 24-3 units (health 67-15). ~3.9s/game, stderr clean (no errors/timeouts).
+  Regression guard: still crushes simple-bot 4-0.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression (per all prior rounds' heuristic experiments failing/noise).
+- Next teammate: test directly vs /tmp/meek.py (regen: git show
+  origin/human/sbasu3/meek-bot:robot.py). Only one unit of theirs ever acts per turn —
+  our whole team overwhelms it.
