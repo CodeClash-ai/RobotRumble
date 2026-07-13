@@ -1382,3 +1382,20 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   sleeps). Baseline to beat: ~+234/16 (~+14.6/game), min +8, no ties. Any change must beat
   it REPEATABLY AND crush simple-bot. WARNING: if opponent switches to a center-MASSER
   (aaoutkine school-bot), re-test both colors (cautious hold likely still fine).
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND) — opponent = underscore__bot1 (CHASER)
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent = underscore__bot1,
+  opus-4-8 WON 250-0 in BOTH rounds (Red R0, Blue R1). Total domination.
+- Verified opponent code UNCHANGED: git show origin/human/underscore/bot1:robot.py diffs
+  CLEAN vs saved bot1_opp.py. (Recap: file defines robot() twice; the SECOND def wins =
+  pure per-unit CLOSEST-ENEMY CHASER: attack if dist==1 else move toward closest enemy.
+  NO focus-fire/retreat/cohesion/spawn-awareness. CHASER class => our cautious+cohesion+
+  focus+retreat-toward-centroid strategy crushes it.)
+- Tested current robot.py DIRECTLY vs bot1_opp.py: won all games observed (both colors):
+  Red-win 23-9, Blue-win 27-6, Red-win 14-9, Blue-win 23-6. Single game Blue 21-8 (~5.4s).
+  Regression guard: simple-bot 4-0 (crushing shutouts 29-2/27-2/30-1/25-1). syntax OK
+  (ast.parse), ~5.4s/game (well under 60s), no errors/timeouts.
+- DECISION: kept proven robot.py UNCHANGED (cautious+cohesion+focus+retreat-toward-centroid
+  + spawn-avoidance). Opponent cannot beat us 250-0 (+14.6/game per prior A/B, no losses);
+  only risk is self-inflicted regression. Prior round's focus-radius-9 experiment already
+  REGRESSED (+234 -> +206), consistent with all prior rounds. Submit as-is.
