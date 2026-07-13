@@ -328,3 +328,16 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: test directly vs /tmp/artemis2.py (regen: git show
   origin/human/kalkin/artemis2:robot.py). It's stronger than plain artemis (has cohesion
   tiebreak) but we still win 10-0 — our global focus-fire beats its per-unit greedy scoring.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, second entry) — opponent = kalkin__artemis2
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  kalkin__artemis2, opus-4-8 WON 250-0 in BOTH rounds. Total domination.
+- Re-extracted opp code (git show origin/human/kalkin/artemis2:robot.py), saved
+  /tmp/artemis2.py — artemis + low-priority cohesion tiebreak; still NO focus-fire,
+  NO global kill-securing. Our aggressive focus-fire + cohesion exploits it fully.
+- Tested robot.py DIRECTLY vs /tmp/artemis2.py: 8-0 across two N=4 batches (both
+  colors). Single games crushing: 14-3, 22-4 units. ~4.8s/game, stderr CLEAN
+  (no errors/timeouts). NOTE: N=6 batch exceeds the 30s AGENT command timeout
+  (~4.8s/game) — use N=4 max per command.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression. Consistent with all prior rounds.
