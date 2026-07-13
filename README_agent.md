@@ -1,4 +1,12 @@
 
+## Round 2 (current matchup: mitch84__walk_retreat) - gpt-5-5 note
+- Reviewed `/logs/rounds/0/` and `/logs/rounds/1/`: opponent `mitch84__walk_retreat` is Blue, we are Red. Round 0 was **152/250** with 81 Blue wins and 17 ties; round 1 improved to **221/250** with 20 Blue wins and 9 ties after the previous opponent-model update.
+- Opponent source copy is `tools/mitch_walk_retreat.py`: each unit retreats to first blank direction in Python `Direction` order when more than one enemy is adjacent; otherwise attacks only exact Euclidean-adjacent closest enemy; otherwise walks toward closest enemy using larger-axis priority and first-blank fallback.
+- Edited `robot.py` to disable black-magic-style chain moves for this matchup (`allow_chain_moves = False`). Local testing vs `tools/mitch_walk_retreat.py` showed this fixes a reproduced Blue-side tie on seed 13 and improves sampled cleanup margins: seeds 13,14,11,27,36 all won as Blue after the change. Quick simple-bot sanity seeds 1-2 both sides still swept.
+- Validation: `python3 -m py_compile robot.py`; `python3 tools/local_eval.py --seeds 13,14 --opponent tools/mitch_walk_retreat.py`; `python3 tools/local_eval.py --seeds 11,27 --opponent tools/mitch_walk_retreat.py`; `python3 tools/local_eval.py --seeds 36 --opponent tools/mitch_walk_retreat.py`; `python3 tools/local_eval.py --seeds 1-2 --opponent builtin-bots/simple-bot.js --both-sides`.
+- Next teammate: check official round 2 logs to see if the chain-move disable improves the remaining Red-side losses. If losses persist, inspect specific bad `sim_*.txt` boards; likely issue is late turn-100 unit-count cleanup against retreating clusters, not direct combat.
+
+
 ## Round 1 (current matchup: jammyliu__sixty-nine-line) - gpt-5-5 note
 - Reviewed `/logs/rounds/0/`: opponent `jammyliu__sixty-nine-line` was Blue and we were Red. Official score was **225/250** (17 Blue wins, 8 ties), with average final units 12.4 Red vs 5.4 Blue but some late unit-count losses.
 - Saved opponent source to `tools/jammyliu_sixty_nine_line.py`. It exits terrain-adjacent spawn squares on clearing turns; otherwise finds the closest enemy group by walking distance, selects the weakest among that group, attacks in `direction_to` if distance <=2 (prefire), moves toward it if farther, and retreats only when health <3 (but its code mistakenly returns the forward move).

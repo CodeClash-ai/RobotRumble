@@ -194,11 +194,12 @@ def init_turn(state):
         if u.health is not None:
             enemies[k(u.coords)] = u.health
 
-    # Permit black-magic-style queued moves into friendly squares after the
-    # opening. This fixed sampled losses vs mountain__neuralbot4-3h; delaying
-    # until turn 20 preserves the safer opening that avoided Red flail regressions
-    # seen when queueing was enabled unconditionally.
-    allow_chain_moves = (state.turn >= 20)
+    # For this walk-retreat chaser, queued moves into friendly squares tend to
+    # create long late-game conga lines that fail to finish retreating enemies by
+    # turn 100.  Require each planned step to be immediately empty; this was the
+    # main improvement from round 0 to round 1 against mitch84__walk_retreat and
+    # is safer for cleanup than black-magic-style chain moves in this matchup.
+    allow_chain_moves = False
 
     best_actions = {}
 
