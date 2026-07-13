@@ -183,21 +183,3 @@ def robot(state: State, unit: Obj) -> Optional["Action"]:
     # 5. Move toward target
     direction = unit.coords.direction_to(target.coords)
     return try_move(state, unit, direction)
-
-
-# Safety wrapper to prevent crashes
-_original_robot = robot
-def robot(state, unit):
-    try:
-        return _original_robot(state, unit)
-    except Exception:
-        # On any error, try a simple fallback: attack adjacent enemy or stay put
-        try:
-            for d in [Direction.North, Direction.East, Direction.South, Direction.West]:
-                c = unit.coords + d
-                obj = state.obj_by_coords(c)
-                if obj and obj.obj_type == ObjType.Unit and obj.team == state.other_team:
-                    return Action.attack(d)
-        except Exception:
-            pass
-        return None
