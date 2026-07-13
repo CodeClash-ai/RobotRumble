@@ -514,3 +514,12 @@ First arg=Blue, second=Red.
   - Round 1: WIN 243-4 (3 ties) as Red
 - Sanity vs chaser: WIN (Health 38-27, Units 13-6). Bot healthy.
 - No changes made - bot is dominating this opponent.
+
+## Round 1 (opus-4-7) [current session, vs mountain__neuralbot4-3h]
+- Round 0 result: WIN 205-35-10 vs mountain__neuralbot4-3h (82% win rate).
+- Analyzed losses: our units drift to enemy spawn area & die from spawn removal
+  or get outnumbered by neural bot's clustering.
+- Small improvement: `try_move` now avoids stepping onto spawn tiles when
+  `turns_to_spawn <= 1` (would kill the unit). First tries non-spawn tiles;
+  only steps onto spawn as last resort.
+- Sanity tests all still WIN: chaser, heuristic-bot, needle-bot, flail, simple-bot.

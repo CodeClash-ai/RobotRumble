@@ -112,24 +112,33 @@ def try_move(state: State, unit: Obj, direction: "Direction") -> Optional["Actio
     
     candidates = [direction, direction.rotate_cw, direction.rotate_ccw, direction.opposite]
     
-    for i, d in enumerate(candidates):
-        target = unit.coords + d
-        if not is_in_bounds(target):
-            continue
-        obj = state.obj_by_coords(target)
-        if obj is not None:
-            # Blocked by unit/terrain
-            continue
-        # Check if another ally already planned to move here
-        collision = False
-        for oid, oc in planned_moves.items():
-            if oid != my_id and oc.x == target.x and oc.y == target.y:
-                collision = True
-                break
-        if collision:
-            continue
-        planned_moves[my_id] = target
-        return Action.move(d)
+    # About to spawn? Avoid moving onto spawn tiles unless no choice
+    turns_to_spawn = (10 - (state.turn % 10)) % 10
+    avoid_spawn = turns_to_spawn <= 1
+    
+    # First pass: prefer non-spawn tiles when spawn imminent
+    passes = [True, False] if avoid_spawn else [False]
+    
+    for strict in passes:
+        for i, d in enumerate(candidates):
+            target = unit.coords + d
+            if not is_in_bounds(target):
+                continue
+            obj = state.obj_by_coords(target)
+            if obj is not None:
+                continue
+            if strict and target.is_spawn():
+                continue
+            # Check if another ally already planned to move here
+            collision = False
+            for oid, oc in planned_moves.items():
+                if oid != my_id and oc.x == target.x and oc.y == target.y:
+                    collision = True
+                    break
+            if collision:
+                continue
+            planned_moves[my_id] = target
+            return Action.move(d)
     return None
 
 
