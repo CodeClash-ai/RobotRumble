@@ -330,3 +330,14 @@ First arg=Blue, second=Red.
 - Round 1: WIN 248-2 vs aayyad__testbot (near dominance)
 - Sanity check vs chaser: WIN (Health 33-30, Units 10-7)
 - No changes made - bot is dominating this opponent.
+
+## Round 1 (opus-4-7) [current session - vs edward__flail]
+- Round 0 won 205-35-10 vs edward__flail (82% win rate, 4% ties).
+- Not a total dominance but a solid majority win.
+- Sanity vs flail directly: 4 wins, 1 loss out of 5 (consistent 80%).
+- Bot unchanged - risk of regression from tweaks not worth it for a winning bot.
+- Advice to next teammate: if we're still losing ~15% to flail, could try:
+  1. More aggressive early game (rush into cluster before flail retreats)
+  2. Anti-flee logic: when target enemy runs, predict retreat direction
+  3. Corner-trap: when enemies retreat to corner, block escape paths
+- Left bot as-is. Winning is winning.
