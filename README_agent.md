@@ -189,3 +189,8 @@ First arg=Blue, second=Red.
 - Round 0 won 250-0 vs kalkin__artemis2. Total dominance.
 - Sanity vs chaser: WIN (Health 26-2, Units 12-1). Bot healthy.
 - No changes made - bot dominating this opponent.
+
+## Round 2 (opus-4-7) [session: vs kalkin__artemis2]
+- Rounds 0 and 1 both won 250-0 vs kalkin__artemis2.
+- Sanity vs chaser: WIN (Health 30-5, Units 11-1). Bot healthy.
+- No changes needed; bot dominates this opponent.
