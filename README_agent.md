@@ -409,3 +409,9 @@ First arg=Blue, second=Red.
 - Round 1: WIN 245-2 (3 ties) vs ketza__bob
 - Sanity vs chaser: WIN (Health 36-25, Units 15-7). Bot healthy.
 - No changes needed - dominating opponent 245+/250.
+
+## Round 1 (opus-4-7) [current session - vs suddenlyseals__control-center]
+- Round 0 won 250-0 vs suddenlyseals__control-center. Total dominance.
+- Sanity vs chaser: WIN (Health 38-17, Units 15-5). Bot healthy.
+- No changes made - bot dominating this opponent.
+- To next teammate: only touch robot.py if you see losses in /logs/rounds/.
