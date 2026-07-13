@@ -226,48 +226,59 @@ def init_turn(state):
                 return True
         return False
 
-    # Opponent-specific model for jammyliu__sixty-nine-line: on spawn clear
-    # turns it first steps away from terrain; otherwise it finds the closest
-    # enemy distance group, selects the weakest unit in that group, pre-fires at
-    # walking distance <= 2, and moves directly toward that target when farther.
-    # The original retreat branch accidentally still returns the forward move,
-    # so health does not alter the predicted movement here.
+    # Opponent model for current mitch84__walk_retreat matchup.  Their bot:
+    #   * retreats to the first blank Direction (N,S,E,W enum order) when more
+    #     than one enemy is adjacent;
+    #   * otherwise attacks the closest enemy only when Euclidean distance == 1;
+    #   * otherwise walks toward the closest enemy, choosing an unoccupied step
+    #     on the larger axis (with first-blank fallback).
+    # Modeling this simple chaser is much safer here than the older Jammy-specific
+    # prefire model, which predicted attacks at range 2 and badly overestimated
+    # the current opponent's tactical reach.
+    def first_blank_around(pos):
+        blanks = []
+        for d in (Direction.North, Direction.South, Direction.East, Direction.West):
+            dst = add(pos, d)
+            if dst in LEGAL and dst not in friends and dst not in enemies:
+                blanks.append(d)
+        return blanks
+
     for epos, eh in enemies.items():
         best_actions[epos] = None
-        if tuple_in_spawn(epos, 0):
-            for d in (Direction.North, Direction.South, Direction.East, Direction.West):
-                dst = add(epos, d)
-                if dst in LEGAL and not tuple_in_spawn(dst, 0):
-                    best_actions[epos] = (MOVE, d)
-                    break
-            if best_actions[epos] is not None:
-                continue
         if not friends:
             continue
-        min_wd = 999
-        closest = []
-        ex, ey = epos
-        for fpos, fh in friends.items():
-            wd = abs(fpos[0] - ex) + abs(fpos[1] - ey)
-            if wd == 0:
-                continue
-            if wd < min_wd:
-                min_wd = wd
-                closest = [(fpos, fh)]
-            elif wd == min_wd:
-                closest.append((fpos, fh))
-        if not closest:
+        blanks = first_blank_around(epos)
+        adjacent_friends = 0
+        for d in (Direction.North, Direction.South, Direction.East, Direction.West):
+            if add(epos, d) in friends:
+                adjacent_friends += 1
+        if adjacent_friends > 1 and blanks:
+            best_actions[epos] = (MOVE, blanks[0])
             continue
-        target, th = min(closest, key=lambda item: item[1])
-        edir = tuple_direction_to(epos, target)
-        if edir is None:
+
+        # Python min preserves state object order on ties; use tuple order as a
+        # deterministic approximation.  Walking distance is Manhattan distance.
+        target = min(friends, key=lambda f: abs(f[0] - epos[0]) + abs(f[1] - epos[1]))
+        dx = target[0] - epos[0]
+        dy = target[1] - epos[1]
+        if dx * dx + dy * dy == 1:
+            edir = tuple_direction_to(epos, target)
+            if edir is not None:
+                best_actions[epos] = (ATTACK, edir)
             continue
-        if min_wd <= 2:
-            best_actions[epos] = (ATTACK, edir)
-        else:
-            dst = add(epos, edir)
-            if not tuple_in_spawn(dst, 1):
-                best_actions[epos] = (MOVE, edir)
+
+        xdir = Direction.East if dx > 0 else Direction.West
+        ydir = Direction.South if dy > 0 else Direction.North
+        if abs(dx) > abs(dy) and xdir in blanks:
+            best_actions[epos] = (MOVE, xdir)
+        elif abs(dy) >= abs(dx) and ydir in blanks:
+            best_actions[epos] = (MOVE, ydir)
+        elif xdir in blanks:
+            best_actions[epos] = (MOVE, xdir)
+        elif ydir in blanks:
+            best_actions[epos] = (MOVE, ydir)
+        elif blanks:
+            best_actions[epos] = (MOVE, blanks[0])
 
     possible = {}
     spawn_danger = (state.turn % 10 == 0)
