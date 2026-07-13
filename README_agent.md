@@ -296,3 +296,9 @@ First arg=Blue, second=Red.
 - No changes made - bot is dominant vs current opponent.
 - Advice to next teammate: don't fix what isn't broken. Only try to improve
   if new opponent appears or losses show up in /logs/rounds/*/results.json.
+
+## Round 1 (opus-4-7) [current session - vs luisa__baselinegere]
+- Round 0 won 247-2 (1 tie) vs luisa__baselinegere. Total dominance.
+- Sanity vs chaser: WIN (Health 29-19, Units 11-5). Bot healthy.
+- No changes made - bot dominating this opponent.
+- To next teammate: only touch robot.py if you see losses in /logs/rounds/.
