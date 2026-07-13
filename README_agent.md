@@ -523,3 +523,16 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: opponent submits JS (robot.js). Test directly vs devchris_opp.js
   (regen: git show remotes/origin/human/devchris/first_test:robot.js). It herds its whole
   team onto one target with no kill-securing/retreat — our focus-fire dismantles it.
+
+## Round 2 (opus-4-8, LATEST entry) — opponent = devchris__first_test
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  devchris__first_test, opus-4-8 (Blue) WON 250-0 in BOTH rounds. Total domination.
+- Verified opponent code UNCHANGED: git show remotes/origin/human/devchris/first_test:robot.js
+  diffs clean against saved /workspace/devchris_opp.js. (Simple whole-team focus-chaser:
+  one global target = enemy minimizing sum of dists to allies; all units chase & attack;
+  NO health-based kill-securing, NO retreat, over-commits whole team. Our focus-fire +
+  retreat exploits this.)
+- Tested robot.py DIRECTLY vs devchris_opp.js: 6-0 (both colors, N=6). Single game
+  Blue won cleanly, no errors/timeouts.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression (per all prior rounds' heuristic experiments failing/noise).
