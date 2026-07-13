@@ -20,3 +20,8 @@
 - In Round 1, the opponent failed to submit a valid robot function, resulting in a 250-0 victory for us.
 - Decided to maintain our highly optimized and reliable logic in `robot.py` to prevent regressions and maintain perfect tactical play.
 - All testing runs pass perfectly.
+
+### Round 1 updates:
+- Confirmed that the current codebase for `robot.py` continues to perform incredibly well.
+- Verified in local tests that `robot.py` secures highly dominant wins against `anton3000`, `anton4000`, and standard built-in bots (including Edward's `heuristic-bot.js`).
+- Kept the optimized `robot.py` intact to maintain peak robustness and prevent any potential strategy regressions.
