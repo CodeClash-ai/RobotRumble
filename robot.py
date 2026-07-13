@@ -1,11 +1,14 @@
-# Coordinated one-ply tactical bot, ported/adapted from the strong "black-magic"
-# public bot.  init_turn chooses actions for all our robots together by assuming
-# enemies make their best adjacent attacks, then greedily improving each friendly
-# action under a lexicographic battle-position score.
+# Fast coordinated one-ply tactical bot, adapted from the strong public
+# black-magic bot. init_turn plans for all units together using an enemy model
+# (adjacent enemies attack the lowest-health adjacent friend) and greedily keeps
+# friendly actions that improve a lexicographic battle score.
 
 ATTACK = 'a'
 MOVE = 'm'
 DIRS = [Direction.North, Direction.East, Direction.South, Direction.West]
+DIR_DELTAS = {}
+LEGAL = set()
+CENTER = (10, 10)
 ACTIONS = {}
 
 
@@ -17,28 +20,35 @@ def ck(t):
     return Coords(t[0], t[1])
 
 
+def init_static():
+    if DIR_DELTAS:
+        return
+    for d in DIRS:
+        c = d.to_coords
+        DIR_DELTAS[d] = (c.x, c.y)
+    for x in range(1, 18):
+        for y in range(1, 18):
+            if y <= 5 - x:
+                continue
+            if y <= x - 13:
+                continue
+            if y >= x + 13:
+                continue
+            if y >= 31 - x:
+                continue
+            LEGAL.add((x, y))
+
+
 def add(t, d):
-    c = ck(t) + d
-    return (c.x, c.y)
-
-
-def legal(t):
-    x, y = t
-    if x <= 0 or x > 17 or y <= 0 or y > 17:
-        return False
-    if y <= 5 - x:
-        return False
-    if y <= x - 13:
-        return False
-    if y >= x + 13:
-        return False
-    if y >= 31 - x:
-        return False
-    return True
+    dx, dy = DIR_DELTAS[d]
+    return (t[0] + dx, t[1] + dy)
 
 
 def dist(a, b):
-    return ck(a).distance_to(ck(b))
+    # Same Euclidean metric as Coords.distance_to, but without object allocation.
+    dx = a[0] - b[0]
+    dy = a[1] - b[1]
+    return (dx * dx + dy * dy) ** 0.5
 
 
 def score(friends, enemies):
@@ -60,14 +70,17 @@ def score(friends, enemies):
         pressure[p] = 0.0
 
     for f in friends:
+        fx, fy = f
         for e in enemies:
-            d = dist(f, e)
-            if d == 0:
+            dx = fx - e[0]
+            dy = fy - e[1]
+            d2 = dx * dx + dy * dy
+            if d2 == 0:
                 continue
-            ds = 1.0 / (d * d)
+            ds = 1.0 / d2
             pressure[e] = pressure.get(e, 0.0) + ds
             pressure[f] = pressure.get(f, 0.0) - ds
-            if d == 1:
+            if d2 == 1:
                 surround[e] = surround.get(e, 0) + 1
                 surround[f] = surround.get(f, 0) - 1
 
@@ -80,9 +93,11 @@ def score(friends, enemies):
 
     # Small center/spawn term encourages units to leave spawn and meet the enemy instead of camping.
     center_score = 0.0
-    center = (10, 10)
+    cx, cy = CENTER
     for f in friends:
-        center_score -= dist(f, center) * 0.03
+        dx = f[0] - cx
+        dy = f[1] - cy
+        center_score -= ((dx * dx + dy * dy) ** 0.5) * 0.03
     return (unit_score, surround_score, health_score, distance_score, center_score)
 
 
@@ -96,7 +111,7 @@ def better(a, b):
 def tick(friends, enemies, actions):
     friends = dict(friends)
     enemies = dict(enemies)
-    # Approximate movement.  This intentionally ignores simultaneous move conflicts just like
+    # Approximate movement. This intentionally ignores simultaneous move conflicts just like
     # black-magic; the heuristic remains very effective and cheap.
     for src, action in actions.items():
         if action is None:
@@ -104,7 +119,7 @@ def tick(friends, enemies, actions):
         typ, d = action
         if typ == MOVE:
             dst = add(src, d)
-            if legal(dst) and dst not in friends and dst not in enemies:
+            if dst in LEGAL and dst not in friends and dst not in enemies:
                 if src in friends:
                     friends[dst] = friends[src]
                     del friends[src]
@@ -138,13 +153,15 @@ def tick(friends, enemies, actions):
 
 def init_turn(state):
     global ACTIONS
+    init_static()
     friends = {}
     enemies = {}
     id_at = {}
     for u in state.objs_by_team(state.our_team):
         if u.health is not None:
-            friends[k(u.coords)] = u.health
-            id_at[k(u.coords)] = u.id
+            pos = k(u.coords)
+            friends[pos] = u.health
+            id_at[pos] = u.id
     for u in state.objs_by_team(state.other_team):
         if u.health is not None:
             enemies[k(u.coords)] = u.health
@@ -166,7 +183,7 @@ def init_turn(state):
         acts = [None]
         for d in DIRS:
             dst = add(fpos, d)
-            if not legal(dst):
+            if dst not in LEGAL:
                 continue
             if dst in enemies:
                 acts.append((ATTACK, d))
@@ -181,14 +198,15 @@ def init_turn(state):
     for fpos in friends:
         chosen = best_actions.get(fpos)
         for act in possible[fpos]:
-            trial = dict(best_actions)
-            trial[fpos] = act
-            fs, es = tick(friends, enemies, trial)
+            old = best_actions.get(fpos)
+            best_actions[fpos] = act
+            fs, es = tick(friends, enemies, best_actions)
             s = score(fs, es)
             if better(s, best_score):
                 best_score = s
                 chosen = act
-                best_actions = trial
+            else:
+                best_actions[fpos] = old
         best_actions[fpos] = chosen
 
     ACTIONS = {}
