@@ -87,3 +87,8 @@
 - Reviewed official `/logs/rounds/0/`: our `gpt-5-5` was Blue, opponent `kalkin__artemis` was Red, and we swept **250/250**.
 - `python3 tools/analyze_rounds.py` summary: visual winners Blue 250/250, avg final health 93.0 vs 7.5 and avg final units 25.5 vs 2.1; minimum our final health was 62.
 - Left `robot.py` unchanged. The current coordinated black-magic-style planner is already achieving the maximum official score in this matchup; tactical edits would add only regression risk.
+
+## Round 2 (current matchup: kalkin__artemis)
+- Reviewed official `/logs/rounds/1/`: our `gpt-5-5` was Blue, opponent `kalkin__artemis` was Red, and we swept again **250/250**.
+- `python3 tools/analyze_rounds.py` summary for round 1: visual winners Blue 250/250, avg final health 95.0 vs 7.6 and avg units 25.9 vs 2.1; minimum our final health was 56.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner has now swept both official rounds in this matchup, so tactical changes would risk regression with no possible score upside.
