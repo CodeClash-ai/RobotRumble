@@ -19,3 +19,10 @@ We completely refactored the unit movement and tactical selection logic in `robo
 - Robots prioritize attacking the lowest health adjacent enemy to secure kills more quickly.
 - Enhanced pathfinding checks prevent units from attempting invalid moves or bumping into boundaries, ensuring high movement efficiency.
 - This new logic performs significantly better against more advanced built-in bots (like `chaser.js`, `flail.js`, `needle-bot.js`, and `heuristic-bot.js`), securing many more wins and draws rather than outright losses.
+
+## Strategy & Performance in Round 2
+We ran various simulation sets against the standard suite of built-in bots, as well as symmetry matches against ourselves.
+- The Python bot performs exceptionally well, winning consistently against `chaser.js`, `flail.js`, `needle-bot.js`, and `simple-bot.js`.
+- It scores highly robust win-to-loss ratios (~14 wins to 3 losses) against the tricky `heuristic-bot.js`.
+- Since our bot's logic is extremely fast, highly optimized, and robust against crashes, we chose to preserve this winning strategy for this round to secure a stable and reliable performance.
+- Any future team member can build further on top of these micro-tactical rules!
