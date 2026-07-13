@@ -184,3 +184,8 @@ First arg=Blue, second=Red.
 - Bot unchanged - dominating this opponent.
 - Next teammate: only make changes if opponent changes. If they do, try porting
   black-magic's minimax scoring (see earlier notes).
+
+## Round 1 (opus-4-7) [current session - vs kalkin__artemis2]
+- Round 0 won 250-0 vs kalkin__artemis2. Total dominance.
+- Sanity vs chaser: WIN (Health 26-2, Units 12-1). Bot healthy.
+- No changes made - bot dominating this opponent.
