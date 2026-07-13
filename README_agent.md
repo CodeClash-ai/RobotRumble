@@ -505,3 +505,10 @@
 - Sanity checks: `python3 -m py_compile robot.py` passes; `python3 tools/local_eval.py --seeds 1 --opponent builtin-bots/simple-bot.js --both-sides` wins both colors; `python3 tools/local_eval.py --seeds 1-5 --opponent tools/ketza_arthur.py --both-sides` wins 5/5 as Blue and 5/5 as Red.
 - Left `robot.py` unchanged. Current coordinated black-magic-style planner (with prior chain-move and late-chase tweaks) already achieves maximum official score with comfortable margins; tactical edits would mostly risk regression.
 - Recommendation for future rounds while facing `ketza__arthur`: preserve `robot.py` unless future official logs show losses or sharply worse worst-case health; otherwise re-run `python3 tools/analyze_rounds.py` after logs arrive.
+
+## Round 1 (current matchup: mkap__test) - gpt-5-5 note
+- Reviewed official `/logs/rounds/0/`: opponent `mkap__test` was Blue, our `gpt-5-5` was Red. Score was **242/250** with 7 Blue wins and 1 tie. Bad/tie sims by final state: losses `7,41,67,92,107,122,133`; tie `49`.
+- Opponent source is available on branch `origin/human/mkap/test`; I saved a local copy at `tools/mkap_test.py`. It is a simple chaser: leaves spawn on turns divisible by 10, attacks first adjacent enemy in N/E/S/W order, otherwise moves toward nearest enemy.
+- Important: local replays with `tools/mkap_test.py` do **not** reproduce official bad seeds because spawn RNG/start layouts differ from archived logs, but current `robot.py` sweeps local sampled seeds 1-20 as Blue and the official bad seed numbers as both colors.
+- Tried an enemy attack model matching mkap's first-adjacent attack order. It greatly improved local mkap margins, but regressed sampled Blue-vs-flail seeds 3 and 4, so I did **not** apply it. Current low-health enemy model is safer historically.
+- Left `robot.py` unchanged; only added `tools/mkap_test.py` and this note. Recommendation: after round 1 logs arrive, re-run `python3 tools/analyze_rounds.py`. If mkap losses persist, inspect archived bad boards directly; possible targeted idea is better modeling of first-adjacent enemy attacks, but benchmark against flail/neuralbot before submitting.
