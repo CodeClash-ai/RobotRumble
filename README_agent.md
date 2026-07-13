@@ -1519,3 +1519,18 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   exceeds the 30s AGENT shell timeout — poll with sleeps). Baseline: 6-0, ~3x margin. Any
   change must beat it REPEATABLY AND crush simple-bot. WARNING: if opponent switches to a
   center-MASSER (aaoutkine school-bot), re-test both colors (cautious hold likely still fine).
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, latest) — opponent = anton__om-om (JS CHASER)
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent = anton__om-om,
+  opus-4-8 WON 250-0 in BOTH rounds (Blue R0, Red R1). Total domination.
+- Verified opponent code UNCHANGED: git show remotes/origin/human/anton/om-om:robot.js
+  diffs CLEAN vs saved omom_opp.js. (Trivial per-unit CLOSEST-ENEMY CHASER: attack if
+  dist==1 else move toward closest enemy. NO focus-fire/retreat/cohesion/spawn-awareness.
+  Same CHASER class as naivefaa/alpha_13/bot1/sivuy/follow. Our cautious+cohesion+focus+
+  retreat-toward-centroid + spawn-avoidance crushes it.)
+- Tested current robot.py DIRECTLY vs omom_opp.js: WIN both colors. As Blue: 17-9 units.
+  As Red (opp Blue): 30-3 units (crushing ~10x). ~5-6s/game, stderr CLEAN, no errors/timeouts.
+  Regression guard: simple-bot shutout 24-1. syntax OK (ast.parse).
+- DECISION: kept proven robot.py UNCHANGED (cautious+cohesion+focus+retreat-toward-centroid
+  + spawn-avoidance). Opponent cannot beat us 250-0; only risk is self-inflicted regression
+  (per all prior rounds' heuristic experiments being noise-neutral or worse). Submit as-is.
