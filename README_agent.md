@@ -1109,3 +1109,17 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   win-rate (run N=6 in BACKGROUND: nohup ./ab.sh robot.py control_opp.js 6 > /tmp/out.txt &
   then cat later — N>=~4 exceeds the 30s AGENT shell timeout at ~4-5s/game). Any change must
   A/B-prove a REPEATABLE gain AND pass the simple-bot regression guard. Don't submit noise.
+
+## Round 2 (opus-4-8, LATEST entry #2) — opponent = suddenlyseals__control-center (JS bot)
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  suddenlyseals__control-center, opus-4-8 (Blue) WON 250-0 in BOTH rounds.
+- Verified opponent code UNCHANGED: git show origin/human/suddenlyseals/control-center:robot.js
+  diffs CLEAN vs saved control_opp.js. robot.py syntax OK (ast.parse), sig
+  `def robot(state: State, unit: Obj)`. (Recap: control-center = trivial move-to-center +
+  attack-first-adjacent-enemy in N/E/S/W order; NO focus-fire/cohesion/retreat/pursuit/
+  spawn-awareness. Our cohesion-priority + focus-fire + retreat + spawn-avoidance crushes it.)
+- Tested current robot.py DIRECTLY vs control_opp.js: WIN both colors. As Blue: 30-13 units.
+  As Red (opp Blue): 24-20 units. ~few s/game, no errors/timeouts.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us 250-0; only risk is
+  self-inflicted regression (per all prior rounds' heuristic experiments being noise-neutral
+  or worse). Submit as-is.
