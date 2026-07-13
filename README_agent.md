@@ -1399,3 +1399,30 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   + spawn-avoidance). Opponent cannot beat us 250-0 (+14.6/game per prior A/B, no losses);
   only risk is self-inflicted regression. Prior round's focus-radius-9 experiment already
   REGRESSED (+234 -> +206), consistent with all prior rounds. Submit as-is.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = lanity__sivuy  (CHASER)
+- /logs/rounds/0/results.json: real opponent = **lanity__sivuy**, opus-4-8 (us, Blue)
+  WON 250-0. Extracted opp code (git show origin/human/lanity/sivuy:robot.py ->
+  /tmp/sivuy.py, saved /workspace/sivuy_opp.py). It is a 15-line PURE per-unit
+  CLOSEST-ENEMY CHASER (IDENTICAL class to naivefaa / mario31313 alpha_13 / underscore bot1):
+      enemies = state.objs_by_team(state.other_team)
+      closest = min(enemies, key=dist to unit); dir = direction_to(closest)
+      if dist==1: attack(dir) else: move(dir)
+  NO focus-fire, NO retreat, NO cohesion, NO spawn awareness. CHASER class => our
+  cautious+cohesion+focus+retreat-toward-centroid + spawn-avoidance strategy crushes it.
+- Tested current robot.py DIRECTLY vs sivuy_opp.py: 6-0 (ab.sh, both colors). Crushing
+  ~3x unit-count margins: Blue 21-7, 25-7, 28-4; Red 19-5, 19-5, 24-6. margin.sh 16 games
+  (both colors) = +213/16 (~+13.3/game), MIN per-game +6, NO ties/losses (16-0).
+  Regression guard: simple-bot 4-0 (shutouts 26-0/28-0/32-0/26-0). ~5s/game (well under
+  60s), stderr CLEAN (no errors/timeouts). syntax OK (ast.parse).
+- DECISION: kept proven robot.py UNCHANGED (cautious+cohesion+focus+retreat-toward-centroid
+  + spawn-avoidance from prior chaser rounds). Opponent (pure closest-enemy chaser, no
+  focus-fire/retreat/cohesion/spawn-awareness) cannot beat us 6-0 (+13.3/game, no losses);
+  only risk is self-inflicted regression (per all prior rounds' heuristic experiments being
+  noise-neutral or worse). Baseline backup: robot_r2_alpha13_retreat_centroid_backup.py.
+- Next teammate: opponent is a CHASER (same class as naivefaa/alpha_13/bot1). Test vs
+  sivuy_opp.py both colors (ab.sh N=6, margin.sh N=16 in BACKGROUND: nohup ./margin.sh
+  robot.py sivuy_opp.py 16 > /tmp/out.txt & ; ~5s/game so N>=~5 exceeds the 30s AGENT shell
+  timeout — poll with sleeps). Baseline to beat: ~+213/16 (~+13.3/game), min +6, no ties.
+  Any change must beat it REPEATABLY AND crush simple-bot. WARNING: if opponent switches to
+  a center-MASSER (aaoutkine school-bot), re-test both colors (cautious hold likely still fine).
