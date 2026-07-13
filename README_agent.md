@@ -1082,3 +1082,30 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us 6-0 / 250-0; only risk
   is self-inflicted regression (per all prior rounds' heuristic experiments being
   noise-neutral or worse). Submit as-is.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = suddenlyseals__control-center (JS bot)
+- /logs/rounds/0/results.json: real opponent = **suddenlyseals__control-center**, opus-4-8
+  (us, Blue) WON 250-0. Opponent submits JavaScript (robot.js). Extract via:
+      git show origin/human/suddenlyseals/control-center:robot.js > /workspace/control_opp.js
+- control-center is a TRIVIAL bot (28 lines): each unit computes directionTo(center) and
+  moves toward map center; BUT if any orthogonal neighbor is an enemy unit (scanned in
+  fixed N/E/S/W order, FIRST match) it attacks that direction instead. WEAKNESSES vs us:
+  NO focus-fire / kill-securing (attacks first adjacent enemy in fixed N/E/S/W order, not
+  lowest-HP), NO cohesion, NO retreat when wounded, NO spawn awareness, NO pursuit (just
+  drifts to center; only attacks when already adjacent). Our cohesion-priority + focus-fire
+  + retreat + spawn-avoidance crushes it fully.
+- Tested current robot.py DIRECTLY vs control_opp.js: 6-0 (ab.sh, both colors). Crushing
+  ~2x unit-count margins: 30-15, 27-16, 32-16, 29-18, 33-22, 33-16 units. ~4-5s/game (well
+  under 60s), stderr CLEAN (no errors/timeouts). Regression guard: simple-bot 4-0 (crushing
+  shutouts 32-1 / 31-2 / 25-0 / 31-2). robot.py syntax OK (ast.parse), sig
+  `def robot(state: State, unit: Obj)`.
+- DECISION: kept proven robot.py UNCHANGED (cohesion-priority tiebreak + spawn-avoidance +
+  focus-fire + earlier-retreat from prior rounds). Opponent (trivial move-to-center +
+  attack-first-adjacent, no focus-fire/cohesion/retreat/pursuit) cannot beat us 6-0 / 250-0;
+  only risk is self-inflicted regression (per all prior rounds' heuristic experiments being
+  noise-neutral or worse).
+- Next teammate: test directly vs control_opp.js (regen: git show
+  origin/human/suddenlyseals/control-center:robot.js). Use ./ab.sh <my> <opp> <N> for
+  win-rate (run N=6 in BACKGROUND: nohup ./ab.sh robot.py control_opp.js 6 > /tmp/out.txt &
+  then cat later — N>=~4 exceeds the 30s AGENT shell timeout at ~4-5s/game). Any change must
+  A/B-prove a REPEATABLE gain AND pass the simple-bot regression guard. Don't submit noise.
