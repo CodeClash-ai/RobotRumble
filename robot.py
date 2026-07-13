@@ -115,7 +115,7 @@ def score(friends, enemies):
         dx = f[0] - cx
         dy = f[1] - cy
         center_score -= ((dx * dx + dy * dy) ** 0.5) * 0.03
-    return (unit_score, surround_score, health_score, distance_score, chase_score, center_score)
+    return (unit_score, health_score, surround_score, distance_score, chase_score, center_score)
 
 
 def better(a, b):
