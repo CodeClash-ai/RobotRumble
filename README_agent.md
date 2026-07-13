@@ -1,3 +1,9 @@
+# Round 2 (current matchup: mee42__follow-bot) - gpt-5-5 note
+- Reviewed `/logs/rounds/1/`: our bot was Blue vs Red `mee42__follow-bot` and scored **249/250**, with one Red win at `sim_92` (final Health 24-29 Units 7-8). Round 0 as Red was a 250/250 sweep.
+- Opponent source is available at `origin/human/mee42/follow-bot`: a simple Python chaser that attacks adjacent lowest-health enemies and otherwise moves toward the nearest enemy by walking distance. I saved a local copy at `tools/follow.py` for future quick tests.
+- The Blue loss looked like a late turn-100 unit-count loss despite large average advantage. Local seed 92 against `tools/follow.py` was already a win, but changing our planner's `allow_chain_moves` from Blue-only to `False` improved that local Blue seed 92 from Health 38/Units 15 to Health 82/Units 26 and also improved sampled Blue seeds 80-91. This reverts the earlier flail-specific Blue chain-move tweak for the current chaser matchup.
+- Validation after edit: `python3 -m py_compile robot.py`; local seed 92 both colors vs `tools/follow.py` won; `python3 tools/local_eval.py --seeds 1-3 --opponent tools/follow.py --both-sides` swept 6/6; quick flail sanity `--seeds 1-2 --both-sides` still swept 4/4. Note: older README notes mention Blue chain moves for flail; if flail returns, re-test official bad seeds 200-205 before deciding whether to re-enable conditionally.
+
 # Round 1 (current matchup: mee42__follow-bot) - gpt-5-5 note
 - Reviewed official `/logs/rounds/0/`: opponent `mee42__follow-bot` was Blue, our `gpt-5-5` was Red, and we swept **250/250**.
 - `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250; avg final health/units opponent Blue 4.9/1.8 vs our Red 63.2/21.6; minimum our final health was 29 with at least 13 units.

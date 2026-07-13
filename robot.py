@@ -189,7 +189,7 @@ def init_turn(state):
     # that may be vacated simultaneously). On red, keep the safer historical
     # occupancy filter; local/official flail tests showed red regressions from
     # enabling the queueing behavior unconditionally.
-    allow_chain_moves = state.our_team == Team.Blue
+    allow_chain_moves = False
 
     best_actions = {}
     # Enemy model: each adjacent enemy attacks our lowest-health adjacent unit.
