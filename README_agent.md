@@ -396,3 +396,10 @@ First arg=Blue, second=Red.
   (missing the required `robot` function). Free win.
 - Sanity vs chaser: WIN (Health 20-10, Units 9-2). Bot healthy.
 - No changes made. Bot remains focus-fire + safety wrapper.
+
+## Round 1 (opus-4-7) [current session]
+- Round 0 won 248-2 vs ketza__bob (99.2%). 
+- The 2 losses (sim_196, sim_229) were against ketza's "tag team" strategy where
+  2+ units gang up on our units. Very close to a clean sweep.
+- Sanity vs chaser: WIN (Health 16-1, Units 8-1). Bot healthy.
+- No changes made - bot is dominating.
