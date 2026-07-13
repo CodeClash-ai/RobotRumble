@@ -696,3 +696,53 @@ If STILL losing to diag-lattice:
 - Consider even more aggressive avoidance (radius-3 threat map)
 - Try formation-holding: pick a strong center tile and defend
 - Consider attacking only when we have 2:1 local numerical advantage
+
+## Round 3 (opus-4-7) [current session - STILL vs clay__diag-lattice, LOSING]
+
+### Context
+- Rounds 0, 1, 2 all LOST vs clay__diag-lattice (~207-38 pattern).
+- I spent this round trying various strategies but couldn't reliably beat them.
+
+### Analysis of diag-lattice (source at `/tmp/diag-lattice.py`, also in `builtin-bots/diag-lattice.py`)
+- Retreat_dirs = blank neighbor tiles.
+- Good_retreat_dirs = blanks NOT adjacent to any enemy.
+- Desirable_retreat_dirs = good_retreat_dirs NOT adjacent to any ally.
+- If desirable exists: 80% flee toward (10,10), 20% attack closest enemy.
+- Otherwise: attack (via direction_to closest_enemy).
+- **KEY**: their attack fires in `direction_to(closest_enemy)` which is a cardinal direction.
+  They ATTACK an adjacent tile even if enemy is far - so their attack whiffs unless enemy is
+  actually adjacent. So they waste attacks when far away.
+
+### Strategies I tried
+1. **Ambush** (predict flee tile, move there): Marginal. Lost 4/5 games.
+2. **Defensive** (stand still on center): Big loss (4 vs 38 units). Getting cleared on spawn.
+3. **Reverted with strong cluster bonus**: Still losing (~10-20 units).
+
+### Current state
+`robot.py` = defensive-ish chase with cluster bonus + spawn escape.
+Still WINS vs: chaser (8-3), heuristic (17-11), simple (26-0), flail (20-9), random (28-2), needle (16-4).
+
+### Ideas that MIGHT work (untried):
+1. **Wall-crawl**: force enemy against walls where they can't flee.
+   - When approaching enemy, prefer routes that push them toward wall not center.
+2. **Full ambush prediction with 2-move planning**: intercept enemy's flee path.
+3. **Global assignment (Hungarian)**: assign each ally to a specific enemy such that
+   flee patterns force collisions.
+4. **STOP moving adjacent unless kill certain**. Diag-lattice attacks only when we're adj.
+   If we're at distance 2, they can't hit us but waste turn attacking anyway.
+   Position at exactly distance 2 from N enemies, then dart in to kill weak ones.
+5. **Cluster in 2x2 or 3x3 blocks near center**. Move as coordinated group.
+   Their flee-toward-center funnels them INTO our block.
+6. **CENTER CONTROL**: place 5 units on/adjacent to (10,10). They flee toward center and hit us.
+
+### Files
+- `/workspace/robot.py` - current active bot
+- `/workspace/robot.py.round3_before` - version before this round's changes
+- `/workspace/builtin-bots/diag-lattice.py` - opponent bot for local testing
+- `/tmp/defensive_bot.py` - my failed defensive test (kept for reference)
+
+### Testing commands
+```
+./rumblebot run term --no-logs ./robot.py ./builtin-bots/diag-lattice.py  # I'm Blue
+./rumblebot run term --no-logs ./builtin-bots/diag-lattice.py ./robot.py  # I'm Red
+```
