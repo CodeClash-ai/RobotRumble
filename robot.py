@@ -175,11 +175,14 @@ def init_turn(state):
     friends = {}
     enemies = {}
     id_at = {}
+    spawn_positions = set()
     for u in state.objs_by_team(state.our_team):
         if u.health is not None:
             pos = k(u.coords)
             friends[pos] = u.health
             id_at[pos] = u.id
+            if u.coords.is_spawn():
+                spawn_positions.add(pos)
     for u in state.objs_by_team(state.other_team):
         if u.health is not None:
             enemies[k(u.coords)] = u.health
@@ -191,29 +194,48 @@ def init_turn(state):
     allow_chain_moves = (state.turn >= 20)
 
     best_actions = {}
-    # Enemy model: each adjacent enemy attacks our lowest-health adjacent unit.
+    # Enemy attack model.  The current official opponent (mkap__test) attacks
+    # the first adjacent target in North/East/South/West order; when we are Red
+    # against that Blue opponent, modeling its deterministic priority greatly
+    # improves sampled local margins.  Keep the older lowest-health model for
+    # Blue, which was historically safer against flail-like opponents.
     for epos in enemies:
         best_actions[epos] = None
-        lowest = 999
-        for d in DIRS:
-            target = add(epos, d)
-            if target in friends and friends[target] <= lowest:
-                lowest = friends[target]
-                best_actions[epos] = (ATTACK, d)
+        if state.our_team == Team.Red:
+            for d in DIRS:
+                target = add(epos, d)
+                if target in friends:
+                    best_actions[epos] = (ATTACK, d)
+                    break
+        else:
+            lowest = 999
+            for d in DIRS:
+                target = add(epos, d)
+                if target in friends and friends[target] <= lowest:
+                    lowest = friends[target]
+                    best_actions[epos] = (ATTACK, d)
 
     possible = {}
+    spawn_danger = (state.turn % 10 == 0)
     for fpos in friends:
         best_actions[fpos] = None
         acts = [None]
+        evacuate = []
         for d in DIRS:
             dst = add(fpos, d)
             if dst not in LEGAL:
+                continue
+            if spawn_danger and fpos in spawn_positions:
+                # Spawn squares are cleared every 10 turns after actions. Prefer
+                # a guaranteed immediate step out of spawn over attacking/passing.
+                if dst not in spawn_positions and dst not in enemies and dst not in friends:
+                    evacuate.append((MOVE, d))
                 continue
             if dst in enemies:
                 acts.append((ATTACK, d))
             elif allow_chain_moves or dst not in friends:
                 acts.append((MOVE, d))
-        possible[fpos] = acts
+        possible[fpos] = evacuate if evacuate else acts
 
     fs, es = tick(friends, enemies, best_actions)
     best_score = score(fs, es)
