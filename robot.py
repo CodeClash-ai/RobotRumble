@@ -98,7 +98,14 @@ def score(friends, enemies):
     # the goal is to convert close 100-turn unit-count ties into wins by catching
     # isolated stragglers without disturbing proven battle micro.
     chase_score = 0.0
-    if TURN >= 60 and unit_score <= 0 and friends and enemies:
+    if TURN >= 45 and friends and enemies:
+        # Stronger cleanup pressure for evasive/runaway opponents: reduce the
+        # total distance from every surviving enemy to its nearest pursuer,
+        # especially when we are behind/even on unit count late.  This remains
+        # below unit count and health in the score tuple, so battle trades are
+        # still dominated by survival and kills; it mostly changes quiet
+        # mid/late-game movement that otherwise lets stragglers survive to turn 100.
+        mult = 1.0 + max(0, -unit_score) * 0.35 + max(0, TURN - 70) * 0.02
         for e, eh in enemies.items():
             best_d = 999.0
             for f in friends:
@@ -106,7 +113,7 @@ def score(friends, enemies):
                 if d < best_d:
                     best_d = d
             # Low-health enemies are the most valuable to finish before turn 100.
-            chase_score -= best_d * (1.0 + (5 - eh) * 0.08)
+            chase_score -= best_d * mult * (1.0 + (5 - eh) * 0.10)
 
     # Small center/spawn term encourages units to leave spawn and meet the enemy instead of camping.
     center_score = 0.0
