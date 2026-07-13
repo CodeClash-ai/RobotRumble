@@ -1116,3 +1116,67 @@ unproven tweak.
   `./rumblebot run term` invocations in a single call risks hitting the
   ~30s single-tool-call timeout even though each individual match is fast
   (6-15s).
+
+## Round 15 update (this session — verification only, no code changes)
+
+Reviewed `/logs/rounds/0/`: real opponent was **`mountain__neuralbot1-1h`**
+(yet another new account name, consistent with every previous round) —
+result: **sonnet-5 won 250-0** as Red (Health 250 sonnet-5 vs 0.0 for
+opponent, per `results.json`). This is the 15th consecutive round in this
+series ending in a total wipeout of the real ladder opponent regardless of
+account name/identity. Confirmed `robot.py` is byte-identical to
+round-12/13/14's version — `diff robot.py robot_r8_lookahead_backup.py`
+shows exactly the round-12 straggler tie-break diff and nothing else, no
+drift since round 12.
+
+### What I did this round
+Spot-checked a few builtin-bot matchups (one per bash call, per the
+standing tool-call-timeout gotcha noted in rounds 9-14):
+- `black-magic.js`: Blue won 58-9, 18-4u — consistent with rounds 9-14's
+  established ~50/50-or-better parity for this matchup (single trial, but
+  no regression signal).
+- `heuristic-bot.js`: Blue won 47-14, 16-6u — consistent with prior rounds.
+- `chaser.js`: Blue won 64-20, 23-5u — consistent with prior rounds.
+- All three matches completed in ~8s each, comfortably within the 60s
+  per-match budget, no crashes/exceptions/fallback behavior observed.
+
+### Decision: no code changes this round
+Same reasoning as every other verification-only round (3, 4, 5, 9, 10, 11,
+13, 14): the real ladder opponent continues to be completely wiped out
+(250-0) regardless of account name (15 different rounds now spanning many
+account names, always the same "opponent's army never recovers" result),
+`robot.py` remains stable with zero regressions across every builtin-bot
+matchup spot-checked, and there is no new signal this round (no
+closer-than-usual real match result, no builtin-bot regression, no timing
+concern) to justify a risky speculative change. The standing lesson across
+~13 prior rounds is that small-N tuning without solid A/B evidence
+repeatedly fails to show clear gains (the few tweaks that *did* show clear
+enough evidence — retreat-blend in round 6, RETREAT_RATIO tuning in round
+7, the 1-ply lookahead rewrite in round 8, the straggler tie-break fix in
+round 12 — are all already adopted and stable). Given the modest step
+budget, verifying stability and keeping notes accurate remains the
+highest-value use of this session.
+
+### For future teammates
+- `robot.py` unchanged this round, still == round-12/13/14's version
+  (round-8 1-ply lookahead + straggler tie-break fix + `RETREAT_RATIO=2.5`
+  group-brawler fallback), now stable across rounds 8-15 (8 consecutive
+  rounds) with no regressions.
+- The two standing unexplored ideas for pushing `black-magic.js` from
+  parity to a reliable edge remain unchanged from rounds 8-14's notes:
+  (1) shallow 2-ply lookahead (current 1-ply has real compute headroom —
+  matches finish in ~8-13s vs a 60s budget), (2) better enemy-move
+  prediction (currently assumes enemies never move, only attack if already
+  adjacent — matches black-magic.js's own assumption, so not exploitable
+  against black-magic.js specifically, but might matter against a
+  different real opponent that plays differently).
+- Real ladder opponent (`mountain__neuralbot1-1h` this round; different
+  account name nearly every round, always fully defeated 250-0) continues
+  to show zero sign of needing anything beyond what's already in
+  `robot.py`. If a future round's real-match result is ever *not* a 250-0
+  wipeout, that remains the actionable signal to revisit strategy.
+- Tool-call gotcha (repeats rounds 9-14's note): run builtin-bot matches
+  one or two at a time per bash tool call — chaining many
+  `./rumblebot run term` invocations in a single call risks hitting the
+  ~30s single-tool-call timeout even though each individual match is fast
+  (6-15s).
