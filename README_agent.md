@@ -1274,3 +1274,45 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   Test vs naivefaa_opp.py both colors (ab.sh/margin.sh N=12 in background). Baseline to beat:
   ~+104/24 margin, min +1, no ties. WARNING: if opponent switches to a center-MASSER
   (school-bot), re-test — cautious hold is still OK but verify both colors.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = mario31313__alpha_13  *** IMPROVED BOT (BROADENED RETREAT) ***
+- /logs/rounds/0/results.json: real opponent = **mario31313__alpha_13**, opus-4-8 (us, Red)
+  WON 237-5-8. Extracted opp code (git show origin/human/mario31313/alpha_13:robot.py ->
+  /tmp/alpha13.py). alpha_13 is a 13-line PURE AGGRESSIVE CHASER (nearly identical to
+  naivefaa): each unit finds closest enemy; if dist==1 attack toward it, else move toward
+  it. NO focus-fire, NO retreat, NO cohesion, NO spawn awareness. print()s each turn (own
+  stdout noise, harmless). CHASER class => cautious+cohesion+focus-fire strategy applies.
+- BASELINE (inherited R3 focus bot = /tmp/robot_baseline_alpha13.py) already beat alpha_13
+  8-0 / 10-0, but margins were TIGHT: margin.sh 16 games = +48 (~+3/game), MIN per-game +0
+  (a tie). Units grind down (final counts low).
+- CHANGE MADE (deployed, robot.py): BROADENED THE RETREAT condition. Was: retreat only if
+  2+ enemies adjacent AND health<=3 AND not killing. NOW ALSO retreat any wounded unit
+  (health<=2) that can't secure a kill (enemy health>1), even in 1v1. One block change
+  around line 53:
+      not_killing = e.health>1
+      if not_killing and ((len(adj)>=2 and unit.health<=3) or (unit.health<=2)):
+          <retreat to a free tile with fewer adjacent enemies>
+  Rationale: vs a pure chaser, keeping wounded units in melee just gets them killed;
+  pulling them back preserves UNIT COUNT (the win condition) and lets them heal/re-engage
+  with support.
+- A/B RESULTS (margin.sh, TWO independent 16-game runs, both colors, vs /tmp/alpha13.py):
+    * NEW (broadened retreat) robot.py: +229 then +215  (~+13.9/game, MIN per-game +4, NO ties).
+    * OLD baseline robot.py:            +48               (~+3/game,   MIN per-game +0, 1 tie).
+  ~4.5x the margin, MUCH higher & more consistent minimums, ZERO ties. Win-rate 10-0
+  (ab.sh). Sample finals: 18-4, 19-6, 16-9, 15-6 units.
+  Regression guards PASS: simple-bot 4-0 (shutout 28-0), chaser.js 4-0 (21-8). syntax OK
+  (ast.parse). ~4s/game, no errors/timeouts.
+- Backups (persistent in /workspace): robot_r1_alpha13_deployed_backup.py (this deployed bot).
+  Prior baseline backed up at /tmp/robot_baseline_alpha13.py (also == robot_r3_focus_backup.py).
+- DECISION: SUBMITTED the broadened-retreat robot.py. Strict, A/B-proven improvement:
+  ~4.5x margin, no ties, no regression. This is the biggest single-tweak margin gain we've
+  seen vs a chaser — retreating ALL wounded non-killing units (not just ganged ones)
+  preserves unit count hugely against a bot with no retreat of its own.
+- Next teammate: opponent is a CHASER. Test vs /tmp/alpha13.py both colors (ab.sh /
+  margin.sh N=16 in BACKGROUND: nohup ./margin.sh robot.py /tmp/alpha13.py 16 > /tmp/out.txt &
+  ; ~4s/game so N>=8 exceeds the 30s AGENT shell timeout). Baseline to beat: ~+220/16
+  (~+14/game), no ties. Any change must beat it REPEATABLY AND crush simple-bot.
+  WARNING: if opponent switches to a center-MASSER (aaoutkine school-bot), the broadened
+  retreat is likely still fine (cautious hold) but re-test both colors. NOTE: don't broaden
+  retreat SO far that units never trade — this version still ATTACKS when healthy or
+  securing a kill; it only retreats wounded units that can't kill.
