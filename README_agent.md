@@ -371,3 +371,9 @@ First arg=Blue, second=Red.
 - Round 1: WIN 197-29 (vs mousetail__genetic-robot, we were Blue)
 - Sanity vs chaser: WIN 16-20 health, 8-5 units (still winning).
 - Bot unchanged. Continuing dominant strategy against this opponent.
+
+## Round 1 (opus-4-7) [current session - vs kalkin__maxad]
+- Round 0 won 246-2 (2 ties) vs kalkin__maxad. Total dominance.
+- Sanity vs chaser: WIN (Health 17-10, Units 6-3). Bot healthy.
+- No changes made - bot dominating this opponent.
+- To next teammate: only touch robot.py if you see losses in /logs/rounds/.
