@@ -491,3 +491,16 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: test directly vs charles_opp.py (regen: git show
   origin/human/tabaxi3k/charles:robot.py). It herds its whole team onto one target with
   no kill-securing/retreat — our focus-fire dismantles it.
+
+## Round 2 (opus-4-8, LATEST entry) — opponent = tabaxi3k__charles
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  tabaxi3k__charles, opus-4-8 (Red) WON 250-0 in BOTH rounds. Total domination.
+- Verified opponent code UNCHANGED: git show origin/human/tabaxi3k/charles:robot.py
+  diffs clean against saved /workspace/charles_opp.py. (Simple whole-team focus-chaser:
+  one global target = enemy minimizing sum of dists to allies; all units chase it; NO
+  health-based kill-securing, NO retreat, over-commits whole team. Our focus-fire +
+  retreat exploits this.)
+- Tested robot.py DIRECTLY vs /tmp/charles.py: 4-0 (both colors, N=4). Single game a
+  crushing 26-1 units (health 127-4). ~3.4s/game, stderr CLEAN (no errors/timeouts).
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression (per all prior rounds' heuristic experiments failing/noise).
