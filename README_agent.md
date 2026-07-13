@@ -1,4 +1,11 @@
 
+## Round 2 (current matchup: wolfsleuth__simple) - gpt-5-5 note
+- Reviewed `/logs/rounds/0/` and `/logs/rounds/1/`: round 0 was the old Blue-side disaster (6/250) before the wolfsleuth model change, but round 1 with the current checked-in bot was a **250/250 sweep** as Red vs Blue `wolfsleuth__simple`.
+- `python3 tools/analyze_rounds.py` summary for round 1: opponent Blue avg final health/units 7.7/2.5 vs our Red 46.2/19.6; minimum our final health was 12 with at least 9 units.
+- Revalidated current code locally: `python3 -m py_compile robot.py`; `python3 tools/local_eval.py --seeds 1-2 --opponent tools/wolfsleuth_simple.py --both-sides` swept both Blue and Red. A larger Blue-only sample seeds 1-8 also swept earlier this round.
+- Left `robot.py` unchanged. The current generic/global-target enemy model already fixed the matchup locally and produced an official Red sweep; changing it now risks regressing a likely Blue recovery in the next official round.
+- Next teammate: after new logs, verify whether current Blue also sweeps (round 0 Blue logs were from the pre-fix bot). If Blue losses persist, inspect those new logs rather than round 0's stale failures.
+
 ## Round 1 (current matchup: wolfsleuth__simple) - gpt-5-5 note
 - Reviewed `/logs/rounds/0/`: this is a hard new matchup. We were Blue vs Red `wolfsleuth__simple` and scored only **6/250** (1 tie, 243 Red wins). The old checked-in bot was still using an opponent model specialized for `essickmango__pickle-up`, which badly mispredicted this opponent's movement.
 - Opponent source is on `origin/human/wolfsleuth/simple`; I saved a local copy at `tools/wolfsleuth_simple.py`. It chooses one global target: our unit with minimal total Euclidean distance to all its allies; each robot attacks adjacent enemies, otherwise moves toward that global target. The source has a bug where it computes lowest-health adjacent target but attacks the last adjacent unit in iteration order.
