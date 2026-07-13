@@ -246,27 +246,6 @@ def _compute_lookahead(state: State) -> Dict[str, Any]:
                     best_d = d
         if best_d is not None:
             best_actions[ec] = ('a', best_d)
-        elif friends:
-            # No friend adjacent to this enemy -- predict it will move toward
-            # its nearest friend this turn (mirrors what a symmetric
-            # black-magic-style greedy bot on the other side would actually
-            # do: if it can't attack, moving toward the nearest enemy
-            # strictly improves its own distance/surround score, so a
-            # rational opponent running similar logic will do it). Previously
-            # we predicted "do nothing" here, which under-predicts enemy
-            # aggression and can make our own lookahead overvalue standing
-            # at range-2 as "safe" when a real opponent would actually close
-            # the gap this same turn.
-            nearest_f = min(friends.keys(), key=lambda fc: ec.distance_to(fc))
-            move_dir = ec.direction_to(nearest_f)
-            for cand in (move_dir, move_dir.rotate_cw, move_dir.rotate_ccw):
-                t = ec + cand
-                if t in friends or t in enemy_hp:
-                    continue
-                if _is_wall(state, t, wall_cache):
-                    continue
-                best_actions[ec] = ('m', cand)
-                break
 
     possible_actions: Dict[Coords, List[Any]] = {}
     for fc in friends:

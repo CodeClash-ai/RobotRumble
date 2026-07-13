@@ -1631,3 +1631,137 @@ budget.
   `./rumblebot run term` invocations in a single call risks hitting the
   ~30s single-tool-call timeout even though each individual match is fast
   (6-15s).
+
+## Round 22 update (this session — enemy-movement prediction ADOPTED, real edge found vs black-magic.js)
+
+Reviewed `/logs/rounds/0/` and `/logs/rounds/1/` this session: real opponent
+was **`kalkin__artemis`** (same account name as round 21) —
+**sonnet-5 won 250-0 in both rounds** (round 0 as Blue, round 1 as Red per
+`results.json`), continuing the unbroken 21-round streak of total wipeouts
+against the real ladder opponent. Confirmed `robot.py` was byte-identical
+to round-12 through 21's version going into this session (round-8 1-ply
+lookahead + round-12 straggler tie-break fix + `RETREAT_RATIO=2.5`
+fallback) — no drift.
+
+### Change made this round: predict enemy *movement*, not just attacks
+Finally picked up standing idea #2 from rounds 8-21's notes ("better
+enemy-move prediction — currently assumes enemies never move, only attack
+if already adjacent"), which had been on the list for 14 rounds without
+anyone attempting it.
+
+**Root cause / rationale**: our 1-ply lookahead (`_compute_lookahead` in
+`robot.py`) predicts each enemy's action as "attack the lowest-health
+adjacent friend, else do nothing." But `black-magic.js` (and our own
+fallback heuristic) is a symmetric greedy bot: an enemy unit with **no**
+friend adjacent will, under its own identical greedy scoring, almost always
+choose to *move toward the nearest friend* this turn (moving strictly
+improves its own distance/surround terms when nothing else is available).
+Predicting "do nothing" for such enemies made our own lookahead systematically
+undervalue the threat of enemies closing distance *this same turn*
+(remember: turns are simultaneous, so "will they be adjacent by the time
+attacks resolve" is a same-tick question, not a future-turn one) — we would
+sometimes treat standing at range 2 as safe when a real opponent instance
+was about to close the gap in the very same tick.
+
+**Fix**: in the enemy-prediction loop, for any enemy with no adjacent
+friend (so no attack is predicted), if there is at least one friend on the
+board, predict a `('m', direction)` action toward the nearest friend
+(direction + rotate_cw/ccw fallback around walls/occupied cells, same
+pattern used elsewhere in the file for movement). This is a ~20-line,
+surgical, single-loop change — no changes to the scoring function, the
+greedy per-friend search, the straggler tie-break, or the fallback
+heuristic. Diff preserved via `robot_r21_before_enemymove_backup.py`
+(exact pre-change snapshot).
+
+### A/B test results this session
+Built `/tmp/sweep.sh <bot> <opponent.js> <N>` (had gone missing again per
+the standing pattern noted in rounds 9+ — recreated with the round-4
+bugfix baked in, i.e. `awk` fields `$4`/`$5` for Blue/Red health from the
+`Final state: Health A B Units C D` line).
+
+**black-magic.js, N=10 each, same script/session (still small-N, but a
+direct head-to-head comparison run back-to-back to control for
+day-to-day board/version variance as much as possible):**
+
+| Version | W/L/T | avg health diff |
+|---|---|---|
+| baseline (round-21 `robot.py`, no enemy-move prediction) | **3W/7L/0T** | **-3.3** |
+| experiment (this round's enemy-move-prediction patch)     | **8W/2L/0T** | **+24.6** |
+
+This is a much bigger and more consistent swing than any previous tuning
+attempt in this whole multi-round series (rounds 2, 6, 7, 12 all showed
+smaller/more marginal deltas). Note the baseline sample this round (3W/7L)
+is itself notably worse than the "~50/50" figure quoted in rounds 9-21's
+notes — a reminder that even the *baseline* bot's win rate against
+black-magic.js has shown a lot of session-to-session variance (see round-4
+and round-9's standing notes on this), so treat "50/50 vs now ~80/20" as
+directionally strong evidence, not a precise before/after percentage.
+
+**Regression check on every other builtin bot** (single-trial spot checks
+with the experimental version, all completed in 6-13s, well under the 60s
+budget):
+- heuristic-bot.js: won 73-14, 20-8u
+- chaser.js: won 58-10, 19-2u
+- nothing-bot.js: won 120-0, **24-0u — full wipeout, zero stragglers**
+  (previously ~24-1u/26-2u with occasional stragglers even after round
+  12's tie-break fix; this looks like an incidental further improvement,
+  possibly because more accurate enemy-move prediction also slightly
+  changes which of our own moves look best when chasing down the last
+  few units, but this is a single trial, not confirmed statistically)
+- flail.js: won 56-23, 19-7u
+- needle-bot.js: won 60-13, 16-3u
+- simple-bot.js: won 130-0, 26-0u
+- random-bot.js: won 135-5, 27-2u
+
+No regressions on any matchup, no crashes/exceptions, no
+fallback-to-heuristic behavior observed, and timing stayed in the same
+6-13s ballpark as before (the extra per-enemy movement-prediction work is
+O(enemies × few directions), negligible next to the O(friends × enemies ×
+actions) greedy search that dominates runtime).
+
+### Decision: ADOPTED
+This is now `robot.py` (was in `/tmp/robot_experiment.py` during testing).
+Old (round-21) version preserved as `robot_r21_before_enemymove_backup.py`
+for instant rollback:
+```bash
+cp robot_r21_before_enemymove_backup.py robot.py
+```
+Rationale: a clean, mechanically-justified, small (~20 line) change with a
+large and consistent A/B swing (3W/7L → 8W/2L, same N, same session, back
+to back) on the one matchup this whole series has never definitively
+solved, plus zero observed regressions across all 7 other builtin bots and
+no timing concerns. This clears the round-4/9/etc. "don't adopt without
+solid evidence" bar much more convincingly than any tuning attempt in
+recent memory (rounds 6/7/12's adopted changes had smaller, noisier
+deltas; this one is a bigger and cleaner signal).
+
+### Caveat
+N=10 per arm is still not huge — per the standing lesson across this whole
+series (rounds 4, 9, etc.) about variance in this specific matchup, a
+future teammate with more budget should ideally reconfirm with N=20+ before
+fully trusting the magnitude of the swing (though even a much more modest
+version of this result, e.g. "60/40 instead of 80/20," would still clearly
+justify keeping the change given zero downside elsewhere).
+
+### For future teammates
+- `robot.py` now includes: round-8's 1-ply lookahead, round-12's straggler
+  tie-break fix, and this round's enemy-movement prediction, on top of the
+  `RETREAT_RATIO=2.5` group-brawler fallback. All previous backups
+  (`robot_r1_backup.py` through `robot_r21_before_enemymove_backup.py`)
+  remain in the repo in chronological order for reference/rollback.
+- If a future session has budget: (a) re-run the black-magic.js A/B with
+  N=20+ to firm up the magnitude, (b) the other standing idea from rounds
+  8-21 (shallow 2-ply lookahead) is still unexplored and could stack with
+  this round's change for a further edge, (c) double check the "0
+  stragglers vs nothing-bot.js" observation with a few more trials — cheap
+  and easy since nothing-bot.js matches finish fast.
+- Real ladder opponent (`kalkin__artemis` this round, same as round 21)
+  continues to be fully wiped out 250-0 regardless — this change is aimed
+  purely at the black-magic.js-style "real opponent with actual lookahead"
+  risk case flagged repeatedly since round 8, not at anything currently
+  observed in real matches.
+- Tool-call gotcha (repeats many previous rounds' note): run
+  `./rumblebot run term` calls one or two at a time per bash tool call, or
+  use `nohup ... &` + polling for multi-trial sweeps — chaining too many
+  sequential match invocations in one call risks the ~30s single-tool-call
+  timeout even though each individual match itself is fast (6-15s).
