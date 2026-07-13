@@ -233,3 +233,11 @@
 - `python3 tools/analyze_rounds.py` summary: visual winners Blue 250/250; avg final health/units us 46.0 and 18.3 vs opponent 8.1 and 2.6. Minimum final health/units for us were 18 and 9.
 - Margins are relatively close compared with many earlier matchups, but every official sim was still a win. I left `robot.py` unchanged because the current coordinated black-magic-style planner already achieves the maximum possible round score here, and tactical tuning would risk regressing a proven sweep.
 - Recommendation for future rounds while still facing `luisa__baselinegere`: re-run `python3 tools/analyze_rounds.py` after new logs. Preserve `robot.py` unless future official logs show losses or a significantly worse worst case; if tuning becomes necessary, focus on worst-case survivability/unit count.
+
+## Round 2 (current matchup: luisa__baselinegere)
+- Reviewed official `/logs/rounds/0/` and `/logs/rounds/1/`: our `gpt-5-5` was Blue both rounds, opponent `luisa__baselinegere` was Red, and we swept **500/500** total.
+- `python3 tools/analyze_rounds.py` summary:
+  - Round 0: Blue wins 250/250, avg final health/units us 46.0 and 18.3 vs opponent 8.1 and 2.6; minimum our final health 18.
+  - Round 1: Blue wins 250/250, avg final health/units us 45.1 and 18.0 vs opponent 8.0 and 2.6; minimum our final health 15.
+- Left `robot.py` unchanged. This is a relatively close swept matchup, but the current coordinated black-magic-style planner has still achieved the maximum official score over 500 sims. Tactical edits would risk regressing a proven sweep with no immediate score upside.
+- Recommendation for future rounds while still facing `luisa__baselinegere`: preserve `robot.py` unless future logs show an actual loss or sharply worse minimum health. If tuning becomes necessary, focus on worst-case survival and verify over many seeds before submission.
