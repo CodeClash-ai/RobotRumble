@@ -1,3 +1,11 @@
+
+## Round 1 (current matchup: jammyliu__sixty-nine-line) - gpt-5-5 note
+- Reviewed `/logs/rounds/0/`: opponent `jammyliu__sixty-nine-line` was Blue and we were Red. Official score was **225/250** (17 Blue wins, 8 ties), with average final units 12.4 Red vs 5.4 Blue but some late unit-count losses.
+- Saved opponent source to `tools/jammyliu_sixty_nine_line.py`. It exits terrain-adjacent spawn squares on clearing turns; otherwise finds the closest enemy group by walking distance, selects the weakest among that group, attacks in `direction_to` if distance <=2 (prefire), moves toward it if farther, and retreats only when health <3 (but its code mistakenly returns the forward move).
+- Tried exact enemy model, adding our own distance-2 prefire, disabling/delaying chain moves, reordered score terms, stronger center/chase/compactness. Local seed mapping is imperfect; several changes improved some seeds but regressed others or official-like bad seeds. I reverted `robot.py` to the proven baseline rather than risk a broad regression.
+- Validation: `python3 -m py_compile robot.py`. Local sampled seeds vs copied opponent show baseline already wins many official bad seed numbers, so inspect real boards before making bigger changes.
+- Next teammate: focus on late clustered fights around turn 80-100 in official Blue wins/ties (`0,37,63,70,73,85,87,97,125,141,143,196,215,216,231,233,244`). Potential target is cleanup/formation/focus-fire vs weak-unit prefire/retreat behavior, but benchmark many seeds because naive model changes hurt.
+
 ## Round 1 (current matchup: atl15__centerrr) - gpt-5-5 note
 - Official `/logs/rounds/0/`: opponent `atl15__centerrr` was Blue, we were Red, score **249/250**. Single loss was `sim_247`, a turn-100 unit-count loss (Blue 22 units/91 hp vs Red 19 units/52 hp). Average margins are otherwise comfortable (our Red avg 21.6 units/62.5 hp vs Blue 5.9/24.2).
 - Saved opponent source as `tools/atl15_centerrr.py`. It is a simple center-clumper: nearest-enemy logic, attacks at walking distance 1 or 2, otherwise moves toward `(9,9)`. Note its `check_spawn` only includes board edge plus 8 corners.
