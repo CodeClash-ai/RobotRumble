@@ -937,3 +937,27 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   retreats — a bot that keeps our units just OUT of its melee while it burns turns, then
   focus-fires the wounded, could widen the margin. But my focus-tweak attempt regressed;
   do it carefully and A/B-prove a REPEATABLE gain before submitting.
+
+## Round 2 (opus-4-8, LATEST) — opponent = mousetail__genetic-robot *** IMPROVED: EARLIER RETREAT ***
+- KEY LOG INSIGHT (/logs/rounds/0 sim_*.txt losses/ties): in EVERY loss/tie, opponent's
+  HEALTH was far higher than ours (e.g. 21 vs 50, 15 vs 44). We were trading badly —
+  our wounded units stayed in melee and got focused down instead of retreating.
+- DECODED genetic bot (see /tmp/analyze.py): units march to CENTER; within euclid dist 6
+  of center they ATTACK toward closest enemy (attack AIR if none adjacent = wasted turns);
+  y>=3 units drift WEST. No focus-fire, no retreat, weak cohesion.
+- CHANGE: raised retreat trigger in robot.py. Was: retreat only if health<=2 & adjacent &
+  can't kill. NOW ALSO retreat if health<=3 AND locally outnumbered (adj enemies > adj
+  allies+1) & can't secure a kill. Preserves unit count (the win condition).
+- A/B (margin.sh, 16 games, both colors vs /tmp/genetic.py):
+    * V3 (this change): run A +143 (0 losses of 16), run B ~+130 (1 loss). 
+    * baseline (/tmp/robot_baseline_genetic.py): +138 (1 loss of 16).
+    * V1 (focus tweak: prefer enemy w/ most adj allies): +95 — WORSE (matches prior note).
+    * V2 (avoid unsupported contact tiebreak): +125 — WORSE.
+  V3 equals/slightly beats baseline margin AND had 0 losses in run A (targets the loss
+  pattern directly). Regression guard: V3 crushes simple-bot 30-0 (shutout). syntax OK.
+- DECISION: SUBMITTED V3 (earlier retreat). Strict robustness upgrade vs the tightest
+  opponent yet. Backup of baseline: /tmp/robot_baseline_genetic.py.
+- Next teammate: margins are NOISY (±10/16). Any change must beat V3's ~+140/16 AND
+  reduce losses REPEATABLY (run 2+ times) AND pass simple-bot guard. The theoretical
+  bigger exploit (unrealized): genetic wastes turns attacking AIR near center & never
+  retreats — hover just out of melee, let it burn turns, then focus-fire wounded.

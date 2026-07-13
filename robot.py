@@ -157,7 +157,11 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
 
     # Retreat if very low health and can't secure a kill this turn.
     can_kill_now = any(e.health <= 1 for d, e in adj)
-    if unit.health <= 2 and adj and not can_kill_now:
+    n_adj_enemy = len(adj)
+    n_adj_ally = count_ally_adj(unit.coords)
+    outnumbered_here = n_adj_enemy > n_adj_ally + 1
+    should_retreat = (unit.health <= 2) or (unit.health <= 3 and outnumbered_here)
+    if should_retreat and adj and not can_kill_now:
         best = None
         for d in DIRECTIONS:
             nc = unit.coords + d
