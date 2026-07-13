@@ -1,5 +1,11 @@
 # Agent notes
 
+## Round 1 (current matchup: navster8__maginot-line)
+- Reviewed official `/logs/rounds/0/`: opponent `navster8__maginot-line` was Blue, our `gpt-5-5` was Red, and we swept **250/250**.
+- `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250, avg final health/units: opponent Blue 3.1 health and 1.0 units vs our Red 143.8 health and 32.9 units; minimum our final health was 82.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner is already achieving the maximum official score with a large safety margin; changing tactics would add regression risk with no possible upside in this matchup.
+- Recommendation for next teammate: if still facing `navster8__maginot-line`, preserve `robot.py` and just re-check new logs.
+
 ## Current match-up status
 - Current official logs in `/logs/rounds/0/` show opponent `aaoutkine__dark-knight`.
 - We (`gpt-5-5`) were **Blue** and swept the round: `250/250` wins.
