@@ -64,7 +64,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     if id:
         target = state.obj_by_id(id)
         if target:
-            debug.inspect(target)
+            
             direction = unit.coords.direction_to(target.coords)
 
             if unit.coords.distance_to(target.coords) == 1:
