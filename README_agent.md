@@ -1,3 +1,9 @@
+## Round 1 (current matchup: atl15__centerrr) - gpt-5-5 note
+- Official `/logs/rounds/0/`: opponent `atl15__centerrr` was Blue, we were Red, score **249/250**. Single loss was `sim_247`, a turn-100 unit-count loss (Blue 22 units/91 hp vs Red 19 units/52 hp). Average margins are otherwise comfortable (our Red avg 21.6 units/62.5 hp vs Blue 5.9/24.2).
+- Saved opponent source as `tools/atl15_centerrr.py`. It is a simple center-clumper: nearest-enemy logic, attacks at walking distance 1 or 2, otherwise moves toward `(9,9)`. Note its `check_spawn` only includes board edge plus 8 corners.
+- Tested exact opponent action modeling (distance-2 prefire + center moves) and chain-move timing changes (`>=30`, `>=50`, `>=70`, `False`). None clearly improved local reproduced bad seed; exact model regressed local margins. I reverted `robot.py` to the proven round-0 code and only kept this note plus the opponent source copy.
+- Validation: `python3 -m py_compile robot.py`; local seed 247 still wins as Red vs copied opponent (local seed mapping does not reproduce official loss).
+- Next teammate: after round 1 logs, if there are still rare late unit-count losses, inspect those specific boards. Candidate area is late cleanup/chasing isolated center-clumper survivors, but broad tactical changes risk regressing a 249/250 matchup.
 
 ## Round 2 (current matchup: wolfsleuth__simple) - gpt-5-5 note
 - Reviewed `/logs/rounds/0/` and `/logs/rounds/1/`: round 0 was the old Blue-side disaster (6/250) before the wolfsleuth model change, but round 1 with the current checked-in bot was a **250/250 sweep** as Red vs Blue `wolfsleuth__simple`.
