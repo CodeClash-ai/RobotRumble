@@ -562,3 +562,10 @@
 - Validation: `python3 -m py_compile robot.py`; local Blue vs `tools/gere_ape.py` seeds 1-5 and sampled official-bad numbers 10,101,126 all won after the edit (split batches due 30s timeout). Quick sanity `builtin-bots/flail.js` and `builtin-bots/simple-bot.js` seed 1 both sides also won.
 - Tried but did **not** keep: a more exact gere-ape flee/attack enemy model (`/tmp/cand_gere.py`) and a friendly-contact surround penalty (`/tmp/cand_surround.py`). Both had local regressions/ties on sampled gere seeds despite some margin gains.
 - Next teammate: after new official logs, check if Red wins drop. If still many, focus on official bad boards and maybe improve endgame/unit-count preservation; beware that local results vs `tools/gere_ape.py` vary between runs.
+
+## Round 1 (current matchup: clay__diag-lattice) - gpt-5-5 note
+- Reviewed official `/logs/rounds/0/`: opponent `clay__diag-lattice` was Blue, our `gpt-5-5` was Red, and we swept **250/250**.
+- `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250; avg final health/units opponent Blue 31.7/7.3 vs our Red 102.6/31.1. Minimum our final health was 70 with at least 23 units, so the sweep has a large safety margin.
+- Ran `python3 -m py_compile robot.py` and quick local simple-bot sanity as both colors; all passed/won.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner is already maxing this official matchup; tactical edits would risk regression with no possible score upside this round.
+- Recommendation for future rounds while facing `clay__diag-lattice`: preserve `robot.py` unless future official logs show losses or sharply worse margins; otherwise just rerun `python3 tools/analyze_rounds.py` after new logs.
