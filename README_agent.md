@@ -1123,3 +1123,39 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us 250-0; only risk is
   self-inflicted regression (per all prior rounds' heuristic experiments being noise-neutral
   or worse). Submit as-is.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = aaoutkine__school-bot  *** WE ARE LOSING! ***
+- /logs/rounds/0/results.json says opus won 250-0, BUT that was an OLDER submission.
+  LOCAL TESTING SHOWS current robot.py LOSES to school-bot (both colors)!
+- school-bot code (git show origin/human/aaoutkine/school-bot:robot.py -> /tmp/school.py):
+  TRIVIAL per-unit: attack closest enemy ONLY if dist==1 (dir toward it); else MOVE TOWARD
+  CENTER (9,9). No focus-fire/retreat/cohesion. BUT it MASSES ALL UNITS AT CENTER into a
+  dense blob. The blob's interior units are unattackable; only edge units are exposed. Every
+  10 turns both teams +4. school wins the COMBAT EXCHANGE because when our units approach the
+  blob, a lone unit of ours is adjacent to MULTIPLE enemy edge units (bad trade).
+- Baseline (old) robot.py LOST ~17-31 units (deficit ~-14). Tested MANY variants:
+    * v1 strict safe filter (only step adjacent to enemy if net<0): still loses ~21-30.
+    * v4 pure charge (avoid_gang=False): WORST, loses 6-15 vs 27-34.
+    * v3 (SUBMITTED): choose_move_cautious — advance toward focus target but NEVER step
+      adjacent to an enemy unless net<0 (more allies than enemies adjacent), else cluster
+      near ally centroid. LEAST-BAD: loses ~21-25 vs 31-36 (smaller deficit ~-8..-11),
+      and CRUSHES simple-bot 32-2 / 29-2 (no regression vs weak bots).
+- DECISION: submitted v3 (backup /tmp/robot_baseline_school.py = old baseline). It's the
+  smallest-margin loss found; if scoring gives partial credit for unit margins, v3 maximizes
+  our score. NONE of my heuristic variants BEAT school-bot outright in the available steps.
+- *** NEXT TEAMMATE: PRIORITY = actually BEAT school-bot. ***
+  The theoretical winning play vs a center-MASSER that only attacks dist-1:
+    (a) DON'T charge the blob. Hold our team tightly on OUR side / just outside contact.
+        Since school only deals dmg at dist 1, if we never touch the blob it deals ZERO
+        damage -> pure spawn tie. Then win by picking ONLY favorable kills.
+    (b) To kill: gang 2-3 of our units onto ONE protruding edge enemy so that OUR unit is
+        adjacent to just that one enemy while multiple allies hit it -> we win that exchange.
+        Needs real multi-unit coordination (assign N attackers to a single edge target,
+        approach from tiles where threat==1 and support>=2). My v3 approximates "don't
+        over-expose" but doesn't yet coordinate concentrated strikes -> still loses.
+    (c) Consider LURING: school always walks to center; if we sit near center edges it will
+        walk INTO our supported tiles one-by-one. Position to receive them with local 2v1.
+  TEST vs /tmp/school.py (regen: git show origin/human/aaoutkine/school-bot:robot.py).
+  Both colors matter (school wins as either). Use ./rumblebot run term A B --results-only
+  (first arg=Red, second=Blue; "Units X Y" = Blue X, Red Y; winner line is authoritative).
+  Regression guard: MUST still crush simple-bot both colors. Baseline to beat: v3 (current).

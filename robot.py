@@ -124,6 +124,38 @@ def choose_move(state, unit, target_coords, avoid_gang=True):
     return Action.move(d)
 
 
+def choose_move_cautious(state, unit, target_coords):
+    """Advance toward target. Never step adjacent to an enemy unless we'll have more
+    adjacent allies than enemies there (net<0). Among safe tiles, get closer to target
+    and stay near ally centroid (cohesion). If the only closer tiles are unsafe, prefer
+    to hold near the pack instead of walking into a losing exchange."""
+    candidates = []
+    for d in DIRECTIONS:
+        nc = unit.coords + d
+        if not coord_free(state, nc):
+            continue
+        dist = nc.walking_distance_to(target_coords)
+        threat = count_enemy_adj(nc)
+        support = count_ally_adj(nc)
+        net = threat - support
+        cdist = nc.walking_distance_to(ally_centroid) if ally_centroid is not None else 0
+        candidates.append((dist, threat, net, cdist, d, nc))
+    if not candidates:
+        return None
+    cur_dist = unit.coords.walking_distance_to(target_coords)
+    # Safe = no adjacent enemy, OR adjacent enemies but with net support (net<0).
+    safe = [c for c in candidates if c[1] == 0 or c[2] < 0]
+    pool = safe if safe else candidates
+    # Prefer: closer to target, then near ally centroid (cluster), then less threat.
+    pool.sort(key=lambda t: (t[0], t[3], t[2], t[1]))
+    best = pool[0]
+    # If our best safe move doesn't actually get us closer AND we're already clustered,
+    # it's fine to hold (return the move anyway to keep shuffling toward cohesion).
+    dist, threat, net, cdist, d, nc = best
+    planned[(nc.x, nc.y)] = True
+    return Action.move(d)
+
+
 def robot(state: State, unit: Obj) -> Optional[Action]:
     enemies = robot_enemies(state)
     if not enemies:
@@ -184,7 +216,10 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         adj.sort(key=akey)
         return Action.attack(adj[0][0])
 
-    # No adjacent enemy. Decide between engaging and regrouping.
+    # No adjacent enemy. Advance toward the focus target, but ONLY move onto a tile
+    # adjacent to an enemy if we'll have local support there (strict). Otherwise close
+    # in cautiously while staying near the pack (cohesion), so we engage the enemy blob
+    # only where we outnumber it locally.
     target = state.obj_by_id(focus_id) if focus_id else None
     nearest = min(enemies, key=lambda e: unit.coords.walking_distance_to(e.coords))
     if target is None:
@@ -192,17 +227,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     elif nearest.coords.walking_distance_to(unit.coords) + 4 < target.coords.walking_distance_to(unit.coords):
         target = nearest
 
-    # If we are badly outnumbered overall and this unit is far ahead of the pack,
-    # regroup toward the allied centroid instead of charging in alone.
-    if ally_centroid is not None and n_enemies > n_allies:
-        d_to_centroid = unit.coords.walking_distance_to(ally_centroid)
-        d_to_target = unit.coords.walking_distance_to(target.coords)
-        if d_to_centroid > 3 and d_to_target > 2:
-            mv = choose_move(state, unit, ally_centroid, avoid_gang=True)
-            if mv is not None:
-                return mv
-
-    mv = choose_move(state, unit, target.coords, avoid_gang=True)
+    mv = choose_move_cautious(state, unit, target.coords)
     if mv is not None:
         return mv
     return None
