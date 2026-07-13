@@ -3993,3 +3993,71 @@ keeping notes accurate remains the highest-value use of this session's
   chaining many sequential match invocations in a single call risks the
   ~30s single-tool-call timeout even though each individual match itself
   is fast (7-15s).
+
+## Round 55 update (this session — verification only, no code changes)
+
+Reviewed `/logs/rounds/0/` this session: real opponent was
+**`mjburgess__rule99`**, but their submission was actually **invalid**
+(`"invalid_reason": "robot.py does not contain the required robot
+function..."`) — a forfeit/non-functional submission on their end, not a
+genuine gameplay win. Result: **sonnet-5 won 250-0** per `results.json`,
+but this particular result carries no real signal about our bot's
+strength (opponent literally didn't submit working code). Still, this
+extends the general pattern of every round in this series ending in a
+total win for us regardless of opponent identity.
+
+Confirmed `robot.py` is byte-identical to the round-22-through-54 version:
+`diff robot.py robot_r21_before_enemymove_backup.py` shows exactly the
+round-22 enemy-movement-prediction diff (22 lines) and nothing else — no
+drift since round 22.
+
+### What I did this round
+Spot-checked two builtin-bot matchups (one per bash tool call, per the
+standing tool-call-timeout gotcha repeated in every prior round's notes):
+- `black-magic.js`: Blue (us) won 44-26, 14-11u — consistent with round
+  22's established "improved but variable" finding for this matchup (a
+  win this trial, no regression signal).
+- `heuristic-bot.js`: Blue (us) won 62-12, 22-6u.
+- Both matches completed in ~10-11s, comfortably within the 60s per-match
+  budget. No crashes, exceptions, or fallback-to-heuristic behavior
+  observed.
+
+### Decision: no code changes this round
+Same reasoning as the ~45+ prior verification-only rounds documented
+extensively above: the real ladder opponent continues to be completely
+defeated (this round trivially, via an invalid opposing submission),
+`robot.py` remains stable with zero regressions across the builtin-bot
+matchups spot-checked, and there is no new information this round that
+would justify a risky speculative change without a much larger A/B
+testing budget than a single short session realistically allows.
+Verifying stability and keeping notes accurate remains the highest-value
+use of this session's 30-step budget.
+
+### For future teammates (unchanged standing items)
+- `robot.py`: round-8's 1-ply lookahead (lexicographic
+  `(unit_count_diff, surround_score, health_diff, distance_score)` greedy
+  per-friend search) + round-12's straggler tie-break fix + round-22's
+  enemy-movement prediction + `RETREAT_RATIO=2.5` group-brawler fallback
+  (used if `MAX_UNITS_FOR_LOOKAHEAD=70` is exceeded or any exception
+  occurs). Stable across 33+ rounds now with zero regressions.
+- The one standing unexplored idea remains a **shallow 2-ply lookahead**
+  (current 1-ply search runs in ~10-14s vs a 60s budget, real compute
+  headroom) — could push black-magic.js from "improved but variable" to
+  a more reliable edge. Given ~46 consecutive rounds of a
+  perfectly-defended real ladder matchup regardless, it remains a
+  legitimate call to leave this as optional future polish rather than
+  risk destabilizing a proven bot, unless a future teammate has a full
+  session's budget for careful implementation + N>=20 A/B testing before
+  adopting.
+- Real ladder opponent (`mjburgess__rule99` this round; different account
+  name nearly every round) submitted an **invalid** `robot.py` this round
+  (missing the required `robot(state, unit)` function) — worth noting for
+  future teammates in case this happens again: it just results in an
+  automatic 250-0 win for us with no real signal about matchup quality,
+  don't read too much into it as "our bot is unbeatable" evidence beyond
+  what the many *valid*-opponent rounds already show.
+- Tool-call gotcha (repeats every prior round's note): run
+  `./rumblebot run term` calls one or two at a time per bash tool call —
+  chaining many sequential match invocations in a single call risks the
+  ~30s single-tool-call timeout even though each individual match itself
+  is fast (7-15s).
