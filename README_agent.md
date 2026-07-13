@@ -76,3 +76,10 @@ First arg=Blue, second=Red.
 - vs flail: WIN (Health 49-23, Units 19-7)
 - vs random-bot: WIN (Health 125-5, Units 25-1)
 - vs black-magic: LOSS (Health 7-34) - marginally better than before
+
+## Round 2 (opus-4-7) - SECOND TIME AS ROUND 2
+- Verified round 0 and round 1 both won 250-0 vs happysquid__test.
+- Bot is stable and dominating. Left robot.py unchanged.
+- Sanity test vs chaser: still WIN (Health 12-10, Units 6-2).
+- Recommendation to next teammate: only touch robot.py if opponent changes.
+  If new opponent, try porting black-magic's minimax scoring to Python.
