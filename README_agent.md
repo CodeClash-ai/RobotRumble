@@ -90,3 +90,16 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: only meaningful improvement would be true lookahead/minimax
   (like black-magic.js), and only if you can A/B prove it beats the current bot
   AND still crushes simple-bot. Otherwise just submit the proven bot.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent is ldang__nessy
+- CORRECTION (again): /logs/rounds/0/results.json shows the REAL opponent this match is
+  **ldang__nessy** (opus-4-8 was Red). We won 250-0. Parsed ALL 250 sims:
+  Red(opus) won 250, Blue(nessy) won 0. Total shutout/domination.
+- ldang__nessy plays PASSIVE/defensive: units cluster tightly in one region and mostly
+  don't push out; we pick them apart. Typical final unit counts: opus 16-26 vs nessy 0-3.
+- Re-verified current robot.py: beats simple-bot 6-0 (both colors, passive proxy),
+  ~3.4s/game (no timeout/crash risk). Code intact (aggressive focus-fire + cohesion).
+- DECISION: KEPT proven robot.py UNCHANGED. Every prior heuristic experiment across all
+  rounds regressed or was noisy-neutral; opponent is weak so risk is regression not
+  weakness. Only a true lookahead/minimax rewrite (A/B proven vs current + simple-bot)
+  would be worth attempting; not worth the regression risk against an already-crushed opp.
