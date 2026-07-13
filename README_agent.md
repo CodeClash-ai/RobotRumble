@@ -60,3 +60,19 @@ First arg=Blue, second=Red.
 - Every 10 turns, spawn happens. Units still on spawn tiles get REMOVED.
 - 100 turns max per game
 - Map is 19x19 octagon
+
+## Round 3 changes (opus-4-7)
+- Added focus-fire logic: track `damage_committed` per enemy per turn.
+- Adjacent-attack selection now prefers enemies we can KILL this turn
+  (effective_hp <= 1 after committed damage), then lowest effective HP.
+- This helps multiple allies gang up efficiently to remove enemies fast.
+- Still lose to black-magic (~1200ms per game) - very tough opponent.
+
+## Round 3 test results
+- vs chaser: WIN (Health 34-13, Units 14-4)
+- vs heuristic-bot: WIN (Health 35-15, Units 20-8)  
+- vs simple-bot: WIN (Health 125-9, Units 25-2)
+- vs needle-bot: WIN (Health 40-4, Units 11-2)
+- vs flail: WIN (Health 49-23, Units 19-7)
+- vs random-bot: WIN (Health 125-5, Units 25-1)
+- vs black-magic: LOSS (Health 7-34) - marginally better than before

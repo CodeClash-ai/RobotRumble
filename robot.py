@@ -6,10 +6,14 @@ robot_state: Dict[str, dict] = {}
 # Track intended moves to prevent friendly collisions
 planned_moves: Dict[str, "Coords"] = {}
 
+# Track damage already committed to enemies this turn
+damage_committed: Dict[str, int] = {}
+
 
 def init_turn(state: State) -> None:
-    global planned_moves
+    global planned_moves, damage_committed
     planned_moves = {}
+    damage_committed = {}
 
 
 def is_in_bounds(coords: "Coords") -> bool:
@@ -44,17 +48,35 @@ def is_tile_free(state: State, coords: "Coords", ignore_id: Optional[str] = None
 
 
 def enemy_adjacent_dir(state: State, unit: Obj) -> Optional["Direction"]:
-    """Return direction of adjacent enemy (prefer low health)."""
+    """Return direction of adjacent enemy (prefer kill, then lowest effective HP)."""
+    global damage_committed
     best = None
-    best_hp = 999
+    best_key = None
     for d in [Direction.North, Direction.East, Direction.South, Direction.West]:
         c = unit.coords + d
         obj = state.obj_by_coords(c)
         if obj and obj.obj_type == ObjType.Unit and obj.team == state.other_team:
-            if obj.health < best_hp:
-                best_hp = obj.health
-                best = d
-    return best
+            committed = damage_committed.get(obj.id, 0)
+            effective_hp = obj.health - committed
+            # priority: can we kill? then lowest effective hp, then lowest raw hp
+            can_kill = 0 if effective_hp <= 1 else 1
+            key = (can_kill, effective_hp, obj.health)
+            if best_key is None or key < best_key:
+                best_key = key
+                best = (d, obj.id)
+    if best is None:
+        return None
+    return best[0]
+
+
+def commit_attack(direction, state, unit):
+    """Register damage for a direction attack."""
+    global damage_committed
+    c = unit.coords + direction
+    obj = state.obj_by_coords(c)
+    if obj and obj.obj_type == ObjType.Unit and obj.team == state.other_team:
+        damage_committed[obj.id] = damage_committed.get(obj.id, 0) + 1
+    return Action.attack(direction)
 
 
 def friend_at(state: State, coords: "Coords") -> bool:
@@ -159,8 +181,8 @@ def robot(state: State, unit: Obj) -> Optional["Action"]:
             if mv:
                 return mv
             # Can't flee - attack anyway
-            return Action.attack(adj)
-        return Action.attack(adj)
+            return commit_attack(adj, state, unit)
+        return commit_attack(adj, state, unit)
     
     # 3. Find closest enemy, prefer weaker
     def enemy_score(e):
