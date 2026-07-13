@@ -170,3 +170,15 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   crushing 25-1 units, ~3.6s/game, no errors/timeouts.
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression. Same trivial-bot class as all prior rounds.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = aaoutkine__dark-knight
+- /logs/rounds/0/results.json: real opponent = **aaoutkine__dark-knight**, opus-4-8 (us)
+  WON 250-0 (we were Blue). Extracted opp code (git show
+  origin/human/aaoutkine/dark-knight:robot.py), saved /tmp/dark_knight.py.
+- Opp is a PURELY RANDOM bot: `if random()>0.5: moveRandom() else: attackRandom()`.
+  Random direction move/attack, only skips attacking allies. NO targeting/cohesion/
+  awareness — the WEAKEST class of opponent yet. Rarely deals coordinated damage.
+- Tested robot.py DIRECTLY vs /tmp/dark_knight.py: 6-0 (both colors). Single game
+  crushing 22-2 units, ~3.5s/game, no errors/timeouts (checked stderr).
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression. Same weak-bot class (weaker, even) as all prior rounds.
