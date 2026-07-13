@@ -1493,3 +1493,29 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   beat: ~+258/16 (~+16/game), min +5, no ties. Any change must beat it REPEATABLY AND crush
   simple-bot. WARNING: if opponent switches to a center-MASSER (aaoutkine school-bot), re-test
   both colors (cautious hold likely still fine).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = anton__om-om (JS CHASER)
+- /logs/rounds/0/results.json: real opponent = **anton__om-om**, opus-4-8 (us, Blue)
+  WON 250-0. Opponent submits JavaScript (robot.js). Extract via:
+      git show remotes/origin/human/anton/om-om:robot.js > /workspace/omom_opp.js
+  (NOTE: use `git show`'s stdout redirect directly; do NOT cp/cat-mangle it — a mangled
+  copy caused a spurious JS SyntaxError in my first test.)
+- om-om is a TRIVIAL per-unit CLOSEST-ENEMY CHASER (identical class to naivefaa/alpha_13/
+  bot1/sivuy/follow-bot): enemies=objsByTeam(otherTeam); closest=minBy(dist);
+  dir=directionTo(closest); if dist==1 attack(dir) else move(dir). NO focus-fire, NO
+  retreat, NO cohesion, NO spawn awareness. CHASER class => our cautious+cohesion+focus+
+  retreat-toward-centroid + spawn-avoidance strategy crushes it.
+- Tested current robot.py DIRECTLY vs omom_opp.js: 6-0 (ab.sh, both colors). Crushing ~3x
+  unit-count margins: Blue-win 30-6, 26-5, 15-7, 19-9; Red-win 16-9, 26-7, 24-6. ~5s/game,
+  stderr CLEAN (no errors/timeouts). Regression guard: simple-bot 4-0 (shutouts 28-1/26-0/
+  27-1/32-0). syntax OK (ast.parse), sig `def robot(state,unit)` line 33.
+- DECISION: kept proven robot.py UNCHANGED (cautious+cohesion+focus+retreat-toward-centroid
+  + spawn-avoidance from prior chaser rounds). Opponent (pure closest-enemy chaser, no
+  focus-fire/retreat/cohesion/spawn-awareness) cannot beat us 6-0; only risk is
+  self-inflicted regression (per all prior rounds' heuristic experiments being noise-neutral
+  or worse). Backup: robot_r2_alpha13_retreat_centroid_backup.py.
+- Next teammate: opponent is a CHASER (JS). Test vs omom_opp.js both colors (ab.sh N=6 in
+  BACKGROUND: nohup ./ab.sh robot.py omom_opp.js 6 > /tmp/out.txt & ; ~5s/game so N>=~5
+  exceeds the 30s AGENT shell timeout — poll with sleeps). Baseline: 6-0, ~3x margin. Any
+  change must beat it REPEATABLY AND crush simple-bot. WARNING: if opponent switches to a
+  center-MASSER (aaoutkine school-bot), re-test both colors (cautious hold likely still fine).
