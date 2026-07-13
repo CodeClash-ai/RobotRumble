@@ -636,3 +636,86 @@ new).
    `robot_focusfire_experiment.py`, `robot_old_backup.py` remain in the
    repo as historical reference/rollback points, roughly in chronological
    order of the rounds that produced them.
+
+## Round 9 update (this session — verification only, no code changes)
+
+Reviewed `/logs/rounds/0/` this session: real opponent was **`ldang__nemo`**
+(yet another new account name, consistent with every previous round) —
+result: **sonnet-5 won 250-0** as Blue (checked `sim_249.txt`: final state
+Health 119-1, Units 29-1, opponent wiped down to a single unit and never
+recovered). Confirmed `robot.py` is unchanged from the round-8 lookahead
+rewrite (byte-identical to `robot_lookahead_experiment.py`, the
+"black-magic-style" 1-ply greedy lookahead bot with group-brawler fallback).
+
+### What I did this round
+- Re-ran the full builtin-bot regression suite (single trial each, all
+  completed well under the 60s budget — max observed ~13s for a full
+  100-turn match with ~30 units/side by the end):
+  - **Won**: chaser.js (55-13, 16-3u), flail.js (75-7, 22-2u),
+    heuristic-bot.js (44-14, 18-7u), needle-bot.js (73-8, 22-3u),
+    simple-bot.js (145-2, 29-1u), random-bot.js (130-5, 26-1u),
+    nothing-bot.js (130-9, 26-2u). No regressions vs round-8's numbers.
+- Ran a **larger black-magic.js sample** than round 8 had time for (per
+  round 8's own "please do this" request): two batches of N=8 using
+  `/tmp/sweep.sh robot.py builtin-bots/black-magic.js 8` (run in the
+  background with `nohup` + polling, since each 100-turn match against
+  black-magic.js takes ~4s and the foreground tool-call timeout is only
+  ~30s — see "gotcha" note below).
+  - Batch 1: **W:5 L:3 T:0, avgdiff +4**
+  - Batch 2: **W:3 L:5 T:0, avgdiff -5**
+  - Combined (N=16): **8W/8L/0T, avgdiff ≈ -0.5** — i.e. this really is
+    close to a **50/50 coin-flip matchup** now (both bots run similar
+    1-ply greedy local-improvement logic, so this is roughly what you'd
+    expect from two comparably-matched heuristics with random map/seed
+    variance). This both confirms round 8's qualitative finding (huge
+    improvement from a **0%** win rate under the old group-brawler bot to
+    a **~50%** win rate now) and tempers round 8's own N=5 "~60%" estimate
+    slightly — 50/50 is the more statistically-grounded read with N=16,
+    but it's still a massive improvement over every prior round's 0-for-N
+    result against this opponent.
+
+### Decision: no code changes this round
+The round-8 lookahead rewrite is confirmed working as intended, with no
+regressions on any builtin bot and a much-improved (now roughly even)
+result against the previously-unbeatable black-magic.js. The real ladder
+opponent continues to be completely wiped out (250-0) regardless of which
+account name it's currently using. Given the small remaining step budget
+this session and the fact that black-magic.js is already at parity (not a
+loss anymore), I judged further speculative tuning (e.g. trying to push
+black-magic.js from 50% to consistently >50%) to be lower priority than
+verifying stability and leaving accurate notes — especially since round 8
+already spent its whole budget on the big rewrite and per round-2/4's
+standing lesson, small-N tuning changes on top of a big rewrite without
+time for solid A/B testing risk regressions that are hard to catch in a
+short session.
+
+### Gotcha noted for future teammates: background long sweeps
+Running `/tmp/sweep.sh <bot> <opp> N` directly in a single bash tool call
+can **time out** (this session's tool call timeout appears to be ~30s) even
+though each individual match only takes ~4-13s, because of `docker exec`
+process overhead stacking up across N sequential match invocations within
+one shell call. Workaround used this session: launch the sweep with
+`nohup ... &` in one tool call, then poll with a separate `sleep N && cat
+logfile` tool call (possibly more than once) until the sweep finishes and
+writes its final `W:.. L:.. T:.. avgdiff:..` line. Keep N modest (~8) per
+sweep invocation if using this pattern, since each additional trial adds
+several seconds and you may need multiple polling round-trips.
+
+### For future teammates
+- `robot.py` is unchanged this round: the round-8 1-ply lookahead bot
+  (`(unit_count_diff, surround_score, health_diff, distance_score)`
+  lexicographic greedy per-unit action search, `MAX_UNITS_FOR_LOOKAHEAD =
+  70` fallback cap, defensive try/except fallback to the proven
+  `RETREAT_RATIO=2.5` group-brawler heuristic) remains the active bot.
+- black-magic.js is now roughly a 50/50 matchup (N=16 this round) instead
+  of a guaranteed loss (0% in every round before round 8) — a good, solid,
+  well-sampled result. If a future teammate wants to push this further
+  (e.g. try modeling the enemy's predicted action more accurately, or
+  extend to a deeper/2-ply search now that 1-ply runs comfortably in a
+  few seconds per match), that's the natural next step, but it's optional
+  polish at this point, not fixing a known loss.
+- Every other builtin bot remains a confirmed, comfortable win with no
+  observed regressions since round 8's rewrite.
+- Real ladder opponent (`ldang__nemo` this round; different account name
+  almost every round, always fully defeated 250-0) continues to show no
+  sign of needing anything beyond what's already in `robot.py`.
