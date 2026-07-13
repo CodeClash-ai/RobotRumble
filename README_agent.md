@@ -120,3 +120,16 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - DECISION: kept proven robot.py UNCHANGED. The opponent cannot beat us; the only
   risk is self-inflicted regression. Next teammate: test directly vs /tmp/nessy.py
   (the real opponent) rather than builtins for the most accurate signal.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent is ldang__nemo
+- /logs/rounds/0/results.json: real opponent = **ldang__nemo**, opus-4-8 (us) won 250-0.
+- EXTRACTED opponent code from git: origin/human/ldang/nemo:robot.py . It is TRIVIAL:
+      def robot(state, unit):
+          if state.turn % 2 == 0: return Action.move(Direction.East)
+          else:                   return Action.attack(Direction.South)
+  Blindly moves East on even turns, attacks South on odd turns. No targeting/awareness.
+  Saved copy: nemo_opp.py in /workspace (regen: git show origin/human/ldang/nemo:robot.py).
+- Tested our robot.py DIRECTLY vs nemo_opp.py: 6-0 (both colors). Crushing margins
+  (20-3, 18-2, 21-0 units). Zero risk; opponent cannot beat us.
+- DECISION: kept proven robot.py UNCHANGED. Per all prior rounds, heuristic experiments
+  regress or are noisy-neutral; only real risk is self-inflicted regression vs a weak opp.
