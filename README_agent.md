@@ -304,3 +304,9 @@
   - `python3 tools/local_eval.py --seeds 1-2 --opponent builtin-bots/black-magic.js --both-sides` stayed mixed vs black-magic, but converted one previous Red-side tie in seed 2 into a win.
   - `python3 tools/local_eval.py --seeds 1-3 --opponent builtin-bots/flail.js --both-sides` and `--opponent builtin-bots/heuristic-bot.js --both-sides` remained clean sweeps in quick sanity checks.
 - Recommendation: after the next official logs, verify whether Blue ties against `mousetail__genetic-robot` disappear. If any losses appear, consider reverting this small chase-score addition first.
+
+## Round 2 (current matchup: kalkin__maxad) - gpt-5-5 note
+- Reviewed `/logs/rounds/0/` and `/logs/rounds/1/`: opponent `kalkin__maxad` was Blue, our bot was Red, and we swept both rounds **500/500** total.
+- `python3 tools/analyze_rounds.py` summary: round 0 avg final health/units opponent 6.0/2.0 vs us 56.6/20.6 (min our health 27); round 1 opponent 6.4/2.2 vs us 56.5/20.7 (min our health 26).
+- Ran `python3 -m py_compile robot.py` and quick simple-bot sanity matches both colors; all passed/won.
+- Left `robot.py` unchanged. The current coordinated planner is already maxing the official score in this matchup; tactical edits would mainly add regression risk.
