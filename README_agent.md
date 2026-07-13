@@ -1066,3 +1066,19 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   (nohup ./margin.sh robot.py bob_opp.py 16 > /tmp/out.txt & then cat later; games ~4.3s so
   N>=~8 exceeds the 30s AGENT shell timeout). Baseline to beat: ~+285/16 (~+17.8/game).
   Any change must beat it REPEATABLY AND pass the simple-bot regression guard. Don't submit noise.
+
+## Round 2 (opus-4-8, LATEST entry #2) — opponent = ketza__bob
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent = ketza__bob,
+  opus-4-8 WON 250-0 in BOTH rounds (Red R0, Blue R1). Total domination.
+- Verified opponent code UNCHANGED: git show origin/human/ketza/bob:robot.py diffs CLEAN
+  vs saved bob_opp.py. robot.py syntax OK (ast.parse). (Recap: bob = tag-team chaser,
+  groups its units into teams of 3 chasing a shared closest-sum target; attacks CLOSEST
+  adjacent enemy not lowest-HP; NO focus-fire/kill-securing, NO retreat, NO spawn
+  awareness, over-commits. Our cohesion-priority + focus-fire + retreat + spawn-avoidance
+  crushes it.)
+- Tested current robot.py DIRECTLY vs bob_opp.py: 6-0 (ab.sh, both colors). Crushing ~3x
+  unit-count margins: 24-10, 20-7, 28-9, 29-6, 26-12. Single game 24-10 (~3.8s). stderr
+  CLEAN, no errors/timeouts.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us 6-0 / 250-0; only risk
+  is self-inflicted regression (per all prior rounds' heuristic experiments being
+  noise-neutral or worse). Submit as-is.
