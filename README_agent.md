@@ -719,3 +719,75 @@ several seconds and you may need multiple polling round-trips.
 - Real ladder opponent (`ldang__nemo` this round; different account name
   almost every round, always fully defeated 250-0) continues to show no
   sign of needing anything beyond what's already in `robot.py`.
+
+## Round 10 update (this session — verification only, no code changes)
+
+Reviewed `/logs/rounds/0/` and `/logs/rounds/1/` this session: real opponent
+was **`ldang__nemo`** again (same as round 9's opponent name) — result:
+**sonnet-5 won 250-0 in both rounds**, checked `sim_249.txt` from round 1:
+final state Health 92-0, Units 23-0, the same total-wipeout pattern as
+every round since round 1 of this whole series. Confirmed `robot.py` is
+byte-identical to `robot_lookahead_experiment.py` (the round-8 1-ply
+lookahead rewrite, `RETREAT_RATIO=2.5` fallback) — no drift since round 9.
+
+### What I did this round
+- Re-ran the full builtin-bot regression suite (one trial each; had to run
+  bots individually rather than in a single loop, since chaining all 7 in
+  one bash tool call hit the ~30s tool-call timeout even though each
+  individual match only takes 6-15s — same "gotcha" flagged in round 9's
+  notes about background/foreground timeouts, worth repeating here since
+  it bit me again):
+  - **Won**: black-magic.js (2 of 3 fresh trials + 1 more = overall this
+    session 2W/1L/1T across 4 trials, e.g. 41-27/13-9u, 29-29/12-11u wins,
+    30-34/11-12u loss, 14-16/7-7u tie — consistent with round 9's ~50/50
+    finding, no regression, no improvement, just confirms stability),
+    chaser.js (47-18, 19-7u), flail.js (83-16, 25-6u), heuristic-bot.js
+    (63-11, 19-6u), needle-bot.js (58-7, 19-2u), simple-bot.js (140-0,
+    28-0u), random-bot.js (150-5, 30-1u), nothing-bot.js (130-0, 26-0u).
+  - All matches completed in 6-15s, comfortably within the 60s per-match
+    budget even with armies growing to ~25-30 units/side by turn 100.
+- No code changes made.
+
+### Decision: no code changes this round
+Same reasoning as rounds 3, 4, 5, 9: the real ladder opponent continues to
+be totally wiped out (250-0, complete and sustained unit annihilation) in
+every recorded round regardless of account name, the round-8 lookahead
+rewrite remains stable with no regressions on any builtin-bot matchup, and
+black-magic.js remains at the "roughly 50/50" parity established in round
+9 (was a guaranteed 0% loss before round 8's rewrite) — there is no new
+signal this round suggesting either a regression to fix or an obvious
+further improvement to chase with the remaining step budget. Given the
+standing lesson across rounds 2-9 that small-N speculative tuning without
+solid A/B evidence has repeatedly failed to show clear gains (focus-fire
+experiment, various RETREAT_RATIO sweeps beyond what's already adopted),
+and that we're not aware of any change to the real opponent's behavior
+that would motivate a specific fix, I judged verifying stability +
+updating notes to be the better use of this session's budget than another
+speculative tweak.
+
+### For future teammates
+- `robot.py` unchanged: round-8's 1-ply lookahead bot
+  (`(unit_count_diff, surround_score, health_diff, distance_score)`
+  lexicographic greedy per-unit search + `RETREAT_RATIO=2.5` group-brawler
+  fallback) remains active and stable across 3 rounds now (8, 9, 10) with
+  no regressions.
+- If you want to push black-magic.js from ~50/50 to a reliable win, the
+  natural next steps (still unexplored, see round 8/9 notes) are: (a) a
+  deeper/2-ply search (current 1-ply runs in single-digit seconds even at
+  ~30 units/side, so there's compute budget headroom for at least trying a
+  shallow 2-ply extension on a subset of units), or (b) improving the
+  enemy-action prediction model (currently assumes enemies always attack
+  the lowest-health adjacent friend and never move — check if
+  black-magic.js's own logic differs meaningfully and whether modeling
+  that more precisely changes lookahead scoring/choices).
+- Known cosmetic-only quirk (round 8 notes): lookahead bot occasionally
+  leaves 1-2 low-health enemy stragglers alive at the very end of a total
+  blowout (e.g. nothing-bot.js finished 26-0 units, not "kill literally
+  every unit" 0 stragglers) — never affects win/loss, not worth chasing.
+- Tool-call gotcha (repeats round 9's note): don't chain many
+  `./rumblebot run term` calls in a single bash invocation via a shell
+  loop — each match itself is fast (<15s) but process/docker-exec overhead
+  across N sequential calls can blow past the ~30s single-tool-call
+  timeout. Run bots one or two at a time per tool call instead, or use
+  `nohup ... &` + separate polling calls for larger sweeps (see round 9's
+  note for the exact pattern).
