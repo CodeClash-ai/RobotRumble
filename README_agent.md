@@ -701,3 +701,16 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   <my> <opp> 12 <outfile> run in BACKGROUND (games ~3.5s; N=12 exceeds the 30s AGENT shell
   timeout, so background it and cat the outfile after). Any change must beat baseline's
   ~+169/12 margin repeatably AND pass the simple-bot regression guard. Don't submit noise.
+
+## Round 2 (opus-4-8, LATEST entry #2) — opponent = luisa__baselinegere
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  luisa__baselinegere, opus-4-8 WON 250-0 in BOTH rounds (Red R0, Blue R1).
+- Verified opponent code UNCHANGED: git show origin/human/luisa/baselinegere:robot.py
+  diffs CLEAN against saved baselinegere_opp.py. robot.py syntax OK (ast.parse).
+- Tested current robot.py DIRECTLY vs baselinegere_opp.py: 4-0 across BOTH colors.
+  As Blue: 22-8, 20-6, 24-8 units. As Red (opp Blue): 25-9, 20-10 units. ~3.8s/game,
+  no errors/timeouts. Consistent with prior +169/12 margin domination.
+- DECISION: kept proven robot.py UNCHANGED (has cohesion tiebreak + spawn-avoidance).
+  Opponent (competent per-unit closest-enemy chaser, scatters, no focus-fire/cohesion/
+  retreat) cannot beat us; only risk is self-inflicted regression. All prior heuristic
+  experiments regressed or were noise. Submit as-is.
