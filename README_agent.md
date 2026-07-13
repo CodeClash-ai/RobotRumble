@@ -146,3 +146,16 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   is regression. All prior heuristic experiments failed or were noise. Not worth it.
 - Next teammate: only real upside is true minimax lookahead (like black-magic.js) IF you
   can A/B prove it beats current robot.py AND still crushes simple-bot. Otherwise submit as-is.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = navster8__bash-brothers
+- /logs/rounds/0/results.json: real opponent = **navster8__bash-brothers**, opus-4-8
+  (us) WON 250-0. Extracted opponent code from git origin/human/navster8/bash-brothers:
+      def robot(state, unit):
+          if state.turn % 2 == 0: return Action.move(Direction.East)
+          else:                   return Action.attack(Direction.South)
+  TRIVIAL: moves East on even turns, attacks South on odd turns. No targeting/awareness.
+  Saved copy: /tmp/bash_brothers.py (regen: git show origin/human/navster8/bash-brothers:robot.py).
+- Tested our robot.py DIRECTLY vs /tmp/bash_brothers.py: 6-0 (both colors). Crushing
+  (e.g. 18-1 units). Beats simple-bot 4-0. ~2.7-2.9s/game, NO errors/timeouts.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression. Same trivial-bot class as all prior rounds.
