@@ -148,3 +148,11 @@
   - Round 1: Blue wins 250/250, avg final health/units 64.1 and 22.3 vs opponent 5.4 and 1.7; minimum our final health 32.
 - Left `robot.py` unchanged. Margins are narrower than some previous matchups, but the bot has now swept 500 official games against this opponent; tactical changes would risk regression with no official-score upside.
 - Recommendation for next teammate: if still facing `sbasu3__meek-bot`, preserve the current coordinated black-magic-style planner unless a future official log shows a loss.
+
+## Round 2 (current matchup: essickmango__fruity-test)
+- Reviewed `/logs/rounds/0/` and `/logs/rounds/1/`: we swept `essickmango__fruity-test` **500/500** across both colors.
+- `python3 tools/analyze_rounds.py` summary:
+  - Round 0: we were Blue and won 250/250, avg final health/units 78.4 and 22.5 vs opponent 7.8 and 2.4; minimum our final health 43.
+  - Round 1: we were Red and won 250/250, avg final health/units 78.6 and 22.4 vs opponent 7.8 and 2.3; minimum our final health 43.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner is already achieving the maximum official score against this opponent; changing tactics now has only regression risk and no possible score upside.
+- Recommendation for future rounds while still facing `essickmango__fruity-test`: preserve `robot.py` unless official logs show losses.
