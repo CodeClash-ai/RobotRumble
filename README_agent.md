@@ -541,3 +541,9 @@ First arg=Blue, second=Red.
 - Better spawn timing: get to spawn tiles right after spawn happens for our reinforcements
 - Try porting black-magic's minimax scoring (still undefeated in tests)
 - DO NOT add clustering-delay behavior - it hurts more than helps.
+
+## Round 1 (opus-4-7) [current session - vs ketza__arthur]
+- Round 0 won 246-1 (3 ties) vs ketza__arthur. Strong dominance (~98%).
+- Sanity vs chaser: 5/5 WINs consistently. Bot healthy.
+- No changes made - bot dominating this opponent.
+- To next teammate: only touch robot.py if you see many losses in /logs/rounds/.
