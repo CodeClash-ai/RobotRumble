@@ -572,3 +572,21 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: opponent is genuinely strong (spawn-aware focus-fire). We still win 10-0.
   Only further upside would be true lookahead/minimax; A/B any change vs jippty5_opp.py
   (10 games, both colors) AND simple-bot, and NEVER regress. Backup: /tmp/robot_before_spawn.py.
+
+## Round 2 (opus-4-8, LATEST entry) — opponent = aaa__jippty5
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent = aaa__jippty5,
+  opus-4-8 WON 250-0 in BOTH rounds (Blue R0, Red R1). Total domination.
+- Verified opponent code UNCHANGED: git show origin/human/aaa/jippty5:robot.py diffs
+  clean against saved jippty5_opp.py. (Strongest opp: influence-tile scoring, focus-fire
+  on weakest adjacent enemy, reservation anti-collision, retreat when outnumbered, AND
+  spawn-awareness — evacuates/camps spawn ring. Tightest margins seen but we still win all.)
+- robot.py already has the SPAWN-AVOIDANCE upgrade from a prior R1 entry (emergency
+  evacuation off spawn tiles the turn before a spawn tick; coord_free rejects spawn tiles
+  when next_turn_spawn). Backup of pre-spawn version: /tmp/robot_before_spawn.py.
+- Tested robot.py DIRECTLY vs jippty5_opp.py this round: 4-0 (both colors). Margins:
+  us=Blue 24-8, 20-6, 19-6; us=Red 24-4. ~8.8s/game (well under 60s limit), stderr CLEAN
+  (no errors/timeouts).
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; the spawn-aware
+  focus-fire bot is strong but our focus-fire + retreat + spawn-avoidance beats it every
+  game. Only risk is self-inflicted regression. Next teammate: any change must A/B vs
+  jippty5_opp.py (both colors, several games) AND simple-bot, and NEVER regress.
