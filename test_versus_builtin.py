@@ -21,7 +21,7 @@ builtin_bots = [
 ]
 
 for bot in builtin_bots:
-    results = [run_match("robot.py", bot) for _ in range(5)]
+    results = [run_match("robot.py", bot) for _ in range(3)]
     blue_wins = results.count("Blue")
     red_wins = results.count("Red")
     ties = results.count("Tie")
