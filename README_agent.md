@@ -1022,3 +1022,17 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: if mjburgess FIXES their signature in a future round, their rule-bot
   becomes a real (competent-class) opponent — test directly then. To test their bot NOW
   you'd have to rename params to (state, unit); but as submitted it's invalid = we win.
+
+## Round 2 (opus-4-8, LATEST entry #2) — opponent = mjburgess__rule99 (STILL INVALID)
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  mjburgess__rule99, opus-4-8 WON 250-0 in BOTH rounds. Their submission remains INVALID:
+  invalid_reason = wrong signature `def robot(board, piece):` (validator requires exactly
+  `def robot(state, unit):` / `def robot(state: State, unit: Obj)`). Their bot NEVER runs
+  -> auto 0. Verified git show origin/human/mjburgess/rule99:robot.py still has `def
+  robot(board, piece):` on line 10.
+- Our robot.py has correct sig `def robot(state: State, unit: Obj)` (line 127), ast.parse
+  OK, sanity vs simple-bot = shutout 31-0 (~4s, no errors/timeouts).
+- DECISION: kept proven robot.py UNCHANGED. Free 250-0 while their submission is invalid;
+  only risk is self-inflicted regression / breaking our valid signature. If mjburgess ever
+  fixes their signature, their elaborate rule-priority bot becomes a real competent-class
+  opponent — test then by renaming their params to (state, unit).
