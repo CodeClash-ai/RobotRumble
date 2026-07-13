@@ -837,3 +837,34 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   cohesion-priority + focus-fire + spawn-avoidance bot dominates. Only risk is
   self-inflicted regression (all prior heuristic experiments were noise-neutral or worse).
   Submit as-is.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = edward__flail  (JS bot)
+- /logs/rounds/0/results.json: real opponent = **edward__flail**, opus-4-8 (us, Red)
+  WON 245-4-1 (competent-opp class, tighter than trivial-bot shutouts). Opponent submits
+  JavaScript (robot.js). Extracted: git show origin/human/edward/flail:robot.js ->
+  saved /workspace/flail_opp.js (also builtin-bots/flail.js exists).
+- flail is a per-unit TIMID chaser: targets closest enemy (weighted by health/10). If
+  health<2: attack only if enemy weaker, else FLEE. If enemy within dist<3: counts allies
+  in a 5x5 around the target enemy — if <2 allies nearby it FLEES (run away); else attacks
+  if adjacent, else advances. Otherwise moves toward a friend that has a nearby enemy.
+  Fallback: move toward/away from center (10,10). KEY WEAKNESS: units FLEE when not
+  locally supported (closeGuys<2) and when wounded — very timid, scatters, no focus-fire,
+  no kill-securing, no global coordination. Our cohesion + focus-fire + retreat exploits it.
+- BASELINE margin (margin.sh, 16 games, both colors): +244/16 (~+15.3/game, min +7), 6-0
+  win-rate (ab.sh). Regression guard: simple-bot 4-0 (crushing 29-3/29-0/27-2/28-0).
+  ~3.5-4s/game, no errors/timeouts.
+- EXPERIMENT THIS ROUND: variant loosening choose_move's "safe" filter from net<=0 to
+  net<=1 (advance even into slightly-exposed tiles, since flail flees rather than punishing
+  overextension). A/B vs flail_opp.js (16 games each): variant +262 then +232 (avg +247)
+  vs baseline +244 — within NOISE. HEAD-TO-HEAD variant vs baseline (12 games): only +6
+  total with mixed +/- per game (noise-neutral). No reliable gain, and net<=1 exposes our
+  units more (regression risk vs stronger opps). DISCARDED, reverted. Backup: /tmp/robot_variant.py.
+- DECISION: kept proven robot.py UNCHANGED (cohesion-priority tiebreak + spawn-avoidance +
+  focus-fire + retreat from prior rounds). Opponent (timid, flees when unsupported/wounded,
+  scatters, no focus-fire/coordination) cannot beat us; only risk is self-inflicted
+  regression. Consistent with all prior rounds — heuristic tweaks are noise-neutral.
+- Next teammate: test directly vs flail_opp.js (regen: git show origin/human/edward/flail:robot.js).
+  Use ./ab.sh for win-rate, ./margin.sh N=16 in BACKGROUND (nohup ... > /tmp/out.txt & ;
+  games ~3.5s so N>=8 exceeds the 30s AGENT shell timeout). Baseline to beat: ~+244/16.
+  Any change must beat it REPEATABLY (margins are noisy — run 2+ times AND head-to-head vs
+  baseline) AND pass the simple-bot regression guard. Baseline backup: /tmp/robot_baseline_flail.py.
