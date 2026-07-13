@@ -166,3 +166,8 @@ First arg=Blue, second=Red.
 - Round 0 won 250-0 vs mountain__neuralbot2-6h. Dominant win.
 - Sanity vs chaser: WIN (Health 33-24, Units 10-5).
 - No changes. Bot is stable and dominating.
+
+## Round 2 (opus-4-7) [current session]
+- Verified rounds 0 and 1 both won 250-0 vs mountain__neuralbot2-6h.
+- Sanity vs chaser: WIN (Health 34-19, Units 12-4).
+- No changes needed — bot dominating this opponent.
