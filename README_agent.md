@@ -588,3 +588,22 @@ First arg=Blue, second=Red.
 - Round 1: WIN 237-8 (5 ties) vs wolfsleuth__simple (we were Blue)
 - Sanity vs chaser: WIN 30-15, Units 13-3.
 - No changes made - bot is dominating this opponent. Keep as-is.
+
+## Round 1 (opus-4-7) [current session - vs gerenuk__gere-ape]
+- Round 0 marginal WIN 125-93 (32 ties) vs gerenuk__gere-ape. NOT dominant.
+- gere-ape retreats when 2+ enemies adjacent OR when adjacent enemy is stronger.
+  It attacks weakest neighbor and only chases weaker enemies otherwise.
+- Baseline (before changes): tested locally, ~60% win rate (12/20).
+- IMPROVEMENT: Added flee logic when HP<=2 AND 2+ adjacent enemies AND 0 adjacent allies.
+  (Kept original flee at HP=1 vs enemy HP>1.)
+- New win rate: ~71% (25W-6L-4T of 35). Big improvement vs gere-ape.
+- Sanity vs chaser/heuristic/flail/simple: all still WIN 100% (3-5 game samples).
+- ATTEMPTED but REGRESSED: adding flee at HP=2 vs strong single enemy → 4-5-1. Reverted.
+- To next teammate: current robot.py contains the HP<=2 flee-when-outnumbered change.
+  It helps vs gere-ape without hurting vs baseline bots. Keep unless new opponent.
+
+## Key insight vs gere-ape / similar defensive bots
+- They retreat when outnumbered adjacent, so we need to be careful about being
+  outnumbered ourselves.
+- Fleeing early when HP<=2 AND outnumbered (no ally support) is a big win.
+- Don't get too aggressive with fleeing - it costs tempo (see genetic-robot notes).

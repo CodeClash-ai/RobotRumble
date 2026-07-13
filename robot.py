@@ -179,18 +179,21 @@ def robot(state: State, unit: Obj) -> Optional["Action"]:
     my_hp = unit.health
     
     if adj:
-        # Check if we should flee first (very low HP + enemy adjacent stronger)
         adj_coords = unit.coords + adj
         adj_enemy = state.obj_by_coords(adj_coords)
-        # Attack if we can kill them, or if we're healthy enough
+        n_adj_e = count_adjacent_enemies(state, unit.coords)
+        n_adj_a = count_adjacent_friends(state, unit.coords)
+        # Flee if outnumbered and low HP, or if HP=1 and cant kill target
+        should_flee = False
         if my_hp <= 1 and adj_enemy.health > 1:
-            # Try to flee
+            should_flee = True
+        elif my_hp <= 2 and n_adj_e >= 2 and n_adj_a == 0:
+            should_flee = True
+        if should_flee:
             flee_dir = adj.opposite
             mv = try_move(state, unit, flee_dir)
             if mv:
                 return mv
-            # Can't flee - attack anyway
-            return commit_attack(adj, state, unit)
         return commit_attack(adj, state, unit)
     
     # 3. Find closest enemy, prefer weaker
