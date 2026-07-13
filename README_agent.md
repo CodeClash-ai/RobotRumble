@@ -623,3 +623,35 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   (no errors/timeouts). robot.py syntax verified via ast.parse.
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression (per all prior rounds' heuristic experiments failing/noise).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = luisa__luisasrobot  *** IMPROVED BOT ***
+- /logs/rounds/0/results.json: real opponent = **luisa__luisasrobot**, opus-4-8 (us, Blue)
+  WON 246-3-1. Extracted opp code (git show origin/human/luisa/luisasrobot:robot.py),
+  saved /tmp/luisa.py.
+- luisa is a PLAN-BASED per-unit closest-enemy chaser: each unit generates plans toward its
+  closest enemy (attack if that tile holds an enemy, else move); a greedy select_plans picks
+  lowest-distance plans with TARGET-TILE RESERVATION (anti-collision). It HAS spawn awareness
+  (skips moving onto spawn tiles the turn before a spawn tick via is_inside_nonspawn). But it
+  has NO focus-fire / kill-securing (attacks whatever's in the path direction, random tiebreak
+  among equally-close enemies), NO cohesion, NO retreat when wounded. A competent chaser but
+  its units SCATTER toward their individual nearest enemies.
+- Baseline (pre-change) robot.py already beat luisa 6-0, but margins were the tightest of the
+  competent-opp rounds (min +5 units; totals ~68/36 over 6 games).
+- CHANGE MADE THIS ROUND: added a COHESION TIEBREAK to choose_move() — after (dist, net-exposure,
+  threat), prefer the candidate tile closest to ally_centroid (extra sort key `cdist`). This makes
+  our units cluster and gang up harder, exploiting luisa's scattering. Backup of pre-change bot:
+  /tmp/robot_before_cohesion.py (also /tmp/robot_current.py). Diff is 4 lines in choose_move.
+- A/B RESULTS (unit-margin totals over 6 games, both colors, /tmp/margin.sh):
+    * COHESION robot.py vs luisa: totals 87 and 90 (min per-game +10). WIN-rate 6-0 / 4-0.
+    * OLD robot.py vs luisa: totals 68 and 36 (min per-game +5). WIN-rate 6-0.
+    * HEAD-TO-HEAD cohesion vs old robot.py: 4-0 (cohesion beats the prior bot outright!).
+  Regression guards ALL PASS: cohesion vs simple-bot 4-0, vs chaser.js 4-0, vs heuristic-bot.js
+  4-0. Syntax verified (ast.parse). Single game clean: Blue 24-12, ~4s/game, stderr no errors.
+- DECISION: SUBMITTED the improved robot.py (cohesion tiebreak). It is a strict improvement:
+  higher & more consistent margins AND beats the prior proven bot head-to-head 4-0, with no
+  regression vs any tested opponent. This is the FIRST heuristic tweak in many rounds that
+  A/B-proved a real, repeatable gain (prior cohesion attempts were noisy vs black-magic; but
+  vs the actual scattering opponent + head-to-head vs old bot, the gain is clear).
+- Next teammate: test directly vs /tmp/luisa.py (regen: git show origin/human/luisa/luisasrobot:robot.py).
+  Use /tmp/ab.sh <my> <opp> <N> for win-rate and /tmp/margin.sh for unit-margin totals. Keep N<=6
+  for luisa (.py vs .py head-to-head keep N<=4) to stay under the 30s AGENT shell timeout.

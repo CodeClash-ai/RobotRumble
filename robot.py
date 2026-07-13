@@ -108,7 +108,8 @@ def choose_move(state, unit, target_coords, avoid_gang=True):
         support = count_ally_adj(nc)
         # net exposure: how outnumbered we'd be at nc
         net = threat - support
-        candidates.append((dist, net, threat, d, nc))
+        cdist = nc.walking_distance_to(ally_centroid) if ally_centroid is not None else 0
+        candidates.append((dist, net, threat, cdist, d, nc))
     if not candidates:
         return None
     if avoid_gang:
@@ -117,8 +118,8 @@ def choose_move(state, unit, target_coords, avoid_gang=True):
         pool = safe if safe else candidates
     else:
         pool = candidates
-    pool.sort(key=lambda t: (t[0], t[1], t[2]))
-    dist, net, threat, d, nc = pool[0]
+    pool.sort(key=lambda t: (t[0], t[1], t[2], t[3]))
+    dist, net, threat, cdist, d, nc = pool[0]
     planned[(nc.x, nc.y)] = True
     return Action.move(d)
 
