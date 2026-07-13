@@ -194,26 +194,38 @@ def init_turn(state):
     allow_chain_moves = (state.turn >= 20)
 
     best_actions = {}
-    # Current official opponent is essickmango__pickle-up.  Its whole team
-    # chases our lowest-id unit; only when that direct step is blocked does it
-    # attack in the direction of a nearby enemy.  Modeling those enemy moves is
-    # much more accurate than the generic adjacent-lowest-health attack model
-    # and fixes several reproduced official bad seeds locally.
+    # Generic enemy model for simple chasers: adjacent enemies attack our
+    # lowest-health adjacent unit; otherwise they move toward the friend that is
+    # most central to their team. The current wolfsleuth__simple opponent is a
+    # global-target chaser, but overfitting its exact buggy attack order was
+    # locally fragile; this conservative model keeps our battle micro sound.
     target_pos = None
-    if id_at:
-        min_id = min(id_at.values())
-        for pos, uid in id_at.items():
-            if uid == min_id:
-                target_pos = pos
-                break
+    if friends and enemies:
+        best_total = None
+        for fpos in friends:
+            total = 0.0
+            for epos in enemies:
+                total += dist(fpos, epos)
+            if best_total is None or total < best_total:
+                best_total = total
+                target_pos = fpos
 
     for epos in enemies:
         best_actions[epos] = None
+        best_key = 999
+        best_dir = None
+        for d in DIRS:
+            dst = add(epos, d)
+            if dst in friends:
+                key = friends[dst]
+                if key < best_key:
+                    best_key = key
+                    best_dir = d
+        if best_dir is not None:
+            best_actions[epos] = (ATTACK, best_dir)
+            continue
         if target_pos is None:
             continue
-
-        # Match Coords.direction_to without allocation.  Diagonal ties go to
-        # North/South, as in the stdlib angle-boundary ordering.
         vx = target_pos[0] - epos[0]
         vy = target_pos[1] - epos[1]
         if abs(vx) > abs(vy):
@@ -224,51 +236,7 @@ def init_turn(state):
             move_dir = Direction.East if vx > 0 else Direction.West
         else:
             continue
-
-        step = add(epos, move_dir)
-        move_blocked = step in friends or step in enemies
-        if not move_blocked:
-            best_actions[epos] = (MOVE, move_dir)
-            continue
-
-        attack_dirs = []
-        # pickle-up sorts candidate targets by walking distance; Python's sort is
-        # stable, so the friend iteration order (state order) breaks ties.
-        near = sorted(friends, key=lambda p: abs(p[0] - epos[0]) + abs(p[1] - epos[1]))
-        for fpos in near:
-            wd = abs(fpos[0] - epos[0]) + abs(fpos[1] - epos[1])
-            if wd <= 0 or wd > 2:
-                continue
-            if fpos[0] > epos[0]:
-                d = Direction.East
-                if d not in attack_dirs:
-                    attack_dirs.append(d)
-            elif fpos[0] < epos[0]:
-                d = Direction.West
-                if d not in attack_dirs:
-                    attack_dirs.append(d)
-            if fpos[1] > epos[1]:
-                d = Direction.South
-                if d not in attack_dirs:
-                    attack_dirs.append(d)
-            elif fpos[1] < epos[1]:
-                d = Direction.North
-                if d not in attack_dirs:
-                    attack_dirs.append(d)
-
-        best_key = 999
-        best_dir = None
-        for d in attack_dirs:
-            dst = add(epos, d)
-            # Opponent refuses to attack through its own units.
-            if dst in enemies:
-                continue
-            key = friends.get(dst, 10)
-            if key < best_key:
-                best_key = key
-                best_dir = d
-        if best_dir is not None:
-            best_actions[epos] = (ATTACK, best_dir)
+        best_actions[epos] = (MOVE, move_dir)
 
     possible = {}
     spawn_danger = (state.turn % 10 == 0)
