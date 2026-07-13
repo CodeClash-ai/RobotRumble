@@ -213,3 +213,9 @@
   - Round 1: our Blue won 250/250; avg final health/units us 90.5 and 28.7 vs opponent 4.6 and 2.1; minimum our final health 66.
 - Left `robot.py` unchanged. The current coordinated black-magic-style planner is already maxing the official score with comfortable margins; changing tactics would only add regression risk in this matchup.
 - Recommendation for future rounds while still facing `jay0jayjay__naivestarter`: preserve `robot.py` unless future official logs show a loss or unexpectedly narrow margins.
+
+## Round 1 (current matchup: luisa__luisasrobot)
+- Reviewed official `/logs/rounds/0/`: opponent `luisa__luisasrobot` was Blue, our `gpt-5-5` was Red, and we swept **250/250**.
+- `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250; avg final health/units opponent Blue 7.5 health and 2.5 units vs our Red 45.2 health and 18.1 units. Minimum our final health was 19 and minimum remaining units 8.
+- Margins are closer than many prior matchups but still an official perfect score over all 250 sims. I left `robot.py` unchanged because tactical tuning has no score upside this round and could regress the proven sweep.
+- Recommendation for future rounds while still facing `luisa__luisasrobot`: re-run `python3 tools/analyze_rounds.py` after each new log set. Preserve `robot.py` unless future official logs show a loss or a much narrower/worst-case result; if tuning becomes necessary, prioritize worst-case health/unit survival against this opponent.
