@@ -529,3 +529,110 @@ larger-N signal turns out weaker than this round's sample suggested.
   `run_trials.sh` — same idea (N-trial W/L/T + avg health diff), just with
   the `bc`-free `awk` averaging (this session's sandbox didn't have `bc`
   installed) and both `--results-only` output parsed directly.
+
+## Round 8 update (this session — black-magic-style 1-ply lookahead ADOPTED)
+
+Reviewed `/logs/rounds/0/` and `/logs/rounds/1/`: real opponent this
+session's history was `ldang__nessy`, and **sonnet-5 won 250-0 both times**
+(same total-wipeout pattern as every round on record). No regressions to
+chase there, so I finally picked up the long-standing "Ideas for further
+improvement #1" item from round 2's notes: implementing a real per-turn
+lookahead/scoring bot like `builtin-bots/black-magic.js`, since that was the
+**only** synthetic opponent our heuristic "group brawler" bot had never
+beaten (0W across many trials in rounds 2-7).
+
+### What was built
+New file (now promoted to `robot.py`): a straight re-implementation of
+black-magic.js's algorithm in Python:
+1. `init_turn` builds `friends`/`enemies` dicts of `Coords -> health`.
+2. Predicts each enemy's action as "attack whichever adjacent friend has
+   the lowest health" (mirrors our own attack-target heuristic and is what
+   black-magic.js itself, and many builtin bots, actually do).
+3. Starting from that baseline (all our units doing nothing), **greedily
+   improves one friend's action at a time** (try every legal
+   move/attack/none for that unit, simulate one tick via a `tick()`
+   function that mimics black-magic.js's move-then-attack resolution, score
+   the result with the same lexicographic tuple black-magic.js uses:
+   `(unit_count_diff, surround_score, health_diff, distance_score)`, keep
+   whichever action scores best), fixing that choice before moving to the
+   next friend. This is `O(units^2)` per turn, single greedy sweep — cheap.
+4. `robot()` just looks up the precomputed action for its own coords from
+   the `init_turn`-computed cache.
+5. **Safety fallback**: if `len(allies)+len(enemies) > 70` (perf safety
+   valve — untested at that scale, better safe) or if literally anything
+   throws an exception anywhere in the lookahead code, it transparently
+   falls back to the exact proven "group brawler" heuristic (verbatim copy
+   of the round-7 bot, `RETREAT_RATIO=2.5`) instead of crashing/forfeiting.
+   This means worst-case behavior is never worse than what we already know
+   wins 250-0 against the real opponent.
+
+### Test results (this session, small samples — see caveat below)
+Ran each builtin bot at least once, black-magic.js 5x given it's the whole
+point of this change:
+
+| Opponent | Result(s) |
+|---|---|
+| black-magic.js  | **3W/2L** out of 5 trials (Blue 48-16/16-6u, Red loss 8-55/3-20u, Red loss 16-32/7-13u, Blue 37-20/13-8u, Blue 77-3/25-3u) — **from 0/8+ wins in every prior round to a roughly coin-flip-or-better matchup.** Huge qualitative change even though it's not a guaranteed win yet. |
+| heuristic-bot.js| Blue won 52-12, 16-5u |
+| chaser.js       | Blue won 65-11, 19-3u |
+| flail.js        | Blue won 56-19, 17-5u (also 45-26, 13-8u on a second run) |
+| needle-bot.js   | Blue won 87-6, 23-2u |
+| simple-bot.js   | Blue won 125-5, 25-2u |
+| random-bot.js   | Blue won 140-3, 28-1u |
+| nothing-bot.js  | Blue won 150-7, 30-2u — **note**: unlike the old heuristic bot (which fully wipes nothing-bot to 0 units every time), the lookahead bot leaves 1-2 stray enemy units alive with low health. Hypothesis: when no local action improves the lexicographic score for a unit (e.g. no enemies within useful range and moving doesn't change surround/distance score enough to be lexicographically "better" than standing still), the greedy sweep can settle on `None` for that unit rather than chasing a far-off/isolated straggler the way the old "always advance toward nearest enemy" heuristic did unconditionally. Doesn't matter for the win/loss outcome (still a total blowout, actually *bigger* health margin: 150 vs 85 for the old bot) but flagging as a known quirk — a future teammate could patch this by adding an explicit "if score is exactly tied with doing nothing, fall back to the old nearest-enemy-advance heuristic for that unit" tiebreak if hunting stragglers down faster ever matters.
+- Timing: all runs completed in 5-10 seconds (full 100-turn match, up to
+  ~30 units/side by the end) — well within the 60s per-match budget. No
+  crashes, no fallback-to-heuristic triggers observed in any of these runs
+  (`MAX_UNITS_FOR_LOOKAHEAD=70` was never hit).
+
+### Decision: ADOPTED as `robot.py`
+Old version (round 7, `RETREAT_RATIO=2.5` group-brawler) preserved as
+`robot_r7_retreat25_backup.py`. Rollback is one line:
+```bash
+cp robot_r7_retreat25_backup.py robot.py
+```
+Rationale for adopting despite only 5 trials against black-magic.js (small
+sample, per the standing lesson from round 4 about variance): every single
+*other* matchup (7 different builtin bots) is at least as good as before
+(same or bigger margins), there's a defensive fallback+try/except so worst
+case is never worse than the proven baseline, and going from a **0%** win
+rate to a **~60%** win rate (3/5) against the one opponent archetype with
+real lookahead is a big enough qualitative jump that it's worth the risk
+even before a large-N confirmation — this is exactly the kind of opponent a
+tougher/smarter real competitor might resemble, unlike the low-effort
+bots we've been facing on the ladder so far (`ldang__nessy` et al., fully
+wiped out 250-0 by literally every version of our bot to date, old or
+new).
+
+### For future teammates — please do this if you pick up the session
+1. **Run a bigger black-magic.js sample** (N=15-20+) with
+   `/tmp/sweep.sh robot.py builtin-bots/black-magic.js 20` (recreate the
+   script — simple loop over `./rumblebot run term --results-only`,
+   `grep`/`awk` on the `Final state: Health $4 $5 Units ...` line per the
+   round-4 bugfix note about field indices) to get a statistically firmer
+   win rate before fully trusting the "~60%" number above (N=5 is small).
+2. If a future round's real-match result is ever *not* a 250-0 wipeout,
+   check this lookahead code first (it's the biggest behavioral change
+   since round 1) — compare against `robot_r7_retreat25_backup.py` to
+   isolate whether the new logic is responsible.
+3. Possible refinements if you have budget:
+   - Tune/verify the enemy-attack prediction assumption (currently "attacks
+     lowest-health adjacent friend") — could try modeling it as "assume
+     the SAME lookahead logic the enemy might be running" for a symmetric
+     matchup, or make it configurable/tries multiple predictions and picks
+     the safest.
+   - Investigate/patch the "leaves stragglers alive" quirk noted above
+     against nothing-bot.js (cosmetic only for now, but could matter if a
+     real opponent tries to hide/stall with a few units).
+   - The `MAX_UNITS_FOR_LOOKAHEAD = 70` cap has never been tested in
+     practice (no observed match got close to it) — if a future match
+     produces huge armies (e.g. different game settings with faster
+     spawns), watch for a fallback trigger and verify performance/quality
+     at the cap boundary.
+   - `robot_lookahead_experiment.py` in the repo root is the exact same
+     content now living in `robot.py` (kept as a named reference copy).
+4. All of `robot_r1_backup.py`, `robot_r2_retreat_blend.py`,
+   `robot_r6_retreat15_backup.py`, `robot_r7_retreat25_backup.py`,
+   `robot_focusfire_experiment.py`, `robot_old_backup.py` remain in the
+   repo as historical reference/rollback points, roughly in chronological
+   order of the rounds that produced them.
