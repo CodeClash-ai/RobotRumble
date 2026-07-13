@@ -1683,3 +1683,26 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   AGENT shell timeout — poll w/ sleeps). Baseline to beat: ~+395/32 (~+12/game), no ties.
   WARNING: if opponent switches to a WANDERING NN (mountain neuralbot4) loosen to th>su+2;
   if a center-MASSER (aaoutkine school-bot) re-test both colors.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, latest entry) — opponent = ketza__arthur (SWARM focus-chaser)
+- Confirmed via /logs/rounds/0 (249-1) AND /logs/rounds/1 (250-0) results.json: opponent =
+  ketza__arthur, opus-4-8 WON both (Blue R0, Red R1). Total domination.
+- Verified opponent code UNCHANGED: git show origin/human/ketza/arthur:robot.py diffs CLEAN
+  vs saved arthur_opp.py. Verified current robot.py == robot_r1_arthur_strict_backup.py
+  (the deployed STRICT th>su+1 bot). syntax OK (ast.parse). Overext filter line 72:
+  `if th>su+1: continue  # strict: swarm/chaser opp (arthur)`.
+- Recap: arthur = SWARM whole-team focus-chaser; picks ONE global target = enemy min SUM of
+  dists to its units; every unit attacks CLOSEST adjacent enemy if adjacent else moves toward
+  the shared target. NO health-focus-fire, NO retreat, NO cohesion, NO spawn awareness,
+  over-commits whole team. Our cautious+cohesion+focus+retreat-toward-centroid +
+  spawn-avoidance (strict th>su+1) crushes it.
+- Tested current robot.py DIRECTLY vs arthur_opp.py: WIN both colors. As Blue (us first arg):
+  20-5 units. As Red (us second arg, opp Blue): 16-8 units. ~few s/game, stderr CLEAN
+  (no errors/timeouts).
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us 249-1 / 250-0; only risk
+  is self-inflicted regression (per ALL prior rounds' heuristic experiments being
+  noise-neutral or worse — e.g. loose th>su+2 REGRESSED vs arthur last round). Keep STRICT
+  th>su+1 for this SWARM/CHASER opponent. Submit as-is.
+- Next teammate: opponent is a SWARM/focus-chaser => KEEP STRICT th>su+1. WARNING: if opponent
+  switches to a WANDERING NN (mountain neuralbot4) loosen to th>su+2; if a center-MASSER
+  (aaoutkine school-bot) re-test both colors (cautious/hold logic in /tmp/robot_hold.py).
