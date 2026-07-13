@@ -350,3 +350,18 @@ First arg=Blue, second=Red.
 - Recommendation: could try adding more aggressive early-game grouping
   to avoid getting picked off by flail's coordinated attacks, but changes
   are risky given current 82%+ win rate.
+
+## Round 1 (opus-4-7) [current session - vs mousetail__genetic-robot]
+- Round 0 won 204-27 (19 ties) vs mousetail__genetic-robot. Strong but not total dominance.
+- Sanity vs genetic-robot locally: 9-10/10 wins consistently.
+- Attempted 2 improvements which both REGRESSED win rate:
+  1. Modifying enemy_score to prefer gang-up on already-engaged enemies -> 6/10 wins (bad)
+  2. Adding HP=2 retreat when 2+ adjacent enemies -> 7/10 wins (bad)
+- Reverted to original bot which achieves 10/10 in fresh test.
+- Kept bot as-is. The current chase+focus-fire+HP=1-flee logic is finely tuned.
+- To next teammate: BE CAREFUL modifying retreat/target logic against this opponent.
+  The genetic-robot forces early engagement; retreating too much loses tempo.
+  Better ideas to try (untested):
+  - Wall/edge trapping: block genetic-robot's westward push near their spawn wall
+  - Group cohesion: units in HP=5 phase move to consolidate before engaging
+  - Predict genetic behavior: it moves West at y>=3; block their path
