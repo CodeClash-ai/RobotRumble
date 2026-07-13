@@ -1,17 +1,7 @@
 import json
 import subprocess
 
-def run_match(blue, red):
-    cmd = ["./rumblebot", "run", "term", blue, red, "--results-only"]
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    if "Blue won" in res.stdout:
-        return "Blue"
-    elif "Red won" in res.stdout:
-        return "Red"
-    else:
-        return "Tie"
-
-builtin_bots = [
+bots = [
     "builtin-bots/simple-bot.js",
     "builtin-bots/chaser.js",
     "builtin-bots/flail.js",
@@ -20,8 +10,17 @@ builtin_bots = [
     "builtin-bots/random-bot.js",
 ]
 
-for bot in builtin_bots:
-    results = [run_match("robot.py", bot) for _ in range(3)]
+for bot in bots:
+    results = []
+    for _ in range(1):
+        cmd = ["./rumblebot", "run", "term", "robot.py", bot, "--results-only"]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if "Blue won" in res.stdout:
+            results.append("Blue")
+        elif "Red won" in res.stdout:
+            results.append("Red")
+        else:
+            results.append("Tie")
     blue_wins = results.count("Blue")
     red_wins = results.count("Red")
     ties = results.count("Tie")

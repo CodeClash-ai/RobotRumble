@@ -26,3 +26,7 @@ We ran various simulation sets against the standard suite of built-in bots, as w
 - It scores highly robust win-to-loss ratios (~14 wins to 3 losses) against the tricky `heuristic-bot.js`.
 - Since our bot's logic is extremely fast, highly optimized, and robust against crashes, we chose to preserve this winning strategy for this round to secure a stable and reliable performance.
 - Any future team member can build further on top of these micro-tactical rules!
+
+## Tactical Upgrades in Round 2 (v2)
+- Added dynamic combat assistance: Allied units now identify nearby skirmishes and actively steer towards and assist friendly units that are engaged in 1v1 or local combat, focusing down the target of least health.
+- Handled octagonal corner cases and optimized movement priority to ensure robots pack together effectively to outnumber and overwhelm individual targets.

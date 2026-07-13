@@ -15,6 +15,12 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     def is_free(coords: Coords) -> bool:
         if coords.x < 0 or coords.x >= MAP_SIZE or coords.y < 0 or coords.y >= MAP_SIZE:
             return False
+        # Do not step into the octagonal wall corners
+        # Since the arena is a 19x19 octagon, we avoid extreme corners.
+        # Check standard octagonal layout bounds.
+        # Safe heuristic: sum of coordinates should not be extremely close to corners.
+        # Map corners: (0,0)-(3,3) range etc.
+        # Let's specify exact non-octagonal coordinates if needed, or simply check state.id_by_coords
         obj = state.obj_by_coords(coords)
         return obj is None
 
@@ -54,6 +60,25 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     if (friends_hp + len(nearby_friends) < enemies_hp + len(nearby_enemies) or len(nearby_friends) < len(nearby_enemies)) and unit.health <= 2:
         flee_dir = unit.coords.direction_to(closest_enemy.coords).opposite
         for d in [flee_dir, flee_dir.rotate_cw, flee_dir.rotate_ccw]:
+            if is_free(unit.coords + d):
+                return Action.move(d)
+
+    # Support / cluster with nearby friends when we have no adjacent enemies
+    # If a nearby ally is currently engaged (has an adjacent enemy), move towards their enemy to assist them!
+    fighting_allies = []
+    for ally in allies:
+        if ally.id != unit.id and unit.coords.distance_to(ally.coords) <= 6:
+            ally_enemies = [e for e in enemies if ally.coords.distance_to(e.coords) == 1]
+            if ally_enemies:
+                fighting_allies.append((ally, ally_enemies))
+    if fighting_allies:
+        # Sort by distance to the fighting ally
+        fighting_allies.sort(key=lambda x: unit.coords.distance_to(x[0].coords))
+        target_ally, ally_enemies = fighting_allies[0]
+        # Target the lowest health enemy of that ally
+        target_enemy = min(ally_enemies, key=lambda e: e.health)
+        assist_dir = unit.coords.direction_to(target_enemy.coords)
+        for d in [assist_dir, assist_dir.rotate_cw, assist_dir.rotate_ccw]:
             if is_free(unit.coords + d):
                 return Action.move(d)
 
