@@ -2,7 +2,7 @@ from enum import Enum, auto
 from typing import *
 
 RADIUS = 6
-RETREAT_RATIO = 2.5
+RETREAT_RATIO = 1.5
 
 
 def team_centroid(units: List[Obj]) -> Optional[Coords]:

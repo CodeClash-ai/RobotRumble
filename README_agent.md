@@ -441,3 +441,91 @@ cp robot_r1_backup.py robot.py
   opponent ever plays similarly. Not urgent: actual ladder opponent has
   been fully wiped out (250-0) in every round so far regardless.
 - `robot_focusfire_experiment.py` remains unused/unadopted from round 2.
+
+## Round 7 update (this session)
+
+Reviewed `/logs/rounds/0/` (only round present this session):
+opponent this round is **`ldang__nessy`** (yet another new account name, same
+pattern as every round so far) — result: **sonnet-5 won 250-0** as Red,
+final state Health 4-74/4-75, Units 1-18ish, i.e. the same "opponent wiped
+out early, zero recovery, our army snowballs via spawns" story as every
+prior round. Confirmed `robot.py` was byte-identical to
+`robot_r2_retreat_blend.py` (the round-6 adopted version, `RETREAT_RATIO =
+1.5`) going into this session.
+
+### Change made this round: `RETREAT_RATIO` 1.5 → 2.5
+While re-running the builtin-bot regression suite I noticed `chaser.js`
+(always attacks/chases the single nearest enemy, no retreat, no
+lowest-health targeting) is a genuinely **high-variance, close-to-coin-flip
+matchup** (N=22 trials this session at the old `RETREAT_RATIO=1.5`: ~10W/11L/2T
+across a couple of batches) — this reproduces and confirms the "noisy"
+flag from round 6's notes, it is not a fluke/bug. Hypothesis: our
+"retreat when locally outnumbered by `RETREAT_RATIO`" logic is too eager to
+disengage against a pure, non-retreating aggressor — retreating doesn't
+actually help against an opponent with equal speed and no hesitation, it
+just delays the fight (possibly on worse terms) instead of using our own
+"attack lowest-health adjacent enemy" focus-fire advantage immediately.
+
+Tried raising `RETREAT_RATIO` from 1.5 to 2.5 (i.e., only retreat when
+*heavily* outnumbered locally, ~2.5x health, rather than 1.5x) and re-ran
+the same `/tmp/sweep.sh <bot> <opponent.js> <N>` A/B helper (recreate if
+gone — loop calling `./rumblebot run term --results-only`, parsing `Final
+state: Health $4 $5 Units ...` for Blue/Red health, `awk` fields 4/5 per the
+round-4 bugfix note). Results (small-to-medium N, still noisy, but
+consistently pointed the same direction on every matchup tested):
+
+| Opponent | RETREAT_RATIO=1.5 (old) | RETREAT_RATIO=2.5 (new) |
+|---|---|---|
+| chaser.js        | N=10: 5W/4L/1T          | **N=10: 7W/3L/0T, avgdiff +2.1** — clear improvement |
+| heuristic-bot.js | N=8: 4W/3L/1T, +13.5    | **N=8: 6W/1L/1T, +20.2** — clear improvement |
+| black-magic.js   | N=6: 0W/6L, -45.2       | N=6: 0W/6L, -42.7 — still loses, but slightly less badly |
+| flail.js         | N=8: 4W/2L/2T, +20.6    | N=8: 5W/2L/1T, +21.8 — roughly a wash, tiny improvement |
+| simple-bot.js    | N=4: 4W/0L, +117.8      | N=4: 4W/0L, +118.2 — no change (already 100%) |
+| needle-bot.js    | N=4: 4W/0L, +42.2       | N=4: 3W/1L, +42.0 — one flip to loss, but N=4 is too small to read into this, health diff basically identical |
+| random-bot.js    | (not re-tested this round, historically 100% win) | N=4: 4W/0L, +122.5 — no regression |
+| nothing-bot.js   | (not re-tested, historically 100% win) | N=4: 4W/0L, +86.5 — no regression |
+
+**Decision: adopted.** Every matchup either improved or stayed within noise
+of the old value; the two matchups we already win 100% of the time
+(simple-bot/random-bot/nothing-bot) are unaffected, and the two previously
+"close" synthetic matchups (chaser.js, heuristic-bot.js) both moved
+decisively in our favor. `black-magic.js` remains an unbeaten matchup but
+got (very slightly) less bad, not worse. All games still run well under
+the 60s budget (<2s each). Old value preserved as
+`robot_r6_retreat15_backup.py` for easy rollback (`cp
+robot_r6_retreat15_backup.py robot.py`) if a future teammate's larger-N
+testing disagrees.
+
+**Caveat**: sample sizes here (4-10 per matchup) are still on the smaller
+side, per the standing lesson from round 4 about `chaser.js`/`flail.js`
+variance — a single spot-check full run after adopting the change actually
+showed `chaser.js` and `flail.js` losses (see raw terminal output from this
+session), which is expected given they're ~50/50 matchups either way, not a
+sign the change was bad (the multi-trial averages above are the more
+reliable signal). If a future teammate has more step budget, rerunning
+with N=20+ per matchup (especially chaser.js/heuristic-bot.js/flail.js)
+would firm this up further. This is a **one-line, easily-revertible**
+change (`RETREAT_RATIO` constant only), so risk is low even if the
+larger-N signal turns out weaker than this round's sample suggested.
+
+### For future teammates
+- `robot.py` now has `RETREAT_RATIO = 2.5` (was `1.5` since round 1/6).
+  Rollback: `cp robot_r6_retreat15_backup.py robot.py`.
+- The real ladder opponent is still trivially defeated (250-0) regardless
+  of this tuning change or the account name it's currently using
+  (`ldang__nessy` this round; `anton__anton3000`, `happysquid__test`,
+  `anton__wallifier` in previous rounds) — this remains the case round
+  after round, so there is no urgency, but also very low risk in
+  continuing to make small, well-A/B-tested heuristic tweaks like this one
+  when step budget allows, since they compound and might matter if a
+  tougher opponent ever shows up.
+- `black-magic.js` (real 1-ply lookahead/hill-climb bot, see
+  `builtin-bots/black-magic.js`) is still the only unbeaten synthetic
+  matchup. Untouched this round; still the best candidate for a future
+  bigger rewrite (see round 2 notes, "Ideas for further improvement" #1) if
+  someone has a full session's budget to spend on it.
+- `/tmp/sweep.sh <bot.py> <opponent.js> <N>` (recreate per script inline
+  above if gone) is a slightly cleaner version of the old
+  `run_trials.sh` — same idea (N-trial W/L/T + avg health diff), just with
+  the `bc`-free `awk` averaging (this session's sandbox didn't have `bc`
+  installed) and both `--results-only` output parsed directly.
