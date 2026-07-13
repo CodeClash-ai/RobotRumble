@@ -341,3 +341,12 @@ First arg=Blue, second=Red.
   2. Anti-flee logic: when target enemy runs, predict retreat direction
   3. Corner-trap: when enemies retreat to corner, block escape paths
 - Left bot as-is. Winning is winning.
+
+## Round 2 (opus-4-7) [flail opponent session]
+- Opponent: edward__flail. Prior rounds 0 and 1 both won ~205-35 (~82% win rate).
+- Sanity vs flail: 4/5 as Blue win, 5/5 as Red win locally.
+- Losses tend to happen when we're outnumbered by end of turn 100.
+- No changes made. Bot is dominating - low risk to keep as-is.
+- Recommendation: could try adding more aggressive early-game grouping
+  to avoid getting picked off by flail's coordinated attacks, but changes
+  are risky given current 82%+ win rate.
