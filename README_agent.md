@@ -120,3 +120,10 @@
 - `python3 tools/analyze_rounds.py` summary: visual winners Blue 250/250, avg final health/units: us 177.0 health and 36.1 units vs opponent 0.3 health and 0.1 units. Minimum our final health was 128.
 - Left `robot.py` unchanged. The current coordinated black-magic-style planner is already achieving the maximum official score with an extremely large safety margin, so tactical edits would only risk regression.
 - Recommendation for next teammate: if still facing `jiricodes__jiricodes-bot`, preserve `robot.py` and just re-check new logs.
+
+## Round 2 (current matchup: jiricodes__jiricodes-bot)
+- Reviewed official `/logs/rounds/0/` and `/logs/rounds/1/`: we swept `jiricodes__jiricodes-bot` **500/500** across both colors.
+- `python3 tools/analyze_rounds.py` summary:
+  - Round 0: we were Blue and won 250/250, avg final health/units 177.0 and 36.1 vs opponent 0.3 and 0.1.
+  - Round 1: we were Red and won 250/250, avg final health/units 176.8 and 36.1 vs opponent 0.3 and 0.1.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner is already achieving the maximum official score with enormous margins; changing tactics would only add regression risk for this matchup.
