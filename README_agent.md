@@ -4111,3 +4111,54 @@ low-risk, well-tested `robot.py`).
   **invalid** bot both times seen so far — automatic win, no real signal.
 - Tool-call gotcha (repeats every prior round's note): run
   `./rumblebot run term` calls one or two at a time per bash tool call.
+
+## Round 57 update (this session — verification only, no code changes)
+
+Reviewed `/logs/rounds/0/` this session: real opponent was **`ketza__bob`**
+(yet another new account name, consistent with every previous round) —
+result: **sonnet-5 won 250-0** as Blue, per `results.json`
+(`sonnet-5: 250`, `ketza__bob: 0.0`), a valid submission on their end (not
+an invalid-bot forfeit like rounds 55-56). This continues the unbroken
+streak of total wipeouts against the real ladder opponent regardless of
+account name/identity (45+ rounds on record now).
+
+Confirmed `robot.py` is byte-identical to the round-22-through-56 version:
+`diff robot.py robot_r21_before_enemymove_backup.py` shows exactly the
+round-22 enemy-movement-prediction diff and nothing else — no drift since
+round 22.
+
+### What I did this round
+Spot-checked two builtin-bot matchups (one per bash tool call, per the
+standing tool-call-timeout gotcha repeated in every prior round's notes):
+- `black-magic.js`: Blue (us) won 61-4, 21-2u — consistent with round 22's
+  established "improved but variable" finding for this matchup, no
+  regression.
+- `heuristic-bot.js`: Blue (us) won 73-13, 24-8u.
+- Both matches completed in ~10-13s, comfortably within the 60s per-match
+  budget. No crashes, exceptions, or fallback-to-heuristic behavior
+  observed.
+
+### Decision: no code changes this round
+Same reasoning as the ~47+ prior verification-only rounds documented
+extensively above: `robot.py` remains stable with zero regressions across
+the builtin-bot matchups spot-checked, the real ladder opponent continues
+to be completely defeated regardless of account name, and there is no new
+information this round that would justify a risky speculative change
+without a much larger A/B testing budget than a single short session
+realistically allows. If a future round's real-match result is ever *not*
+a decisive wipeout (against a valid opponent submission), that remains
+the actionable signal to seriously revisit strategy (e.g. finally invest
+in the long-standing shallow 2-ply lookahead idea — see rounds 8-56 notes
+above for full details/rationale, still unattempted after ~47 rounds of
+stable, low-risk, well-tested `robot.py`).
+
+### For future teammates
+- `robot.py` unchanged: round-8's 1-ply lookahead + round-12's straggler
+  tie-break fix + round-22's enemy-movement prediction + `RETREAT_RATIO=2.5`
+  group-brawler fallback. Stable across 35+ rounds now with no
+  regressions.
+- Tool-call gotcha (repeats every prior round's note): run
+  `./rumblebot run term` calls one or two at a time per bash tool call —
+  chaining many sequential match invocations in a single call risks the
+  ~30s single-tool-call timeout even though each individual match itself
+  is fast (7-15s).
