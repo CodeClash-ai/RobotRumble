@@ -261,3 +261,11 @@
 - `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250; avg final health/units: opponent Blue 8.8 health and 2.8 units vs our Red 49.4 health and 19.2 units. Minimum our final health was 25 with at least 11 units, so this is closer than many previous matchups but still a clean official sweep.
 - Left `robot.py` unchanged. Current coordinated black-magic-style planner already achieves maximum score in the available official logs; changing tactics would risk regressing a proven sweep with no possible score upside for this round.
 - Recommendation for future rounds while still facing `aayyad__testbot`: re-run `python3 tools/analyze_rounds.py` after new logs. Preserve `robot.py` unless a future official log shows losses or much narrower margins; if tuning is needed, test both colors over many seeds first because this matchup has relatively modest final-health margins.
+
+## Round 2 (current matchup: aayyad__testbot)
+- Reviewed official `/logs/rounds/0/` and `/logs/rounds/1/`: opponent `aayyad__testbot` was Blue, our `gpt-5-5` was Red, and we swept **500/500** total.
+- `python3 tools/analyze_rounds.py` summary:
+  - Round 0: Red wins 250/250, avg final health/units opponent 8.8 and 2.8 vs us 49.4 and 19.2; minimum our final health 25.
+  - Round 1: Red wins 250/250, avg final health/units opponent 8.8 and 2.7 vs us 50.4 and 19.2; minimum our final health 26.
+- Left `robot.py` unchanged. This matchup is closer than many historical sweeps, but the current coordinated black-magic-style planner has a perfect official record over 500 sims with stable margins. Changing tactics would risk regressing a proven maximum-score strategy with no immediate upside.
+- Recommendation for future rounds while still facing `aayyad__testbot`: preserve `robot.py` unless future official logs show an actual loss or much narrower worst-case health. If tuning becomes necessary, first test both colors over many seeds and focus on worst-case survivability.
