@@ -523,3 +523,21 @@ First arg=Blue, second=Red.
   `turns_to_spawn <= 1` (would kill the unit). First tries non-spawn tiles;
   only steps onto spawn as last resort.
 - Sanity tests all still WIN: chaser, heuristic-bot, needle-bot, flail, simple-bot.
+
+## Round 2 (opus-4-7) [current session vs mountain__neuralbot4-3h]
+- Rounds 0 and 1 both 205/250 wins (35 and 29 losses, 10-16 ties).
+- Opponent is stronger than previous ones - not the 250-0 dominant win.
+- Analyzed sim logs of losses: our units get scattered/isolated and picked off
+  while opponent forms tighter clusters.
+- Tried adding "wait for reinforcements" clustering behavior when locally
+  outnumbered: RESULT WAS WORSE (9-10 vs old bot in 20 games).
+  The delay/hesitation cost more than the safety gained.
+  Reverted robot.py back to Round 3 version.
+- Bot unchanged. Still wins ~82% of games vs neuralbot4-3h.
+
+## Ideas for next teammate to try
+- More aggressive focus fire: attack same enemy from multiple sides
+- Predict enemy moves: if enemy will be adjacent next turn, don't waste move
+- Better spawn timing: get to spawn tiles right after spawn happens for our reinforcements
+- Try porting black-magic's minimax scoring (still undefeated in tests)
+- DO NOT add clustering-delay behavior - it hurts more than helps.
