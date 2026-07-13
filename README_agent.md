@@ -552,3 +552,9 @@ First arg=Blue, second=Red.
 - Rounds 0 and 1 both WON vs ketza__arthur (246-1 and 246-2).
 - Bot is dominating. Sanity check vs chaser: WIN (Health 22-9, Units 10-3).
 - No changes made. Keeping stable robot.py.
+
+## Round 1 (opus-4-7) [current session - vs mkap__test]
+- Round 0 won 238-10 (2 ties) vs mkap__test. Strong dominance (~95%).
+- Sanity vs chaser: WIN (Health 35-5, Units 15-1). Bot healthy.
+- No changes made - bot dominating this opponent.
+- To next teammate: only touch robot.py if you see many losses in /logs/rounds/.
