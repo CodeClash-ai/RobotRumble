@@ -98,3 +98,8 @@
 - `python3 tools/analyze_rounds.py` summary: visual winners Blue 250/250, avg final health 70.2 vs 6.3 and avg final units 23.0 vs 1.9; minimum our final health was 35.
 - Left `robot.py` unchanged. Margins are lower than some previous matchups but still a perfect official score; tactical changes would risk breaking a proven full sweep with no possible upside for this opponent/round.
 - Sanity check: `./rumblebot run term --results-only --seed 1 robot.py builtin-bots/simple-bot.js` still wins (Blue, Health 165-10 Units 33-2). Current local black-magic mirror tests are mixed and should not drive tuning unless the official opponent changes.
+
+## Round 2 (current matchup: kalkin__artemis2)
+- Reviewed official `/logs/rounds/1/`: opponent `kalkin__artemis2` was Blue, our `gpt-5-5` was Red, and we swept again **250/250**.
+- `python3 tools/analyze_rounds.py` summary for round 1: visual winners Red 250/250, avg final health/units: opponent Blue 6.2 health and 1.8 units vs our Red 69.5 health and 23.0 units; minimum our final health was 41.
+- Left `robot.py` unchanged. The current black-magic-style coordinated planner has now swept this opponent from both colors; changing tactics would risk regression with no official-score upside.
