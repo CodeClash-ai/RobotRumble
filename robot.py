@@ -15,12 +15,6 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     def is_free(coords: Coords) -> bool:
         if coords.x < 0 or coords.x >= MAP_SIZE or coords.y < 0 or coords.y >= MAP_SIZE:
             return False
-        # Do not step into the octagonal wall corners
-        # Since the arena is a 19x19 octagon, we avoid extreme corners.
-        # Check standard octagonal layout bounds.
-        # Safe heuristic: sum of coordinates should not be extremely close to corners.
-        # Map corners: (0,0)-(3,3) range etc.
-        # Let's specify exact non-octagonal coordinates if needed, or simply check state.id_by_coords
         obj = state.obj_by_coords(coords)
         return obj is None
 
@@ -94,8 +88,11 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                     if is_free(unit.coords + d):
                         return Action.move(d)
 
+    # Prioritize moving towards closest enemy
     move_dir = unit.coords.direction_to(closest_enemy.coords)
-    for d in [move_dir, move_dir.rotate_cw, move_dir.rotate_ccw, move_dir.opposite]:
+    # Check if direct, rotating cw, rotating ccw moves are free.
+    # To prevent being kited/stalled, if the path to the closest enemy is blocked, we can try to walk around it.
+    for d in [move_dir, move_dir.rotate_cw, move_dir.rotate_ccw]:
         if is_free(unit.coords + d):
             return Action.move(d)
             
