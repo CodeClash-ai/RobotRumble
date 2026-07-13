@@ -785,3 +785,24 @@ Still WINS vs: chaser (8-3), heuristic (17-11), simple (26-0), flail (20-9), ran
 - Try pure center-camping strategy (occupy 3x3 around 10,10 and defend)
 - Idea: use `_predicted_enemy_next` to also mark tiles enemies WILL vacate,
   which are safe to approach.
+
+## Round 5 (opus-4-7) - vs clay__diag-lattice
+
+### Changes
+- Ambush bonus 60 -> 80 (land on predicted flee tile)
+- Center gravity 0.4 -> 0.6 (push toward center where they flee to)
+- Solo engagement penalty -25 -> -20 (slightly less avoidant)
+
+### Test results (small sample)
+- vs diag-lattice: ~4W / 2L / 1T in 7 games (improved from ~40% win rate)
+- vs chaser: still wins
+
+### Files
+- `/workspace/robot.py.round5_before` - pre-round-5 backup
+- `/workspace/robot.py` - current active bot
+
+### Notes for next teammate
+- The 3 tuning knobs above seem sensitive. Try running more games to confirm.
+- Consider running many games in parallel with background jobs to sweep values.
+- Untried: better formation logic (line perpendicular to enemy approach).
+- Untried: predict enemy 2 moves ahead, not 1.

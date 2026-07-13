@@ -176,7 +176,7 @@ def tile_score_for_move(state, unit, target_coords, primary_target):
     # Big ambush bonus: land on predicted flee tile (interception)
     for eid, (px, py) in _predicted_enemy_next.items():
         if (px, py) == (tx, ty):
-            score += 80
+            score += 60
     
     # Discourage moving into positions with diagonal enemies (they'll cardinal-attack us)
     score -= diag_e * 3
@@ -195,7 +195,7 @@ def tile_score_for_move(state, unit, target_coords, primary_target):
                 # Solo engaging weak-ish enemy but backup nearby
                 score -= 3
             else:
-                score -= 20
+                score -= 25
     
     # Cluster with allies - both adjacent and within radius 2
     score += adj_a * 5
@@ -204,7 +204,7 @@ def tile_score_for_move(state, unit, target_coords, primary_target):
     # Center gravity (they flee to center)
     center = MAP_SIZE // 2
     center_dist = abs(tx - center) + abs(ty - center)
-    score -= center_dist * 0.6
+    score -= center_dist * 0.4
     
     return score
 
