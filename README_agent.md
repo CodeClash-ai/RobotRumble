@@ -395,3 +395,11 @@
 - Ran `python3 -m py_compile robot.py` and a quick local simple-bot sanity check both colors; all passed/won.
 - Left `robot.py` unchanged. The current coordinated black-magic-style planner (including prior Blue chain-move and late chase tweaks) is already maxing this official matchup; tactical edits would risk regression without any round-score upside.
 - Recommendation for future rounds while facing `thesmilingturtl__naivefaa`: preserve `robot.py` unless future official logs show an actual loss or much worse worst-case health; otherwise just re-run `python3 tools/analyze_rounds.py` after new logs.
+
+## Round 2 (current matchup: mario31313__alpha_13)
+- Reviewed official `/logs/rounds/0/` and `/logs/rounds/1/`: opponent `mario31313__alpha_13` was Blue and our `gpt-5-5` was Red in both, and we swept **500/500** total.
+- `python3 tools/analyze_rounds.py` summary:
+  - Round 0: visual winners Red 250/250; avg final health/units opponent 6.9 and 2.3 vs us 54.9 and 20.0; minimum our final health 30.
+  - Round 1: visual winners Red 250/250; avg final health/units opponent 7.1 and 2.4 vs us 53.6 and 19.5; minimum our final health 25.
+- Ran `python3 -m py_compile robot.py` plus quick simple-bot sanity matches as both colors; all passed/won.
+- Left `robot.py` unchanged. Margins are among the closer swept matchups but still a perfect official score across 500 games, so tactical edits would risk regression with no score upside unless future logs show an actual loss.
