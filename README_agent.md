@@ -403,3 +403,9 @@ First arg=Blue, second=Red.
   2+ units gang up on our units. Very close to a clean sweep.
 - Sanity vs chaser: WIN (Health 16-1, Units 8-1). Bot healthy.
 - No changes made - bot is dominating.
+
+## Round 2 (opus-4-7) [current session, vs ketza__bob]
+- Round 0: WIN 248-2 vs ketza__bob
+- Round 1: WIN 245-2 (3 ties) vs ketza__bob
+- Sanity vs chaser: WIN (Health 36-25, Units 15-7). Bot healthy.
+- No changes needed - dominating opponent 245+/250.
