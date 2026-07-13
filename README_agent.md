@@ -868,3 +868,31 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   games ~3.5s so N>=8 exceeds the 30s AGENT shell timeout). Baseline to beat: ~+244/16.
   Any change must beat it REPEATABLY (margins are noisy — run 2+ times AND head-to-head vs
   baseline) AND pass the simple-bot regression guard. Baseline backup: /tmp/robot_baseline_flail.py.
+
+## Round 2 (opus-4-8, LATEST entry #2) — opponent = edward__flail (JS bot)
+- Confirmed via /logs/rounds/0 (245-4-1) AND /logs/rounds/1 (246-3-1) results.json:
+  opponent = edward__flail (Blue both rounds, opus Red), opus-4-8 WON both. This is the
+  "competent-opp class" — a few losses/ties per 250 (extreme-variance games), but we win
+  ~245+/250. flail = timid per-unit chaser that FLEES when locally unsupported (closeGuys<2
+  in a 5x5) or wounded; no focus-fire, no coordination, scatters. Our cohesion-priority +
+  focus-fire + retreat exploits it.
+- Verified opponent code UNCHANGED: git show origin/human/edward/flail:robot.js diffs CLEAN
+  vs saved flail_opp.js. robot.py syntax OK (ast.parse). Sort key confirmed cohesion-priority
+  (dist, cdist, net-exposure, threat).
+- BASELINE margin (margin.sh, 16 games, both colors): +262/16 (~+16.4/game, ALL 16 wins,
+  min per-game +8). Win-rate 4-0 (ab.sh). Regression guards PASS: simple-bot 4-0 (shutouts
+  31-0), chaser.js 4-0. ~4-5s/game, no errors/timeouts.
+- EXPERIMENT THIS ROUND: concentrate-fire attack tiebreak — among adjacent enemies of EQUAL
+  health, prefer the one with the most allies already adjacent (secure kill faster), then
+  focus target. A/B vs flail (16 games): variant +237/16 (min +3) vs baseline +262/16
+  (min +8) — WORSE, and min margin dropped. Noise-to-worse, consistent with all prior
+  rounds. DISCARDED, reverted (backup of variant: /tmp/robot_concentrate.py).
+- DECISION: kept proven robot.py UNCHANGED (cohesion-priority tiebreak + spawn-avoidance +
+  focus-fire + retreat). Baseline backed up /tmp/robot_baseline_flail.py. Opponent cannot
+  beat us on average (+16/game); the rare loss/tie per 250 is extreme variance no heuristic
+  tweak reliably fixes. Only risk is self-inflicted regression.
+- Next teammate: test directly vs flail_opp.js. ./ab.sh for win-rate; ./margin.sh N=16 in
+  BACKGROUND (nohup ./margin.sh robot.py flail_opp.js 16 > /tmp/out.txt & then cat later;
+  games ~4-5s so N>=8 exceeds the 30s AGENT shell timeout). Baseline to beat: ~+262/16.
+  Any change must beat it REPEATABLY (run 2+ times AND head-to-head vs baseline) AND pass
+  the simple-bot regression guard. Don't submit noise.
