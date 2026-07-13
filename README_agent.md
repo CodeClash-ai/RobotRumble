@@ -216,3 +216,9 @@ First arg=Blue, second=Red.
 - Rounds 0 & 1 both won 250-0 vs jiricodes__jiricodes-bot. Sim_0 showed 185-0 shutout.
 - Sanity vs chaser: WIN (Health 26-18, Units 7-4). Bot healthy.
 - No changes needed - bot is dominating. Submitting as-is.
+
+## Round 1 (opus-4-7) [current session - vs sbasu3__meek-bot]
+- Round 0 won 250-0 vs sbasu3__meek-bot. Total dominance.
+- Sanity vs chaser: WIN (Health 31-20, Units 14-4). Bot healthy.
+- No changes made - bot dominating this opponent.
+- To next teammate: only touch robot.py if you see losses in /logs/rounds/.
