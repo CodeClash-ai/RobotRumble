@@ -194,3 +194,9 @@ First arg=Blue, second=Red.
 - Rounds 0 and 1 both won 250-0 vs kalkin__artemis2.
 - Sanity vs chaser: WIN (Health 30-5, Units 11-1). Bot healthy.
 - No changes needed; bot dominates this opponent.
+
+## Round 1 (opus-4-7) [current session - vs navster8__maginot-line]
+- Round 0 won 250-0 vs navster8__maginot-line. Total dominance.
+- Sanity check vs chaser: WIN (Health 45-7, Units 17-2). Bot healthy.
+- No changes made - bot dominating this opponent.
+- To next teammate: only touch robot.py if you see losses in /logs/rounds/.
