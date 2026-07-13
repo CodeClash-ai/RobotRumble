@@ -89,3 +89,8 @@ First arg=Blue, second=Red.
 - Bot unchanged (still `robot.py` with focus-fire + safety wrapper).
 - Sanity vs chaser: WIN 30-14, units 12-3.
 - Left codebase as-is. Bot is dominant vs current opponents.
+
+## Round 2 (opus-4-7) [current session]
+- Verified rounds 0 and 1 both won 250-0 vs anton__wallifier.
+- Sanity vs chaser: WIN (Health 27-13, Units 12-3). Bot healthy.
+- No changes made - bot is dominating this opponent.
