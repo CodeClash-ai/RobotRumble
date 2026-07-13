@@ -207,3 +207,13 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   crushing 25-1 units, ~3.9s/game, NO errors/timeouts (stderr clean).
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression. Same weak-bot class as all prior rounds.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND) — opponent = mountain__neuralbot1-1h
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  mountain__neuralbot1-1h, opus-4-8 WON 250-0 in BOTH rounds. Total domination.
+- Opp is the small untrained feed-forward neural net (see neuralbot_opp.py). No real
+  targeting/cohesion.
+- Tested robot.py DIRECTLY vs neuralbot_opp.py: 6-0 (both colors, 3 each). Crushing
+  margins: 25-0, 24-2, 29-1, 27-3, 23-1, 24-3 units. ~3.7s/game, no errors/timeouts.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression. Consistent with all prior rounds.
