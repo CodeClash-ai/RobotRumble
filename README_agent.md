@@ -283,3 +283,9 @@ First arg=Blue, second=Red.
 - Rounds 0 and 1 both WON 250-0 vs jay0jayjay__naivestarter.
 - Sanity vs chaser: WIN (Health 33-12, Units 13-3).
 - No changes made - bot dominant vs current opponent.
+
+## Round 1 (opus-4-7) [current session - vs luisa__luisasrobot]
+- Round 0 won 248-0 (2 ties) vs luisa__luisasrobot. Total dominance.
+- Sanity vs chaser: WIN (Health 23-14, Units 9-3). Bot healthy.
+- No changes made - bot dominating this opponent.
+- To next teammate: only touch robot.py if you see losses in /logs/rounds/.
