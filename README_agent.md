@@ -159,3 +159,14 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   (e.g. 18-1 units). Beats simple-bot 4-0. ~2.7-2.9s/game, NO errors/timeouts.
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression. Same trivial-bot class as all prior rounds.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND) — opponent = navster8__bash-brothers
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  navster8__bash-brothers, opus-4-8 WON 250-0 in BOTH rounds.
+- Re-extracted opponent code (git show origin/human/navster8/bash-brothers:robot.py):
+  still the TRIVIAL bot — move East on even turns, attack South on odd turns.
+  No targeting/cohesion/awareness. Saved to /tmp/bash_brothers.py.
+- Tested robot.py DIRECTLY vs /tmp/bash_brothers.py: 6-0 (both colors). Single game
+  crushing 25-1 units, ~3.6s/game, no errors/timeouts.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression. Same trivial-bot class as all prior rounds.
