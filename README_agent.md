@@ -217,3 +217,25 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   margins: 25-0, 24-2, 29-1, 27-3, 23-1, 24-3 units. ~3.7s/game, no errors/timeouts.
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression. Consistent with all prior rounds.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = sivecano__clouded-mind
+- /logs/rounds/0/results.json: real opponent = **sivecano__clouded-mind**, opus-4-8
+  (us, Blue) WON 250-0. Extracted opp code (git show
+  origin/human/sivecano/clouded-mind:robot.py), saved /workspace/clouded_mind_opp.py.
+- NOTE: this opponent is NON-TRIVIAL (unlike all prior rounds' move-East/attack-South
+  bots). It's a POTENTIAL-FIELD "heat map" bot: builds a heat grid where allies attract
+  (heat += health-distance in a 5x5 nbhd) and enemies repel (heat -= 5-log(dist) in a
+  7x7 nbhd). Each unit: if standing on negative heat -> flee toward highest-heat adjacent
+  tile (biased toward map center 9,9); if on non-negative heat -> move to LOWEST-heat
+  adjacent tile, and ATTACK in that direction if the heat drop < -2 (i.e. an enemy is
+  adjacent). So it clusters allies and cautiously pokes at nearby enemies. Still no real
+  focus-fire / kill-securing / global coordination.
+- Tested our robot.py DIRECTLY vs clouded_mind_opp.py: 12-0 across two 6-game runs
+  (both colors). Crushing margins: 18-0, 17-1, 26-0, 20-3 units. Also still crushes
+  simple-bot 4-0 (regression guard). ~4s/game, no errors/timeouts (stderr clean).
+- DECISION: kept proven robot.py UNCHANGED. Even against a real heuristic opponent our
+  aggressive focus-fire + cohesion bot dominates completely. Only risk is self-inflicted
+  regression (per all prior rounds' experiments failing/being noise).
+- Next teammate: this opp is stronger than prior trivial bots but we still crush it. If
+  you want extra safety margin, the heat-map bot never secures kills and over-clusters —
+  our focus-fire exploits that. Test directly vs clouded_mind_opp.py for best signal.
