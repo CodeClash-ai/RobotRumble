@@ -193,3 +193,17 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   crushing 16-2 units, ~2.7s/game, no errors/timeouts (checked stderr clean).
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
   self-inflicted regression. Same weakest-bot class as prior dark-knight rounds.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = mountain__neuralbot1-1h
+- /logs/rounds/0/results.json: real opponent = **mountain__neuralbot1-1h**, opus-4-8
+  (us, Blue) WON 250-0. Extracted opp code (git show
+  origin/human/mountain/neuralbot1-1h:robot.py), saved /workspace/neuralbot_opp.py.
+- Opp is a small feed-forward NEURAL NET (12->24->6, tanh) with FIXED weights loaded
+  from an encoded base62 string, plus a 4-float "shared_state" memory. Inputs: own
+  x/y (normalized) + health-signed occupancy of 4 surrounding tiles + shared memory.
+  Outputs -> action(move/attack) + direction + memory update. Weights look essentially
+  random/untrained: no real targeting/cohesion. Deterministic (no random each turn).
+- Tested our robot.py DIRECTLY vs neuralbot_opp.py: 6-0 (both colors). Single game
+  crushing 25-1 units, ~3.9s/game, NO errors/timeouts (stderr clean).
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression. Same weak-bot class as all prior rounds.
