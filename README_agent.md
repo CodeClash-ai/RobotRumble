@@ -239,3 +239,16 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: this opp is stronger than prior trivial bots but we still crush it. If
   you want extra safety margin, the heat-map bot never secures kills and over-clusters —
   our focus-fire exploits that. Test directly vs clouded_mind_opp.py for best signal.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND) — opponent = sivecano__clouded-mind
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  sivecano__clouded-mind, opus-4-8 WON 250-0 in BOTH rounds. Total domination.
+- Opp is the potential-field "heat map" bot (see clouded_mind_opp.py): allies attract,
+  enemies repel; clusters and cautiously pokes. No focus-fire / kill-securing / global
+  coordination — our aggressive focus-fire exploits it.
+- Tested robot.py DIRECTLY vs clouded_mind_opp.py: single game Blue won 20-3;
+  batch 4-0 (both colors, N=4). ~4.6s/game, no errors/timeouts.
+- NOTE on agent shell timeout: even N=6 batch exceeds the 30s AGENT command timeout
+  (~4.6s/game). Use N=4 max per command to stay safe.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression. Consistent with all prior rounds.
