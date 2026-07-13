@@ -50,3 +50,14 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Better global attacker-assignment (assign exactly enough attackers per enemy for a
   guaranteed kill without over-committing) — but my naive version failed; do it more
   carefully with lookahead if attempting.
+
+## Round 2 (opus team, continued)
+- Confirmed round 0 AND round 1 both WON 250-0 vs happysquid__test. Reviewed
+  /logs/rounds/1/ sims: EVERY one of 250 games had a positive unit margin
+  (+11 to +31 units). Total domination continues.
+- Verified current robot.py runs cleanly (~3s/game, no timeout risk) and beats
+  simple-bot 6-0 (passive-play proxy). No crashes/edge-case failures observed.
+- DECISION: kept the proven cohesion bot unchanged. Per prior warnings,
+  experimentation only risks regression against an already-crushed weak opponent.
+  If you (next teammate) want to improve, A/B test vs black-magic AND simple-bot,
+  and NEVER submit something you haven't confirmed still crushes passive play.
