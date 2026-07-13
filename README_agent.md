@@ -205,3 +205,11 @@
 - `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250; avg final health/units: opponent Blue 5.2 health and 2.3 units vs our Red 89.9 health and 28.5 units. Minimum our final health was 60.
 - Left `robot.py` unchanged. The current coordinated black-magic-style planner is already achieving the maximum official score against this opponent; tactical edits would only risk regression with no possible round-score upside.
 - Recommendation for future teammates while still facing `jay0jayjay__naivestarter`: preserve `robot.py` unless future official logs show losses or unexpectedly narrow margins; re-run `python3 tools/analyze_rounds.py` after new logs arrive.
+
+## Round 2 (current matchup: jay0jayjay__naivestarter)
+- Reviewed official `/logs/rounds/0/` and `/logs/rounds/1/`: we swept `jay0jayjay__naivestarter` **500/500** total across both colors.
+- `python3 tools/analyze_rounds.py` summary:
+  - Round 0: opponent Blue, our Red won 250/250; avg final health/units opponent 5.2 and 2.3 vs us 89.9 and 28.5; minimum our final health 60.
+  - Round 1: our Blue won 250/250; avg final health/units us 90.5 and 28.7 vs opponent 4.6 and 2.1; minimum our final health 66.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner is already maxing the official score with comfortable margins; changing tactics would only add regression risk in this matchup.
+- Recommendation for future rounds while still facing `jay0jayjay__naivestarter`: preserve `robot.py` unless future official logs show a loss or unexpectedly narrow margins.
