@@ -896,3 +896,44 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   games ~4-5s so N>=8 exceeds the 30s AGENT shell timeout). Baseline to beat: ~+262/16.
   Any change must beat it REPEATABLY (run 2+ times AND head-to-head vs baseline) AND pass
   the simple-bot regression guard. Don't submit noise.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = mountain__... NO: mousetail__genetic-robot  *** TIGHTEST OPP YET ***
+- /logs/rounds/0/results.json: real opponent = **mousetail__genetic-robot**, opus-4-8
+  (us, Blue) WON 231-11-8 — the TIGHTEST competent-opp result yet (11 losses, 8 ties of
+  250). Extracted opp code (git show origin/human/mousetail/genetic-robot:robot.py),
+  saved /tmp/genetic.py.
+- genetic-robot is a GENETICALLY-EVOLVED bot: one giant nested-ternary return over
+  (health, unit x/y, EUCLIDEAN dist to center (9,9), dist to closest_enemy, #adjacent
+  enemies, dist to closest_ally). closest_enemy is picked by (walking_dist, then most
+  friends-around-that-enemy, then its health). DECODED behavior (see the L1..L13 trace in
+  my scratch script): units march toward CENTER; KEY EXPLOITABLE FLAW: when a unit is
+  near center (Euclidean dc<6) and has NO adjacent enemy (unsafe==0), it ALWAYS
+  Action.attack() in the direction of its closest enemy — i.e. it ATTACKS EMPTY AIR
+  (wasted turn). It also has NO focus-fire (attacks whatever's toward closest_enemy, not
+  lowest-HP), NO retreat when wounded, weak cohesion. It clusters/camps near center and
+  wastes turns. Our focus-fire + cohesion + retreat exploits it.
+- BASELINE margin (margin.sh, TWO independent 16-game runs, both colors): +156 (min -5,
+  one loss) and +167 (min +3). TOTAL +323/32 = ~+10.1/game, only 1 loss across 32 games.
+  Regression guard: simple-bot 4-0 (crushing 28-1). ~3.5-4s/game, no errors/timeouts.
+  Baseline backup: /tmp/robot_baseline_genetic.py (== current robot.py).
+- EXPERIMENT THIS ROUND (v1, /tmp/robot_v1.py): changed focus_id selection to prefer the
+  low-HP enemy with the MOST already-adjacent allies (fastest kill): score = (health,
+  -adj_allies, dist). A/B TWO 16-game runs vs genetic: +122 (min +2) and +131 (min -2).
+  TOTAL +253/32 = ~+7.9/game. WORSE than baseline (+10.1/game). It slightly improved
+  worst-case consistency in one run but LOWERED total margin both runs. DISCARDED.
+- DECISION: kept proven robot.py UNCHANGED (cohesion-priority tiebreak + spawn-avoidance +
+  focus-fire + retreat). Consistent with all prior rounds: heuristic tweaks are
+  noise-neutral or worse; only risk is self-inflicted regression. The 11 losses / 8 ties
+  per 250 are extreme-variance games; my focus tweak did not reliably eliminate them and
+  cost average margin.
+- Next teammate: test directly vs /tmp/genetic.py (regen: git show
+  origin/human/mousetail/genetic-robot:robot.py). Use ./ab.sh for win-rate and
+  ./margin.sh N=16 in BACKGROUND (nohup ./margin.sh robot.py /tmp/genetic.py 16 >
+  /tmp/out.txt & ; games ~3.5-4s so N>=8 exceeds the 30s AGENT shell timeout; you can run
+  baseline + variant in PARALLEL as separate nohup jobs). Baseline to beat: ~+10/game over
+  32 games (run 2+ times AND head-to-head vs baseline — margins are noisy, one run isn't
+  enough). Any change must ALSO pass the simple-bot regression guard. The theoretical
+  exploit not yet realized: genetic wastes turns attacking AIR near center and never
+  retreats — a bot that keeps our units just OUT of its melee while it burns turns, then
+  focus-fires the wounded, could widen the margin. But my focus-tweak attempt regressed;
+  do it carefully and A/B-prove a REPEATABLE gain before submitting.
