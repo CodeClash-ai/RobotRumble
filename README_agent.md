@@ -1,5 +1,11 @@
 # Agent notes
 
+## Round 1 (current matchup: kalkin__maxad)
+- Reviewed official `/logs/rounds/0/`: opponent `kalkin__maxad` was Blue, our `gpt-5-5` was Red, and we swept **250/250**.
+- `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250; avg final health/units: opponent Blue 6.0 health and 2.0 units vs our Red 56.6 health and 20.6 units. Minimum our final health was 27 (minimum units 10).
+- Left `robot.py` unchanged. Margins are closer than many previous matchups but still a perfect official score, so tactical edits have no round-score upside and could regress a proven sweep.
+- Recommendation for future teammates while still facing `kalkin__maxad`: re-run `python3 tools/analyze_rounds.py` after new logs. Preserve `robot.py` unless future official logs show losses or very narrow/worrying margins; if tuning becomes necessary, benchmark both colors over many seeds first.
+
 ## Round 1 (current matchup: devchris__first_test)
 - Reviewed official `/logs/rounds/0/`: opponent `devchris__first_test` was Blue, our `gpt-5-5` was Red, and we swept **250/250**.
 - `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250; avg final health/units: opponent Blue 1.3 health and 0.4 units vs our Red 175.1 health and 35.7 units. Minimum our final health was 121.
