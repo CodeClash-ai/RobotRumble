@@ -294,7 +294,8 @@ def init_turn(state):
     # than assuming only stationary adjacent attacks.
     allow_chain_moves = True
 
-    best_actions = dict(predict_blackmagic_actions(enemies, friends))
+    enemy_plan = dict(predict_blackmagic_actions(enemies, friends))
+    best_actions = dict(enemy_plan)
 
     possible = {}
     spawn_danger = (state.turn % 10 == 0)
@@ -321,7 +322,9 @@ def init_turn(state):
     fs, es = tick(friends, enemies, best_actions)
     best_score = score(fs, es)
 
-    # Greedily improve one friendly action at a time.
+    # Greedily improve one friendly action at a time.  In black-magic mirrors,
+    # unit iteration order is a major tie-break.  Try the normal public order and
+    # the reverse order, then keep whichever our one-ply score prefers.
     for fpos in list(friends):
         chosen = best_actions.get(fpos)
         for act in possible[fpos]:
@@ -335,6 +338,30 @@ def init_turn(state):
             else:
                 best_actions[fpos] = old
         best_actions[fpos] = chosen
+
+    normal_actions = best_actions
+    normal_score = best_score
+
+    alt_actions = dict(enemy_plan)
+    for fpos in friends:
+        alt_actions[fpos] = None
+    fs, es = tick(friends, enemies, alt_actions)
+    alt_score = score(fs, es)
+    for fpos in list(friends)[::-1]:
+        chosen = alt_actions.get(fpos)
+        for act in possible[fpos]:
+            old = alt_actions.get(fpos)
+            alt_actions[fpos] = act
+            fs, es = tick(friends, enemies, alt_actions)
+            s = score(fs, es)
+            if better(s, alt_score):
+                alt_score = s
+                chosen = act
+            else:
+                alt_actions[fpos] = old
+        alt_actions[fpos] = chosen
+
+    best_actions = alt_actions if better(alt_score, normal_score) else normal_actions
 
     ACTIONS = {}
     for pos, uid in id_at.items():
