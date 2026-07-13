@@ -287,3 +287,14 @@
 - `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250; avg final health/units: opponent Blue 8.2 health and 2.6 units vs our Red 50.2 health and 17.6 units. Minimum our final health was 17 with at least 8 units, so this is a closer sweep than many historical matchups but still a perfect official score.
 - Left `robot.py` unchanged. The current coordinated black-magic-style planner (including the prior Blue-only chain-move tweak for flail) already achieves the maximum possible score in the available official log for this opponent; tactical edits now would risk regressing a proven sweep.
 - Recommendation for future rounds while facing `mousetail__genetic-robot`: re-run `python3 tools/analyze_rounds.py` after new logs. Preserve `robot.py` unless an official loss appears or worst-case margins become much narrower; if tuning becomes necessary, prioritize worst-case survival and verify both colors because current logs only show us as Red.
+
+## Round 2 action (current matchup: mousetail__genetic-robot)
+- Reviewed `/logs/rounds/0/` and `/logs/rounds/1/`: round 0 was a 250/250 sweep as Red; round 1 was 248/250 as Blue with two official ties (sim_98 and sim_221), still no losses.
+- `python3 tools/analyze_rounds.py` showed round 1 average final units/health remained favorable (Blue us 17.3 units / 47.1 health vs Red opponent 2.5 units / 7.6 health), but the two ties ended with equal unit counts after 100 turns.
+- Made a conservative `robot.py` tweak: added a low-priority late-game chase score (turn >= 60, and only when the one-ply predicted unit advantage is not positive). It encourages closing distance to surviving enemies/low-health stragglers in otherwise quiet endgames, below unit/surround/health/pressure in the lexicographic score, to try converting 100-turn ties into wins without changing core battle micro.
+- Sanity checks after the change:
+  - `python3 -m py_compile robot.py` passes.
+  - `python3 tools/local_eval.py --seeds 98,221 --opponent builtin-bots/black-magic.js` won 2/2 as Blue.
+  - `python3 tools/local_eval.py --seeds 1-2 --opponent builtin-bots/black-magic.js --both-sides` stayed mixed vs black-magic, but converted one previous Red-side tie in seed 2 into a win.
+  - `python3 tools/local_eval.py --seeds 1-3 --opponent builtin-bots/flail.js --both-sides` and `--opponent builtin-bots/heuristic-bot.js --both-sides` remained clean sweeps in quick sanity checks.
+- Recommendation: after the next official logs, verify whether Blue ties against `mousetail__genetic-robot` disappear. If any losses appear, consider reverting this small chase-score addition first.

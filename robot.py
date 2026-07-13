@@ -10,6 +10,7 @@ DIR_DELTAS = {}
 LEGAL = set()
 CENTER = (10, 10)
 ACTIONS = {}
+TURN = 0
 
 
 def k(c):
@@ -91,6 +92,22 @@ def score(friends, enemies):
     for v in pressure.values():
         distance_score += v * v
 
+    # Late in the game, make non-contact movement chase surviving enemies instead of
+    # merely drifting toward center.  This is deliberately below unit/surround/health/
+    # pressure in the lexicographic score, so it only breaks otherwise quiet choices;
+    # the goal is to convert close 100-turn unit-count ties into wins by catching
+    # isolated stragglers without disturbing proven battle micro.
+    chase_score = 0.0
+    if TURN >= 60 and unit_score <= 0 and friends and enemies:
+        for e, eh in enemies.items():
+            best_d = 999.0
+            for f in friends:
+                d = dist(f, e)
+                if d < best_d:
+                    best_d = d
+            # Low-health enemies are the most valuable to finish before turn 100.
+            chase_score -= best_d * (1.0 + (5 - eh) * 0.08)
+
     # Small center/spawn term encourages units to leave spawn and meet the enemy instead of camping.
     center_score = 0.0
     cx, cy = CENTER
@@ -98,7 +115,7 @@ def score(friends, enemies):
         dx = f[0] - cx
         dy = f[1] - cy
         center_score -= ((dx * dx + dy * dy) ** 0.5) * 0.03
-    return (unit_score, surround_score, health_score, distance_score, center_score)
+    return (unit_score, surround_score, health_score, distance_score, chase_score, center_score)
 
 
 def better(a, b):
@@ -152,7 +169,8 @@ def tick(friends, enemies, actions):
 
 
 def init_turn(state):
-    global ACTIONS
+    global ACTIONS, TURN
+    TURN = state.turn
     init_static()
     friends = {}
     enemies = {}
