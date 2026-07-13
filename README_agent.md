@@ -2316,3 +2316,96 @@ highest-value use of this session's budget.
   chaining many sequential match invocations in a single call risks the
   ~30s single-tool-call timeout even though each individual match itself
   is fast (9-15s).
+
+## Round 31 update (this session — verification only, no code changes)
+
+This is round 1 of a fresh 5-round task cycle. Reviewed `/logs/rounds/0/`
+this session: real opponent was **`essickmango__fruity-test`** (yet
+another new account name, consistent with every previous round across this
+whole multi-round series) — result: **sonnet-5 won 250-0** as Red, per
+`results.json` (`sonnet-5: 250`, opponent: `0.0`). This continues the
+unbroken streak of total wipeouts against the real ladder opponent
+regardless of account name/identity (30+ rounds on record now, always the
+same "opponent's army never recovers after the initial engagement, ours
+snowballs via periodic spawns" result).
+
+Confirmed `robot.py` is byte-identical to the round-22-through-30 version:
+`diff robot.py robot_r21_before_enemymove_backup.py` shows exactly the
+round-22 enemy-movement-prediction diff (22 lines: predicting that enemies
+with no adjacent friend will move toward their nearest friend rather than
+doing nothing) and nothing else — no drift since round 22.
+
+### What I did this round
+Spot-checked a handful of builtin-bot matchups (one per bash tool call, per
+the standing tool-call-timeout gotcha repeated in every prior round's
+notes — chaining many `./rumblebot run term` calls in a single bash
+invocation risks the ~30s tool timeout even though each match itself is
+fast):
+- `black-magic.js`: Blue (us) won 27-17, 11-9u — consistent with round
+  22's post-enemy-move-prediction improvement (still clearly better than
+  the pre-round-22 ~50/50-or-worse baseline established in rounds 9-21).
+- `heuristic-bot.js`: Blue (us) won 37-6, 13-6u.
+- `chaser.js`: Blue (us) won 59-5, 21-2u.
+- `nothing-bot.js`: Blue (us) won 100-0, 20-0u — full wipeout.
+- All matches completed in 6-10s, comfortably within the 60s per-match
+  budget (no slowdown despite growing armies via periodic spawns). No
+  crashes, exceptions, or fallback-to-heuristic behavior observed in any
+  run.
+
+### Decision: no code changes this round
+Same reasoning as the many prior verification-only rounds documented
+extensively above (rounds 3, 4, 5, 9-21, 23-30): the real ladder opponent
+continues to be completely wiped out (250-0) regardless of account name,
+`robot.py` remains stable with zero regressions across every builtin-bot
+matchup spot-checked, and black-magic.js continues to perform at the
+round-22-established improved level (not the ~50/50-or-worse coin-flip
+from before that change, though still not a guaranteed win — see round 22
+notes for the N=10 A/B evidence: baseline 3W/7L → experiment 8W/2L). There
+is no new information this round (no closer-than-usual real match result,
+no builtin-bot regression, no timing concern) that would justify a risky
+speculative change without a much larger A/B testing budget than a single
+short session realistically allows. The standing lesson across this whole
+multi-round series (documented repeatedly above) is that small-N
+speculative tuning without solid A/B evidence has usually failed to show
+clear gains — the handful of changes that *did* show clear evidence
+(round 6 retreat-blend, round 7 RETREAT_RATIO tuning, round 8 lookahead
+rewrite, round 12 straggler tie-break, round 22 enemy-move prediction) are
+all already adopted and stable. Verifying stability and keeping notes
+accurate remains the highest-value use of this session's 30-step budget,
+especially at the start of a fresh 5-round cycle where a teammate later in
+the cycle may have more context/budget to attempt the one standing
+unexplored idea below.
+
+### For future teammates (unchanged standing items)
+- `robot.py`: round-8's 1-ply lookahead (lexicographic
+  `(unit_count_diff, surround_score, health_diff, distance_score)` greedy
+  per-friend search) + round-12's straggler tie-break fix (if no action
+  improves score, fall back to "move toward nearest enemy" instead of
+  standing still) + round-22's enemy-movement prediction (predict enemies
+  with no adjacent friend will move toward their nearest friend, not do
+  nothing) + `RETREAT_RATIO=2.5` group-brawler fallback (used if
+  `MAX_UNITS_FOR_LOOKAHEAD=70` is exceeded or any exception occurs). Stable
+  across 8+ rounds now (round 22 through this round) with zero regressions.
+- The one standing unexplored idea (unattempted across every round since
+  round 8): a **shallow 2-ply lookahead**. Current 1-ply search runs in
+  6-15s vs a 60s budget even at ~20-30 units/side, so there's real compute
+  headroom to extend it. Could stack with round 22's enemy-move-prediction
+  improvement for a further edge specifically against black-magic.js-style
+  opponents (the only synthetic bot not at a comfortable win rate). If you
+  pick this up: cap scope carefully (e.g. only re-optimize friends within
+  engagement range of enemies, not the whole army) to avoid blowing past
+  the 60s budget as armies grow late-game, and A/B test with N>=20 (per
+  the standing variance lesson for this specific matchup — small samples
+  have swung anywhere from 3W/7L to 8W/2L to 2W/1L in different sessions)
+  before adopting.
+- Real ladder opponent (`essickmango__fruity-test` this round; different
+  account name nearly every round, always fully defeated 250-0) continues
+  to show zero sign of needing anything beyond what's already in
+  `robot.py`. If a future round's real-match result is ever *not* a 250-0
+  wipeout, that remains the actionable signal to seriously revisit
+  strategy (e.g. finally invest in the 2-ply lookahead idea above).
+- Tool-call gotcha (repeats every prior round's note): run
+  `./rumblebot run term` calls one or two at a time per bash tool call —
+  chaining many sequential match invocations in a single call risks the
+  ~30s single-tool-call timeout even though each individual match itself
+  is fast (6-15s).
