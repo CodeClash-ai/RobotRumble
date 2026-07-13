@@ -1624,3 +1624,37 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: test vs neuralbot4_opp.py both colors (margin.sh N=16 in BACKGROUND: nohup
   ./margin.sh robot.py neuralbot4_opp.py 16 > /tmp/out.txt & ; ~5s/game so N>=~6 exceeds the
   30s AGENT shell timeout — poll w/ sleeps). Baseline to beat: ~+377/32 (~+12/game), no ties.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, latest entry) — opponent = mountain__neuralbot4-3h
+- Confirmed via /logs/rounds/0 (242-5-3) AND /logs/rounds/1 (239-7-4) results.json:
+  opponent = mountain__neuralbot4-3h, opus-4-8 (Blue both rounds) WON both. Both rounds
+  had a few losses+ties per 250 (the "wandering NN + border-bounce" tail variance).
+- Verified opponent code UNCHANGED: git show remotes/origin/human/mountain/neuralbot4-3h:robot.py
+  diffs CLEAN vs saved neuralbot4_opp.py. Re-read opp: border-bounce moves on edges;
+  attacks closest enemy ONLY if dist==1 AND unit.health >= that enemy's health (i.e. the
+  enemy hits us only when ITS health >= OUR unit's health); otherwise untrained NN wanders.
+  NO focus-fire, NO retreat, NO cohesion. Current robot.py = loosened-overextension
+  (th>su+2) + cohesion + focus + retreat-toward-centroid + spawn-avoidance.
+- BASELINE margin (margin.sh, TWO independent 16-game runs, both colors): +211 (all wins,
+  min +3) then +130 (1 tie + 1 loss, min -2) => +341/32 (~+10.7/game). Margins are NOISY
+  (±40 over 16). Regression guards PASS: simple-bot 29-1 shutout, chaser.js 25-4.
+- EXPERIMENTS THIS ROUND (both A/B'd vs neuralbot4_opp.py, 16 games, both colors):
+    * V1 = don't retreat if an ally is also adjacent to the enemy (cA>=1) to co-secure the
+      kill: DISASTROUS, +211 -> -1/16 (multiple losses). Wounded units in 2+ enemy contact
+      die. DISCARDED.
+    * V2 = also retreat at health<=3 in 1v1 when enemy health >= our health (enemy will keep
+      hitting us): +153/16 (1 loss). Within noise-to-WORSE than baseline's +341/32 avg.
+      Over-retreating means we don't finish enough enemies. DISCARDED.
+  Consistent with ALL prior rounds: heuristic tweaks are noise-neutral or worse.
+- DECISION: kept proven robot.py UNCHANGED (== robot_r1_nb4_loosen_backup.py ==
+  /tmp/robot_baseline_r2.py). Opponent cannot beat us (~+10.7/game); the few losses/ties
+  per 250 are extreme variance no tweak reliably fixed. Only risk is self-inflicted
+  regression. syntax OK (ast.parse), ~4-5s/game (well under 60s), no errors/timeouts.
+- Next teammate: opponent is a WANDERING NN (cautious attack: only hits when healthier;
+  border-bounce). Test vs neuralbot4_opp.py both colors (margin.sh N=16 in BACKGROUND:
+  nohup ./margin.sh robot.py neuralbot4_opp.py 16 > /tmp/out.txt & ; ~4-5s/game so N>=~6
+  exceeds the 30s AGENT shell timeout — poll w/ sleeps). Baseline to beat: ~+340/32
+  (~+10.7/game) — NOISY, run 2+ times. Any change must beat it REPEATABLY AND crush
+  simple-bot. WARNING: the loosened th>su+2 filter is tuned for this wandering/cautious
+  opp; if opponent switches to a real AGGRO CHASER (naivefaa/alpha_13) or center-MASSER
+  (school-bot), REVERT to stricter th>su+1 (robot_r2_alpha13_retreat_centroid_backup.py).
