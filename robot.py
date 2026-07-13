@@ -175,6 +175,101 @@ def tick(friends, enemies, actions):
     return friends, enemies
 
 
+
+def bm_score_side(friends, enemies):
+    # Public black-magic score from one side's perspective, without our extra
+    # center/chase tie-breakers.  Used only to predict the current opponent.
+    unit_score = len(friends) - len(enemies)
+    health_score = 0.0
+    for h in friends.values():
+        health_score += h ** 0.5
+    for h in enemies.values():
+        health_score -= h ** 0.5
+
+    surround = {}
+    pressure = {}
+    for p in friends:
+        surround[p] = 0
+        pressure[p] = 0.0
+    for p in enemies:
+        surround[p] = 0
+        pressure[p] = 0.0
+
+    for f in friends:
+        for e in enemies:
+            dx = f[0] - e[0]
+            dy = f[1] - e[1]
+            d2 = dx * dx + dy * dy
+            if d2 == 0:
+                continue
+            ds = 1.0 / d2
+            pressure[e] = pressure.get(e, 0.0) + ds
+            pressure[f] = pressure.get(f, 0.0) - ds
+            if d2 == 1:
+                surround[e] = surround.get(e, 0) + 1
+                surround[f] = surround.get(f, 0) - 1
+
+    surround_score = 0
+    for v in surround.values():
+        surround_score += v * v
+    distance_score = 0.0
+    for v in pressure.values():
+        distance_score += v * v
+    return (unit_score, surround_score, health_score, distance_score)
+
+
+def predict_blackmagic_actions(opp_friends, opp_enemies):
+    # Predict tabaxi3k__black-magic-1/public black-magic exactly enough to avoid
+    # walking into its planned moves.  The opponent plans from the current board,
+    # so these actions are fixed while we evaluate our own simultaneous choices.
+    actions = {}
+
+    for epos in opp_enemies:
+        actions[epos] = None
+        lowest_health = 1000
+        for d in DIRS:
+            target = add(epos, d)
+            if target not in opp_friends:
+                continue
+            h = opp_friends[target]
+            if h > lowest_health:
+                continue
+            lowest_health = h
+            actions[epos] = (ATTACK, d)
+
+    possible = {}
+    for fpos in opp_friends:
+        actions[fpos] = None
+        acts = [None]
+        for d in DIRS:
+            dst = add(fpos, d)
+            if dst not in LEGAL:
+                continue
+            if dst in opp_enemies:
+                acts.append((ATTACK, d))
+            else:
+                acts.append((MOVE, d))
+        possible[fpos] = acts
+
+    fs, es = tick(opp_friends, opp_enemies, actions)
+    best_score = bm_score_side(fs, es)
+
+    for fpos in list(opp_friends):
+        chosen = actions.get(fpos)
+        for act in possible[fpos]:
+            old = actions.get(fpos)
+            actions[fpos] = act
+            fs, es = tick(opp_friends, opp_enemies, actions)
+            s = bm_score_side(fs, es)
+            if better(s, best_score):
+                best_score = s
+                chosen = act
+            else:
+                actions[fpos] = old
+        actions[fpos] = chosen
+
+    return {p: actions.get(p) for p in opp_friends}
+
 def init_turn(state):
     global ACTIONS, TURN
     TURN = state.turn
@@ -194,26 +289,12 @@ def init_turn(state):
         if u.health is not None:
             enemies[k(u.coords)] = u.health
 
-    # Current opponent is tabaxi3k__black-magic-1, essentially the public
-    # black-magic planner.  Use the same generic adjacent-attack enemy model
-    # instead of the previous mitch walk/retreat-specific chaser model, and
-    # allow queued/chain moves into friendly squares like black-magic does.
+    # Current opponent is public black-magic; allow queued/chain moves like it
+    # does, but model its full one-ply plan from the enemy perspective rather
+    # than assuming only stationary adjacent attacks.
     allow_chain_moves = True
 
-    best_actions = {}
-
-    for epos, eh in enemies.items():
-        best_actions[epos] = None
-        lowest_health = 1000
-        for d in DIRS:
-            target = add(epos, d)
-            if target not in friends:
-                continue
-            h = friends[target]
-            if h > lowest_health:
-                continue
-            lowest_health = h
-            best_actions[epos] = (ATTACK, d)
+    best_actions = dict(predict_blackmagic_actions(enemies, friends))
 
     possible = {}
     spawn_danger = (state.turn % 10 == 0)
@@ -241,7 +322,7 @@ def init_turn(state):
     best_score = score(fs, es)
 
     # Greedily improve one friendly action at a time.
-    for fpos in list(friends)[::-1]:
+    for fpos in list(friends):
         chosen = best_actions.get(fpos)
         for act in possible[fpos]:
             old = best_actions.get(fpos)

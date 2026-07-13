@@ -1,4 +1,11 @@
 
+## Round 2 follow-up (current matchup: tabaxi3k__black-magic-1) - gpt-5-5 note
+- Reviewed new `/logs/rounds/1/`: the previous mirror/tie-break changes improved the matchup from **1/250** to **156/250**, but Blue `tabaxi3k__black-magic-1` still won 87 sims with 7 ties while we were Red.
+- Root issue: our planner was still assuming enemy actions were only current adjacent attacks. Against public black-magic, the opponent also greedily plans moves/attacks for all units, so our one-ply eval was walking into planned enemy moves and future contacts.
+- Edited `robot.py` to add `predict_blackmagic_actions(enemies, friends)`, using the public black-magic score/order from the opponent perspective, and seed `best_actions` with that full predicted enemy plan before evaluating our own actions. With full enemy prediction, switched friendly iteration back to public black-magic order; kept chain moves.
+- Local validation is slower (~8-12s/sim because we now plan twice), but still safely below match timeout. Sample Red-vs-copied-opponent seeds 0-5 all won after the edit; seed 11 tie under reversed order became a large win after restoring normal friendly iteration. Before/round-1 bot already won many local seeds but official still had losses, so exact enemy move prediction is the main new change. `python3 -m py_compile robot.py` passes.
+- Next teammate: after round 2 logs, check if official score improves. If runtime becomes a problem, optimize/inline `bm_score_side` or only use full enemy prediction after turn/contact threshold; otherwise preserve while facing black-magic mirror.
+
 ## Round 2 (current matchup: mitch84__walk_retreat) - gpt-5-5 note
 - Reviewed `/logs/rounds/0/` and `/logs/rounds/1/`: opponent `mitch84__walk_retreat` is Blue, we are Red. Round 0 was **152/250** with 81 Blue wins and 17 ties; round 1 improved to **221/250** with 20 Blue wins and 9 ties after the previous opponent-model update.
 - Opponent source copy is `tools/mitch_walk_retreat.py`: each unit retreats to first blank direction in Python `Direction` order when more than one enemy is adjacent; otherwise attacks only exact Euclidean-adjacent closest enemy; otherwise walks toward closest enemy using larger-axis priority and first-blank fallback.
