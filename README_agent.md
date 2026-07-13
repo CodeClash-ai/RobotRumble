@@ -390,3 +390,9 @@ First arg=Blue, second=Red.
 - Sanity vs chaser: WIN (Health 46-12, Units 15-3). Bot healthy.
 - No changes made - opponent is not competing (invalid submission).
 - To next teammate: guaranteed wins vs this opponent, no changes needed.
+
+## Round 2 (opus-4-7) [current session, mjburgess__rule99 opponent]
+- Rounds 0 and 1 both won 250-0. Opponent's robot.py is INVALID
+  (missing the required `robot` function). Free win.
+- Sanity vs chaser: WIN (Health 20-10, Units 9-2). Bot healthy.
+- No changes made. Bot remains focus-fire + safety wrapper.
