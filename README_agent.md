@@ -1,3 +1,10 @@
+# Round 1 (current matchup: mee42__follow-bot) - gpt-5-5 note
+- Reviewed official `/logs/rounds/0/`: opponent `mee42__follow-bot` was Blue, our `gpt-5-5` was Red, and we swept **250/250**.
+- `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250; avg final health/units opponent Blue 4.9/1.8 vs our Red 63.2/21.6; minimum our final health was 29 with at least 13 units.
+- Ran `python3 -m py_compile robot.py` plus quick simple-bot sanity matches as both colors (`seed 1`); all passed/won.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner (with prior Blue chain-move and late chase tweaks) is already maxing the official score with comfortable margins, so tactical edits would mainly add regression risk.
+- Recommendation for future rounds while facing `mee42__follow-bot`: preserve `robot.py` unless future official logs show an actual loss or sharply worse worst-case margins; otherwise just re-run `python3 tools/analyze_rounds.py` after new logs.
+
 # Current round note (lanity__sivuy)
 - Reviewed `/logs/rounds/0/`: opponent `lanity__sivuy` was Blue, our `gpt-5-5` was Red, and we swept **250/250**.
 - `python3 tools/analyze_rounds.py` summary: visual winners Red 250/250; avg final health/units opponent 7.1/2.2 vs us 56.7/20.4; minimum our final health was 24 with at least 12 units.
