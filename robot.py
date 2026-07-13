@@ -1,99 +1,96 @@
-from enum import Enum, auto
-from typing import *
+# Inspired by https://robotrumble.org/mitch84/crw_preempt/view-code
 
-def robot(state: State, unit: Obj) -> Optional[Action]:
-    our_team = state.our_team
-    other_team = state.other_team
-    
-    # Get all live robots on both teams
-    allies = state.objs_by_team(our_team)
-    enemies = state.objs_by_team(other_team)
-    
-    if not enemies:
-        return None
+import random
+
+def adjacent_to_enemy(coords, state):
+    for dir in Direction:
+        other = state.obj_by_coords(coords+dir)
+        if other and other.team == state.other_team:
+            return True
+    return False
+
+def adjacent_to_ally(coords, state, self_id):
+    for dir in Direction:
+        other = state.obj_by_coords(coords+dir)
+        if other and other.team == state.our_team and not other.id == self_id:
+            return True
+    return False
+
+
+def adjacent_to_robot(coords, state, self_id):
+    for dir in Direction:
+        if any(robot.coords == (coords+dir) for (id, robot) in robots.items()):
+            return True
+    return False
+
+class Robot:
+    def __init__(self, state, unit):
+        self.state = state
+        self.unit = unit
+        self.coords = unit.coords
         
-    def is_free(coords: Coords) -> bool:
-        if coords.x < 0 or coords.x >= MAP_SIZE or coords.y < 0 or coords.y >= MAP_SIZE:
-            return False
-        obj = state.obj_by_coords(coords)
-        return obj is None
+    def retreat_dirs(self):
+        enemies = []
+        blanks = []
+        for direction in Direction:
+            other = self.state.obj_by_coords(self.unit.coords + direction)
+            if other and other.team == self.state.other_team:
+                enemies.append(other)
+            elif not other:
+                blanks.append(direction)
 
-    # Identify the closest enemy and distance to them, taking enemy health into account
-    closest_enemy = min(enemies, key=lambda e: unit.coords.distance_to(e.coords) + e.health / 10.0)
-    dist_to_closest = unit.coords.distance_to(closest_enemy.coords)
-    
-    # Locate adjacent enemies specifically (distance == 1)
-    adjacent_enemies = [e for e in enemies if unit.coords.distance_to(e.coords) == 1]
-    
-    # Local health/strength count to decide whether to fight or flee.
-    # Radius of 4 is standard local micro neighborhood.
-    nearby_friends = [f for f in allies if unit.coords.distance_to(f.coords) <= 4]
-    nearby_enemies = [e for e in enemies if unit.coords.distance_to(e.coords) <= 4]
-    
-    friends_hp = sum(f.health for f in nearby_friends)
-    enemies_hp = sum(e.health for e in nearby_enemies)
-    
-    if adjacent_enemies:
-        # Focus on lowest health adjacent enemy to secure kills
-        best_target = min(adjacent_enemies, key=lambda e: e.health)
-        
-        # Flee logic if we are weak and outnumbered
-        if len(nearby_friends) * 1.5 < len(nearby_enemies) and unit.health <= 2 and best_target.health >= unit.health:
-            escape_dir = unit.coords.direction_to(best_target.coords).opposite
-            if is_free(unit.coords + escape_dir):
-                return Action.move(escape_dir)
-            elif is_free(unit.coords + escape_dir.rotate_cw):
-                return Action.move(escape_dir.rotate_cw)
-            elif is_free(unit.coords + escape_dir.rotate_ccw):
-                return Action.move(escape_dir.rotate_ccw)
-        
-        attack_dir = unit.coords.direction_to(best_target.coords)
-        return Action.attack(attack_dir)
-
-    # If we are low health and outnumbered in neighborhood, run away
-    if (friends_hp + len(nearby_friends) < enemies_hp + len(nearby_enemies) or len(nearby_friends) < len(nearby_enemies)) and unit.health <= 2:
-        flee_dir = unit.coords.direction_to(closest_enemy.coords).opposite
-        for d in [flee_dir, flee_dir.rotate_cw, flee_dir.rotate_ccw]:
-            if is_free(unit.coords + d):
-                return Action.move(d)
-
-    # Support / cluster with nearby friends when we have no adjacent enemies
-    # If a nearby ally is currently engaged (has an adjacent enemy), move towards their enemy to assist them!
-    fighting_allies = []
-    for ally in allies:
-        if ally.id != unit.id and unit.coords.distance_to(ally.coords) <= 6:
-            ally_enemies = [e for e in enemies if ally.coords.distance_to(e.coords) == 1]
-            if ally_enemies:
-                fighting_allies.append((ally, ally_enemies))
-    if fighting_allies:
-        # Sort by distance to the fighting ally
-        fighting_allies.sort(key=lambda x: unit.coords.distance_to(x[0].coords))
-        target_ally, ally_enemies = fighting_allies[0]
-        # Target the lowest health enemy of that ally
-        target_enemy = min(ally_enemies, key=lambda e: e.health)
-        assist_dir = unit.coords.direction_to(target_enemy.coords)
-        for d in [assist_dir, assist_dir.rotate_cw, assist_dir.rotate_ccw]:
-            if is_free(unit.coords + d):
-                return Action.move(d)
-
-    # If closest enemy is far (> 4), and we are far from friends, try to stay closer to other friends to group up
-    if dist_to_closest > 4 and len(nearby_friends) <= 1:
-        # find closest friend that actually has other friends or is closer to enemy
-        active_friends = [f for f in allies if f.id != unit.id]
-        if active_friends:
-            closest_friend = min(active_friends, key=lambda f: unit.coords.distance_to(f.coords))
-            if unit.coords.distance_to(closest_friend.coords) > 2:
-                group_dir = unit.coords.direction_to(closest_friend.coords)
-                for d in [group_dir, group_dir.rotate_cw, group_dir.rotate_ccw]:
-                    if is_free(unit.coords + d):
-                        return Action.move(d)
-
-    # Prioritize moving towards closest enemy
-    move_dir = unit.coords.direction_to(closest_enemy.coords)
-    # Check if direct, rotating cw, rotating ccw moves are free.
-    # To prevent being kited/stalled, if the path to the closest enemy is blocked, we can try to walk around it.
-    for d in [move_dir, move_dir.rotate_cw, move_dir.rotate_ccw]:
-        if is_free(unit.coords + d):
-            return Action.move(d)
+        if not blanks:
+            return []
             
-    return None
+        return blanks
+    
+    def good_retreat_dirs(self):
+        return [dir for dir in self.retreat_dirs() if not adjacent_to_enemy(self.unit.coords+dir, self.state)]
+    
+    
+    def attack_closest_enemy(self):
+        enemies = self.state.objs_by_team(self.state.other_team)
+        if not enemies:
+            return None
+        closest_enemy = min(
+            enemies,
+            key=lambda e: e.coords.walking_distance_to(self.unit.coords),
+        )
+
+        enemy_direction = self.unit.coords.direction_to(closest_enemy.coords)
+        obj = self.state.obj_by_coords(self.unit.coords + enemy_direction)
+        will_hit_ally = obj and obj.team == self.state.our_team 
+        will_hit_ally = will_hit_ally or any(robot.coords == self.unit.coords + enemy_direction for (id, robot) in robots.items())
+        distance_to_enemy = self.unit.coords.walking_distance_to(closest_enemy.coords)
+        if not will_hit_ally:
+            return Action.attack(enemy_direction)
+        
+        return None
+    
+    def act(self):
+        good_retreat_dirs = self.good_retreat_dirs()
+        desirable_retreat_dirs = [dir for dir in good_retreat_dirs if not adjacent_to_ally(self.unit.coords+dir, self.state, self.unit.id)]
+        
+        if len(desirable_retreat_dirs):
+            retreat_dir = min(desirable_retreat_dirs, key=lambda dir: Coords(10, 10).walking_distance_to(self.unit.coords+dir))
+            
+            if random.random() < 0.8:
+                self.coords = self.coords + retreat_dir
+                return Action.move(retreat_dir)
+            
+            return self.attack_closest_enemy()
+        
+        return self.attack_closest_enemy()
+        
+
+robots = dict()
+def init_turn(state):
+    global robots
+    robots = dict()
+    
+    for unit in state.objs_by_team(state.our_team):
+        robots[unit.id] = Robot(state, unit)
+        
+        
+def robot(state, unit):
+    return Robot(state, unit).act()
