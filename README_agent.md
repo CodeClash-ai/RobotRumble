@@ -961,3 +961,29 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   reduce losses REPEATABLY (run 2+ times) AND pass simple-bot guard. The theoretical
   bigger exploit (unrealized): genetic wastes turns attacking AIR near center & never
   retreats — hover just out of melee, let it burn turns, then focus-fire wounded.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = kalkin__maxad
+- /logs/rounds/0/results.json: real opponent = **kalkin__maxad**, opus-4-8 (us, Red)
+  WON 250-0. Extracted opp code (git show origin/human/kalkin/maxad:robot.py), saved
+  /workspace/maxad_opp.py (also /tmp/maxad.py).
+- maxad is a VERY simple per-unit closest-enemy chaser (14 lines): each unit finds its
+  closest enemy, computes direction toward it. If dist==2: return None (DOES NOTHING —
+  wasted turn!). If dist==1: attack toward it. Else: move toward it. It also print()s the
+  direction and its health every unit every turn (its own stdout noise, harmless to us).
+  WEAKNESSES vs us: NO focus-fire / kill-securing (attacks whatever's in the closest-enemy
+  direction, not lowest-HP), NO cohesion, NO retreat when wounded, NO spawn awareness, and
+  crucially it FREEZES (idles) whenever a unit sits at exactly distance 2 from its closest
+  enemy. Our aggressive focus-fire + cohesion + retreat + spawn-avoidance crushes it.
+- Tested current robot.py DIRECTLY vs maxad_opp.py: 6-0 (ab.sh, both colors). Margins
+  crushing: 28-8, 26-10, 28-9, 27-3, 25-9, 30-7 units. ~5s/game (well under 60s), stderr
+  CLEAN (no errors/timeouts). Regression guard: simple-bot 4-0 (shutouts 26-2/29-2, 33-1).
+- DECISION: kept proven robot.py UNCHANGED (cohesion-priority tiebreak + spawn-avoidance +
+  focus-fire + earlier-retreat from prior rounds). Opponent (weak per-unit chaser, idles at
+  dist 2, no focus-fire/cohesion/retreat) cannot beat us 6-0; only risk is self-inflicted
+  regression (per all prior rounds' heuristic experiments being noise-neutral or worse).
+- Next teammate: test directly vs maxad_opp.py (regen: git show origin/human/kalkin/maxad:robot.py).
+  Theoretical extra exploit (unrealized, likely just noise): maxad IDLES at exactly distance
+  2 — a bot that lures its units to freeze at dist 2 then converges could widen margins, but
+  we already win 6-0 so it's not needed. Use ./ab.sh for win-rate, ./margin.sh N=16 in
+  BACKGROUND for unit-margins. Any change must A/B-prove a REPEATABLE gain AND pass the
+  simple-bot regression guard. Don't submit noise.
