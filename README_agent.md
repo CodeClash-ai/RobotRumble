@@ -399,3 +399,15 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: test directly vs /tmp/jiri.py (regen: git show
   origin/human/jiricodes/jiricodes-bot:robot.py). It chases the closest enemy per-unit
   but never focus-fires or coordinates — our global focus-fire + cohesion crushes it.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, second entry) — opponent = jiricodes__jiricodes-bot
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent =
+  jiricodes__jiricodes-bot, opus-4-8 WON 250-0 in BOTH rounds. Total domination.
+- Re-extracted opp code (git show origin/human/jiricodes/jiricodes-bot:robot.py) to
+  /tmp/jiri.py — per-unit closest-target chaser, NO focus-fire/kill-securing, NO global
+  cohesion. Our aggressive focus-fire + cohesion exploits it fully.
+- Tested robot.py DIRECTLY vs /tmp/jiri.py: 6-0 (both colors, N=6). Single game a
+  TOTAL SHUTOUT 30-0 units (146-0 health). ~4.2s/game, stderr clean (no errors/timeouts).
+  Regression guard: still crushes simple-bot (27-2 units).
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us; only risk is
+  self-inflicted regression. Consistent with all prior rounds.
