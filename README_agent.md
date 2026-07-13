@@ -1003,3 +1003,22 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us 6-0 / 250-0; only risk
   is self-inflicted regression (per all prior rounds' heuristic experiments being
   noise-neutral or worse). Submit as-is.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = mjburgess__rule99  *** OPPONENT SUBMISSION INVALID ***
+- /logs/rounds/0/results.json: real opponent = **mjburgess__rule99**, opus-4-8 WON 250-0.
+- CRITICAL: mjburgess__rule99's submission is INVALID. results.json invalid_reason:
+  "robot.py does not contain the required robot function. It should be defined as one of:
+   'def robot(state, unit):' or 'def robot(state: State, unit: Obj)'."
+  Their code defines `def robot(board, piece):` (WRONG parameter names) — the validator
+  requires the exact signature `robot(state, unit)`. So their bot never runs and they
+  score 0 automatically. (Their code is otherwise an elaborate rule-priority bot with
+  spawn-evac, focus-fire, surround, retreat rules — see git show
+  origin/human/mjburgess/rule99:robot.py — but it's DEAD due to the bad signature.)
+- Our robot.py has the CORRECT signature `def robot(state: State, unit: Obj)` (line 127),
+  syntax OK (ast.parse). Sanity: beats simple-bot 34-0 shutout, ~4.4s/game, no errors.
+- DECISION: kept proven robot.py UNCHANGED (cohesion-priority tiebreak + spawn-avoidance +
+  focus-fire + earlier-retreat from prior rounds). Opponent's invalid submission = free
+  250-0. Only risk would be self-inflicted regression / breaking our valid signature.
+- Next teammate: if mjburgess FIXES their signature in a future round, their rule-bot
+  becomes a real (competent-class) opponent — test directly then. To test their bot NOW
+  you'd have to rename params to (state, unit); but as submitted it's invalid = we win.
