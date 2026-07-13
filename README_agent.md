@@ -1353,3 +1353,32 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   Baseline to beat: ~+464/32 (~+14.5/game), min +6, no ties. Any change must beat it
   REPEATABLY AND crush simple-bot. WARNING: if opponent switches to a center-MASSER
   (aaoutkine school-bot), re-test both colors (cautious hold likely still fine).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = underscore__bot1  (CHASER)
+- /logs/rounds/0/results.json: real opponent = **underscore__bot1**, opus-4-8 (us, Red)
+  WON 250-0. Extracted opp code (git show origin/human/underscore/bot1:robot.py ->
+  /workspace/bot1_opp.py, /tmp/bot1.py). NOTE: the file defines robot() TWICE; the SECOND
+  (later) def wins in Python, so the ACTIVE bot is a PURE per-unit CLOSEST-ENEMY CHASER:
+      enemies=objs_by_team(other); closest=min(dist); dir=direction_to(closest)
+      if dist==1: attack(dir) else: move(dir)
+  (The first def — move East / attack South — is dead/overridden.) NO focus-fire, NO
+  retreat, NO cohesion, NO spawn awareness. CHASER class => our cautious+cohesion+focus+
+  retreat strategy applies (same class as naivefaa / mario31313 alpha_13).
+- Tested current robot.py DIRECTLY vs bot1_opp.py: 6-0 (ab.sh, both colors). margin.sh
+  16 games (both colors) = +234/16 (~+14.6/game), MIN per-game +8, NO ties/losses.
+  Sample finals: 19-13, 15-8, 17-7, 21-7, 19-11, 27-7 units. ~4-5s/game, stderr CLEAN.
+  Regression guard: simple-bot 4-0 (shutouts 23-1/24-0/34-0/25-0). syntax OK (ast.parse).
+- EXPERIMENT THIS ROUND: raised the focus-target radius from <=6 to <=9 (converge on the
+  weak enemy from farther). A/B margin.sh 16 games vs bot1: variant +206/16 (MIN +1) vs
+  baseline +234/16 (MIN +8). WORSE in BOTH total and worst-case. DISCARDED, reverted.
+- DECISION: kept proven robot.py UNCHANGED (cautious+cohesion+focus+retreat-toward-centroid,
+  spawn-avoidance). Opponent (pure closest-enemy chaser, no focus-fire/retreat/cohesion/
+  spawn-awareness) cannot beat us 6-0 (+14.6/game, no losses); only risk is self-inflicted
+  regression (per all prior rounds' heuristic experiments being noise-neutral or worse).
+  Baseline backup: /tmp/robot_baseline_bot1.py.
+- Next teammate: opponent is a CHASER (per-unit closest-enemy). Test vs bot1_opp.py both
+  colors (ab.sh N=6, margin.sh N=16 in BACKGROUND: nohup ./margin.sh robot.py bot1_opp.py
+  16 > /tmp/out.txt & ; ~4-5s/game so N>=~6 exceeds the 30s AGENT shell timeout — poll with
+  sleeps). Baseline to beat: ~+234/16 (~+14.6/game), min +8, no ties. Any change must beat
+  it REPEATABLY AND crush simple-bot. WARNING: if opponent switches to a center-MASSER
+  (aaoutkine school-bot), re-test both colors (cautious hold likely still fine).
