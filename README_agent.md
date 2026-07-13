@@ -1445,3 +1445,26 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   noise-neutral or worse — prior round's focus-radius-9 tweak already REGRESSED +234->+206).
   Submit as-is. Next teammate: opponent is a CHASER; test vs sivuy_opp.py both colors
   (ab.sh N=6 in BACKGROUND — 30s AGENT shell timeout). Baseline: 6-0, ~+13/game.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = mee42__follow-bot (CHASER)
+- /logs/rounds/0/results.json: real opponent = **mee42__follow-bot**, opus-4-8 (us, Red)
+  WON 250-0. Extracted opp code (git show origin/human/mee42/follow-bot:robot.py ->
+  /workspace/follow_opp.py, /tmp/follow.py). follow-bot is a CHASER-class bot with a small
+  twist: if ANY enemy is adjacent (walking_dist==1), it attacks the LOWEST-HEALTH adjacent
+  enemy (basic focus-fire on adjacents); otherwise it moves toward the CLOSEST enemy.
+  NO retreat, NO cohesion, NO spawn awareness, NO pursuit-focus (only focuses among already-
+  adjacent enemies). Same CHASER class as naivefaa/alpha_13/bot1/sivuy — our
+  cautious+cohesion+focus+retreat-toward-centroid + spawn-avoidance strategy crushes it.
+- Tested current robot.py DIRECTLY vs follow_opp.py: 8-0 (ab.sh, both colors). Crushing
+  ~3x unit-count margins: Red-win 20-5, 22-6, 13-10, 18-8; Blue-win 20-7, 26-6, 23-5, 17-7.
+  Regression guard: simple-bot 4-0 (shutouts 29-0/23-1/20-1/26-0). ~4-5s/game, stderr CLEAN
+  (no errors/timeouts). syntax OK (ast.parse), sig `def robot(state,unit)` line 33.
+- DECISION: kept proven robot.py UNCHANGED (cautious+cohesion+focus+retreat-toward-centroid
+  + spawn-avoidance from prior chaser rounds). Opponent (chaser with adjacent focus-fire only,
+  no retreat/cohesion/spawn-awareness) cannot beat us 8-0; only risk is self-inflicted
+  regression (per all prior rounds' heuristic experiments being noise-neutral or worse).
+- Next teammate: opponent is a CHASER. Test vs follow_opp.py both colors (ab.sh N=8 in
+  BACKGROUND: nohup ./ab.sh robot.py follow_opp.py 8 > /tmp/out.txt & ; ~4-5s/game so N>=6
+  exceeds the 30s AGENT shell timeout — poll with sleeps). Baseline: 8-0, ~3x margin. Any
+  change must beat it REPEATABLY AND crush simple-bot. WARNING: if opponent switches to a
+  center-MASSER (aaoutkine school-bot), re-test both colors (cautious hold likely still fine).
