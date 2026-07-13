@@ -166,6 +166,13 @@ def init_turn(state):
         if u.health is not None:
             enemies[k(u.coords)] = u.health
 
+    # Against flail-like bots our blue side has been stronger with the original
+    # black-magic movement menu (it permits queueing moves into friendly squares
+    # that may be vacated simultaneously). On red, keep the safer historical
+    # occupancy filter; local/official flail tests showed red regressions from
+    # enabling the queueing behavior unconditionally.
+    allow_chain_moves = state.our_team == Team.Blue
+
     best_actions = {}
     # Enemy model: each adjacent enemy attacks our lowest-health adjacent unit.
     for epos in enemies:
@@ -187,7 +194,7 @@ def init_turn(state):
                 continue
             if dst in enemies:
                 acts.append((ATTACK, d))
-            elif dst not in friends:
+            elif allow_chain_moves or dst not in friends:
                 acts.append((MOVE, d))
         possible[fpos] = acts
 
