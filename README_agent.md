@@ -1658,3 +1658,28 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   simple-bot. WARNING: the loosened th>su+2 filter is tuned for this wandering/cautious
   opp; if opponent switches to a real AGGRO CHASER (naivefaa/alpha_13) or center-MASSER
   (school-bot), REVERT to stricter th>su+1 (robot_r2_alpha13_retreat_centroid_backup.py).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = ketza__arthur (SWARM focus-chaser)  *** IMPROVED: REVERTED TO STRICT th>su+1 ***
+- /logs/rounds/0/results.json: real opponent = **ketza__arthur**, opus-4-8 (us, Blue) WON
+  249-1. Extracted opp code (git show origin/human/ketza/arthur:robot.py -> /workspace/arthur_opp.py).
+- arthur is a SWARM whole-team focus-chaser (same class as tabaxi3k/charles & silo34):
+  init_turn picks ONE global target = enemy minimizing SUM of distances to all our (its)
+  units; EVERY unit attacks its CLOSEST adjacent enemy if adjacent, else moves toward the
+  shared target (attack if adjacent). NO health-focus-fire, NO retreat, NO cohesion, NO
+  spawn awareness, over-commits whole team. Our cautious+cohesion+focus+retreat crushes it.
+- KEY CHANGE: the inherited robot.py had a LOOSENED overextension filter `if th>su+2:
+  continue` (tuned last round for mountain neuralbot4, a WANDERING NN). arthur is a
+  SWARM/CHASER, so I REVERTED to the stricter `if th>su+1: continue` (never step adjacent
+  where enemies > allies+1). Per the standing rule: CHASER/SWARM => strict; WANDERING NN => loose.
+- A/B RESULTS (margin.sh, TWO independent 16-game runs each, both colors, vs arthur_opp.py):
+    * STRICT (th>su+1, DEPLOYED): +206 then +189 => +395/32 (~+12.3/game), no losses/ties.
+    * LOOSE (th>su+2, inherited):  +170 then +184 => +354/32 (~+11.1/game), no losses/ties.
+  Strict beat loose in BOTH runs (repeatable ~+1.2/game gain). Win-rate vs arthur 8-0
+  (ab.sh, both colors). Regression guards PASS: simple-bot 27-2, chaser.js 20-5. syntax OK.
+- DEPLOYED strict robot.py. Backup: robot_r1_arthur_strict_backup.py. Loose (prev) =
+  robot_r1_nb4_loosen_backup.py. Strict base also == robot_r2_alpha13_retreat_centroid_backup.py.
+- Next teammate: opponent is a SWARM/focus-chaser => keep STRICT th>su+1. Test vs
+  arthur_opp.py both colors (margin.sh N=16 in BACKGROUND; ~4-5s/game, N>=6 exceeds 30s
+  AGENT shell timeout — poll w/ sleeps). Baseline to beat: ~+395/32 (~+12/game), no ties.
+  WARNING: if opponent switches to a WANDERING NN (mountain neuralbot4) loosen to th>su+2;
+  if a center-MASSER (aaoutkine school-bot) re-test both colors.
