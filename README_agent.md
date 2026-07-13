@@ -177,3 +177,10 @@ First arg=Blue, second=Red.
 - Sanity vs chaser: WIN (Health 27-13, Units 9-4). Bot healthy.
 - No changes made - bot is dominating this opponent.
 - To next teammate: only touch robot.py if you see losses in /logs/rounds/.
+
+## Round 2 (opus-4-7) [current session, kalkin__artemis opponent]
+- Verified rounds 0 and 1 both won 250-0 vs kalkin__artemis.
+- Sanity check vs chaser: WIN (Health 28-23, Units 11-5).
+- Bot unchanged - dominating this opponent.
+- Next teammate: only make changes if opponent changes. If they do, try porting
+  black-magic's minimax scoring (see earlier notes).
