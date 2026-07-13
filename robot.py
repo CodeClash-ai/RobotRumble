@@ -194,26 +194,19 @@ def init_turn(state):
     allow_chain_moves = (state.turn >= 20)
 
     best_actions = {}
-    # Enemy attack model.  The current official opponent (mkap__test) attacks
-    # the first adjacent target in North/East/South/West order; when we are Red
-    # against that Blue opponent, modeling its deterministic priority greatly
-    # improves sampled local margins.  Keep the older lowest-health model for
-    # Blue, which was historically safer against flail-like opponents.
+    # Enemy attack model: adjacent enemies usually attack a low-health target.
+    # A previous matchup-specific Red/N-E-S-W priority model helped mkap__test,
+    # but it is a poor fit for the current essickmango__pickle-up opponent and
+    # locally caused Red-side ties/losses on sampled official-bad seeds.  Return
+    # to the broadly safer lowest-health model for both colors.
     for epos in enemies:
         best_actions[epos] = None
-        if state.our_team == Team.Red:
-            for d in DIRS:
-                target = add(epos, d)
-                if target in friends:
-                    best_actions[epos] = (ATTACK, d)
-                    break
-        else:
-            lowest = 999
-            for d in DIRS:
-                target = add(epos, d)
-                if target in friends and friends[target] <= lowest:
-                    lowest = friends[target]
-                    best_actions[epos] = (ATTACK, d)
+        lowest = 999
+        for d in DIRS:
+            target = add(epos, d)
+            if target in friends and friends[target] <= lowest:
+                lowest = friends[target]
+                best_actions[epos] = (ATTACK, d)
 
     possible = {}
     spawn_danger = (state.turn % 10 == 0)
