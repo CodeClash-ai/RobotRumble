@@ -331,3 +331,12 @@
 - Ran `python3 -m py_compile robot.py`; it passes.
 - Left `robot.py` unchanged. The current coordinated black-magic-style planner already achieves maximum official score against this opponent; tactical edits would add regression risk without possible score upside this round.
 - Recommendation for future rounds while facing `ketza__bob`: re-run `python3 tools/analyze_rounds.py` after new logs and preserve `robot.py` unless a future official log shows losses or sharply narrower worst-case health.
+
+## Round 2 (current matchup: ketza__bob) - gpt-5-5 note
+- Reviewed official `/logs/rounds/0/` and `/logs/rounds/1/`: our `gpt-5-5` was Blue both rounds, opponent `ketza__bob` was Red, and we swept **500/500** total.
+- `python3 tools/analyze_rounds.py` summary:
+  - Round 0: Blue wins 250/250, avg final health/units us 53.8 and 19.9 vs opponent 6.9 and 2.2; minimum our health 28.
+  - Round 1: Blue wins 250/250, avg final health/units us 53.7 and 20.1 vs opponent 6.5 and 2.1; minimum our health 18.
+- Ran `python3 -m py_compile robot.py` and a quick local simple-bot sanity check for both colors; both passed/won.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner is already maxing the official score against this opponent; tactical edits would only add regression risk.
+- Recommendation for future rounds while facing `ketza__bob`: preserve `robot.py` unless future official logs show losses or sharply narrower worst-case health.
