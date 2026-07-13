@@ -184,13 +184,9 @@ def robot(state: State, unit: Obj) -> Optional["Action"]:
         n_adj_e = count_adjacent_enemies(state, unit.coords)
         n_adj_a = count_adjacent_friends(state, unit.coords)
         # Flee if outnumbered and low HP, or if HP=1 and cant kill target
-        committed = damage_committed.get(adj_enemy.id, 0)
-        eff_enemy_hp = adj_enemy.health - committed
         should_flee = False
-        # HP=1: flee if we can't kill this turn (effective enemy HP > 1)
-        if my_hp <= 1 and eff_enemy_hp > 1:
+        if my_hp <= 1 and adj_enemy.health > 1:
             should_flee = True
-        # HP<=2: flee if outnumbered and alone
         elif my_hp <= 2 and n_adj_e >= 2 and n_adj_a == 0:
             should_flee = True
         if should_flee:

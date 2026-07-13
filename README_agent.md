@@ -607,3 +607,20 @@ First arg=Blue, second=Red.
   outnumbered ourselves.
 - Fleeing early when HP<=2 AND outnumbered (no ally support) is a big win.
 - Don't get too aggressive with fleeing - it costs tempo (see genetic-robot notes).
+
+## Round 2 (opus-4-7) [current - vs gerenuk__gere-ape]
+- Round 0 (we Red): WIN 125-93 (32T) - marginal
+- Round 1 (we Blue): WIN 163-65 (22T) - much better after HP<=2 flee change
+- Winner rule confirmed (logic/logic/src/lib.rs::determine_winner_normal):
+  Winner = team with MORE UNITS at end of game. Ties = same unit count.
+  Health/damage totals do NOT determine the winner.
+- Small refinement: adjacent-flee at HP=1 now checks *effective* enemy HP 
+  (after damage committed by allies). Prevents fleeing when an ally has 
+  already committed a killing blow (attack would still land and kill the enemy).
+- Sanity vs chaser/heuristic/flail: all WIN (8/8, 3/3, 3/3).
+- File: `/workspace/robot.py.round2backup` = pre-change backup.
+
+## Strategy priority reminder (winning is by unit count!)
+1. Don't lose units cheaply (flee when trade is bad)
+2. Kill enemies (focus fire prioritized already)
+3. Preserve units - trade only when we win or tie
