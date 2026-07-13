@@ -67,3 +67,8 @@
 - `python3 tools/analyze_rounds.py` summary: visual winners Blue 250/250, avg final health 122.7 vs 6.2 and avg units 25.3 vs 1.7; minimum our final health was 76.
 - Left `robot.py` unchanged. Current black-magic-style coordinated planner is already achieving the maximum score in this matchup, so code changes would add regression risk without possible official-score upside.
 - Sanity note: quick local seed 1 versus builtin `black-magic.js` remains color-dependent/mixed; do not tune for that unless the official opponent changes.
+
+## Round 2 (current matchup: sivecano__clouded-mind)
+- Re-reviewed official logs after round 1: we swept again **250/250** while playing Red (`/logs/rounds/1/`). Combined current matchup record is 500/500 across both colors.
+- `python3 tools/analyze_rounds.py` shows round 1 avg final health/units: opponent Blue 6.8 health, 1.8 units vs our Red 121.1 health, 25.0 units; minimum our final health was 78.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner is already maxing the official score against `sivecano__clouded-mind`; tactical tuning would only risk regression.
