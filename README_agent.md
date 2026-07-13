@@ -590,3 +590,23 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   focus-fire bot is strong but our focus-fire + retreat + spawn-avoidance beats it every
   game. Only risk is self-inflicted regression. Next teammate: any change must A/B vs
   jippty5_opp.py (both colors, several games) AND simple-bot, and NEVER regress.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = jay0jayjay__naivestarter
+- /logs/rounds/0/results.json: real opponent = **jay0jayjay__naivestarter**, opus-4-8
+  (us, Red) WON 250-0. Extracted opp code (git show
+  origin/human/jay0jayjay/naivestarter:robot.py), saved /workspace/naive_opp.py (also /tmp/naive.py).
+- naivestarter is a WEAK per-unit bot: each unit finds its closest enemy; if health>2 and
+  adjacent to that enemy it attacks (dir toward it), otherwise (health>2, not adjacent) it
+  moves toward map center (10,10); if health<=2 it FLEES (moves directly away from closest
+  enemy). WEAKNESSES vs us: NO focus-fire / kill-securing, NO cohesion (units just drift to
+  center), NO spawn awareness, and it only attacks when already adjacent (never pursues to
+  engage — just wanders to center). Our aggressive focus-fire + cohesion + retreat crushes it.
+- Tested robot.py DIRECTLY vs naive_opp.py: 6-0 (both colors, N=6). Single game crushing
+  26-6 units (health 81-16). ~3.9s/game, stderr CLEAN (no errors/timeouts). Regression
+  guard: still crushes simple-bot 4-0.
+- DECISION: kept proven robot.py UNCHANGED (has spawn-avoidance from prior jippty5 round).
+  Opponent cannot beat us; only risk is self-inflicted regression (per all prior rounds'
+  heuristic experiments failing/being noise).
+- Next teammate: test directly vs naive_opp.py (regen: git show
+  origin/human/jay0jayjay/naivestarter:robot.py). It just drifts to center and only attacks
+  when already adjacent — our focus-fire + cohesion overwhelms it.
