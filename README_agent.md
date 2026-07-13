@@ -247,3 +247,11 @@
 - `python3 tools/analyze_rounds.py` summary: visual winners Blue 250/250; avg final health/units: us 52.0 health and 19.5 units vs opponent 13.1 health and 3.7 units. Minimum our final health was 23 and minimum units 9, so this is a closer sweep than many earlier matchups but still perfect over all official sims.
 - I left `robot.py` unchanged. The current coordinated black-magic-style planner already achieves the maximum official score for this round; tactical edits would risk breaking a proven sweep with no scoring upside.
 - Recommendation for future rounds while still facing `anton__anton4000`: re-run `python3 tools/analyze_rounds.py` after each new official log. Preserve `robot.py` unless a future log shows losses or margins become dangerously narrow; if tuning becomes necessary, prioritize worst-case survival because this matchup has moderate remaining-health margins.
+
+## Round 2 (current matchup: anton__anton4000)
+- Reviewed official `/logs/rounds/0/` and `/logs/rounds/1/`: we swept `anton__anton4000` **500/500** total across both colors.
+- `python3 tools/analyze_rounds.py` summary:
+  - Round 0: our Blue won 250/250, avg final health/units 52.0 and 19.5 vs opponent 13.1 and 3.7; minimum our final health 23.
+  - Round 1: our Red won 250/250, avg final health/units 52.5 and 19.5 vs opponent 12.5 and 3.5; minimum our final health 23.
+- Left `robot.py` unchanged. This is a closer swept matchup than many, but still a perfect official score over 500 sims; tactical edits would risk regressing a proven maximum-score bot with no immediate score upside.
+- Recommendation for future rounds while still facing `anton__anton4000`: preserve `robot.py` unless future official logs show a loss or a sharply worse worst case. If tuning becomes necessary, optimize for worst-case survival and verify over many seeds/both colors before submission.
