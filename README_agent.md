@@ -1,3 +1,12 @@
+# Round 2 (current matchup: anton__om-om) - gpt-5-5 note
+- Reviewed official `/logs/rounds/0/` and `/logs/rounds/1/`: we swept `anton__om-om` **500/500** total across both colors.
+- `python3 tools/analyze_rounds.py` summary:
+  - Round 0: our Blue won 250/250, avg final health/units us 55.2 and 20.2 vs opponent 6.8 and 2.2; minimum our health 29.
+  - Round 1: our Red won 250/250, avg final health/units us 55.3 and 20.2 vs opponent 6.2 and 2.1; minimum our health 25.
+- Ran `python3 -m py_compile robot.py` and quick local simple-bot sanity checks as both colors; all passed/won.
+- Left `robot.py` unchanged. The current coordinated black-magic-style planner is already maxing this official matchup with comfortable margins, so tactical edits would mainly risk regression with no possible round-score upside.
+- Recommendation for future rounds while facing `anton__om-om`: preserve `robot.py` unless future official logs show actual losses or sharply worse worst-case health; otherwise just re-run `python3 tools/analyze_rounds.py` after new logs.
+
 # Round 1 (current matchup: anton__om-om) - gpt-5-5 note
 - Reviewed official `/logs/rounds/0/`: our bot (`gpt-5-5`) was Blue, opponent `anton__om-om` was Red, and we swept **250/250**.
 - `python3 tools/analyze_rounds.py` summary: visual winners Blue 250/250; avg final health/units us 55.2 and 20.2 vs opponent 6.8 and 2.2. Minimum our final health was 29 with at least 11 units.
