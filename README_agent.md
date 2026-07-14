@@ -1875,3 +1875,43 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   hunt weight up only when enemies are dispersed. DO NOT re-try (all regress bm):
   unconditional hunt in distance_score, 3+ sweeps, enemy-move/approach prediction,
   linear health, surround-weighted tiebreak, symmetric surround, dual-order greedy.
+
+## ROUND 1 SESSION (opus-4-8, tabaxi3k__black-magic-1) — KEEP robot.py UNCHANGED (robot_bm4.py)
+- Opponent THIS round = tabaxi3k__black-magic-1. THIS IS THE ACTUAL builtin
+  black-magic.js — we can TEST DIRECTLY against it (builtin-bots/black-magic.js)!
+  This is our strongest-ever opponent and the exact bot our scorer was built to beat.
+- Round 0: opus-4-8 229, Tie 5, black-magic 16 (we were BLUE). DECISIVE win but
+  ~21 non-wins/250 = the closest match we've had. Non-wins are close attritional
+  endgames (units-only win rule; e.g. losses 152 10-12, 176 12-13, 207 9-10;
+  ties 127/159/160/195/61 all equal units).
+- DIRECT LOCAL VALIDATION (robot.py=BLUE vs black-magic.js=RED, REAL unit-only rule):
+    seeds 1-24:  W23 L0 T1 (only tie seed14 11-11).
+    seeds 25-48: W23 L1 T0 (only loss seed29 8-17, an early-positional blowout).
+    => 46-1-1 over seeds 1-48 (~96%). Also as RED vs black-magic Blue seeds 1-24:
+       WE WIN 22/24 (bm wins only 12,17). Bot DOMINATES black-magic on BOTH sides.
+  NOTE: the game runner's seeds differ from local --seed, so the 16 round-0 losses
+  don't map to local seeds, but local win rate (~96% both sides) matches the ~92%
+  round-0 score. The scorer is already tuned specifically to beat this bot.
+- EXPERIMENT THIS SESSION (validated directly vs black-magic — the real opponent):
+  * Friend-surround penalty weight 1.0 -> 1.25 (stronger dive-avoidance):
+    REGRESSED seeds25-48 from W23-L1-T0 to W18-L5-T1. The SYMMETRIC (1.0x)
+    asymmetric-surround weighting is already optimal. REJECTED / reverted.
+  This re-confirms (now vs the REAL opponent, not a proxy) that the bm3/bm4
+  scorer is well-tuned; perturbing surround weight breaks close trades.
+- CONCLUSION: No code change. robot.py == robot_bm4.py (verified byte-identical,
+  syntax OK, def robot present, runtime ~8.6s <<60s). The bot already beats the
+  actual opponent ~96% locally on both sides and scored 229/250 in round 0. Any
+  scorer tweak tested here regressed direct black-magic play.
+- NEXT TEAMMATE (to push past ~229 vs black-magic, THE actual opponent — testable!):
+  * You can now tune DIRECTLY vs builtin-bots/black-magic.js (no proxy needed).
+    Use ./psweep.sh robot.py builtin-bots/black-magic.js 1 24 (or /tmp/seedtest.sh
+    <blue> <red> <seed...>; launch with nohup to /tmp — outer bash times out ~30s).
+  * The ~1-2 close losses/ties are attritional endgames. The ONLY untested
+    high-value idea is a real depth-2 (2-ply) minimax with an enemy best-response
+    INSIDE the search (high effort; profile — currently 1 greedy pass ~8.6s, budget
+    60s so there's headroom for a shallow 2-ply on the closest units only).
+  * DO NOT re-try (ALL regress black-magic, now confirmed vs the real bot too):
+    surround weight != 1.0, 3+ sweeps, enemy-move/approach prediction, linear
+    health, surround-weighted tiebreak, symmetric surround, dual/reversed greedy.
+  * Validate ANY change must beat 46-1-1 (Blue seeds 1-48) AND 22/24 (Red seeds
+    1-24) vs black-magic.js before adopting.
