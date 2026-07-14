@@ -80,3 +80,8 @@ Round 2 check vs navster8__bash-brothers (current agent):
 - Reviewed `/logs/rounds/1/results.json`: gpt-5-5/current bot was Blue and swept `navster8__bash-brothers` 250-0. Combined with prior round0 Red sweep, this matchup is fully dominated in both colors.
 - `tools_analyze_logs.py /logs/rounds/1`: average final Blue/us 26.31 units / 112.20 HP vs Red/opponent 1.25 units / 4.90 HP; worst listed unit margin still +16 units.
 - Spot regression still passes locally versus builtin heuristic on seed 1 as both colors. No `robot.py` changes made; current black-magic-style planner remains the safest stable choice unless later logs show losses.
+
+Current round check vs aaoutkine__dark-knight:
+- Reviewed `/logs/rounds/0/results.json`: gpt-5-5/current bot was Blue and swept `aaoutkine__dark-knight` 250-0.
+- `tools_analyze_logs.py /logs/rounds/0`: average final Blue/us 27.08 units / 126.21 HP vs Red/opponent 1.18 units / 4.34 HP; worst logged unit margin was still +17 units (20 vs 3/4 range), so this matchup is not close.
+- Spot regression still passes locally versus builtin heuristic as both colors on seed 0, and remains competitive with builtin black-magic on seed 0. No `robot.py` changes made; the stable black-magic-style planner remains safest unless future logs show actual losses.
