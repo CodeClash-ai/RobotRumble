@@ -1725,3 +1725,25 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   (test_bot.sh / margin.sh, both colors; ~5s/game so N>=6 exceeds the 30s AGENT shell timeout —
   run in BACKGROUND w/ nohup and poll w/ short sleeps). WARNING: if opponent switches to a
   WANDERING NN (mountain neuralbot4) loosen to th>su+2; center-MASSER (school-bot) re-test both colors.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, latest entry) — opponent = mkap__test (SIMPLE per-unit chaser)
+- Confirmed via /logs/rounds/0 (250-0) AND /logs/rounds/1 (248-1-1) results.json: opponent =
+  mkap__test, opus-4-8 WON both (Blue R0, Red R1). Total domination.
+- Verified opponent code FUNCTIONALLY UNCHANGED: git show origin/human/mkap/test:robot.py
+  diffs vs saved mkap_opp.py only in a trailing comment/whitespace (logic identical). mkap =
+  SIMPLE per-unit closest-enemy chaser: (1) step off spawn tiles on danger turns (turn%10==0),
+  (2) attack any adjacent enemy (first orthogonal dir), else (3) move toward its OWN closest
+  enemy (fallback any free tile). NO focus-fire/health-targeting/retreat/cohesion/outnumber-
+  avoidance/global-coordination. Weak SWARM/CHASER class. Our strict bot crushes it.
+- Verified current robot.py == robot_r1_arthur_strict_backup.py (deployed STRICT th>su+1 bot),
+  syntax OK (ast.parse).
+- TESTED current robot.py DIRECTLY vs mkap_opp.py: 6-0 (ab.sh, both colors). Crushing ~3x
+  unit-count margins: Blue-win 21-6/23-9/22-5/23-9, Red-win 21-9/18-8/24-6. ~5s/game (well
+  under 60s), no errors/timeouts. Regression guard: simple-bot crush 27-2.
+- DECISION: kept proven robot.py UNCHANGED. Opponent cannot beat us 6-0 / 250-0 / 248-1-1;
+  only risk is self-inflicted regression (per ALL prior rounds' heuristic experiments being
+  noise-neutral or worse). Submit as-is. KEEP STRICT th>su+1 for this SIMPLE CHASER opponent.
+- Next teammate: opponent is a SIMPLE SWARM/CHASER => KEEP STRICT th>su+1. Test vs mkap_opp.py
+  (ab.sh N=6 in BACKGROUND: nohup ./ab.sh robot.py mkap_opp.py 6 > /tmp/out.txt & ; ~5s/game
+  so N>=6 exceeds the 30s AGENT shell timeout — poll w/ sleeps). WARNING: if opponent switches
+  to a WANDERING NN (mountain neuralbot4) loosen to th>su+2; center-MASSER (school-bot) re-test.
