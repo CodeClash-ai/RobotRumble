@@ -1,91 +1,147 @@
-from enum import Enum, auto
-from typing import *
+# Team gpt-5-5 RobotRumble bot, round 1.
+# Strategy: leave spawn, converge on the most vulnerable enemy, and focus fire.
+# This intentionally avoids the starter quadrant logic, which can stalemate forever
+# when mirrored armies begin in different quadrants.
 
+ALL_DIRS = [Direction.North, Direction.East, Direction.South, Direction.West]
 
-class Quadrant(Enum):
-    One = auto()
-    Two = auto()
-    Three = auto()
-    Four = auto()
-
-    @staticmethod
-    def from_coords(coords: Coords) -> "Quadrant":
-        if coords.x <= MAP_SIZE // 2:
-            if coords.y <= MAP_SIZE // 2:
-                return Quadrant.Two
-            else:
-                return Quadrant.Three
-        else:
-            if coords.y <= MAP_SIZE // 2:
-                return Quadrant.One
-            else:
-                return Quadrant.Four
-
-
-target_ids: Dict[Quadrant, Optional[str]] = {
-    Quadrant.One: None,
-    Quadrant.Two: None,
-    Quadrant.Three: None,
-    Quadrant.Four: None,
+# Per-turn shared state (reset in init_turn).
+turn_cache = {
+    "target_id": None,
+    "reserved": set(),
+    "planned_attack": {},
 }
 
+# Small persistent memory to reduce back-and-forth shuffling.
+robot_memory = {}
 
-def total_distance_for_units(units: List[Obj], target: Obj) -> float:
-    return sum([unit.coords.distance_to(target.coords) for unit in units])
+
+def _key(c):
+    return (c.x, c.y)
 
 
-def init_turn(state: State) -> None:
-    global target_ids
+def _in_bounds(c):
+    return 0 <= c.x < MAP_SIZE and 0 <= c.y < MAP_SIZE
 
-    for (q, id) in target_ids.items():
-        if id and not state.obj_by_id(id):
-            target_ids[q] = None
+
+def _obj_team(obj):
+    # Terrain has no team in the stdlib.
+    return getattr(obj, "team", None)
+
+
+def _is_empty_legal(state, c):
+    return _in_bounds(c) and state.obj_by_coords(c) is None
+
+
+def _adjacent_enemies(state, unit):
+    out = []
+    for d in ALL_DIRS:
+        c = unit.coords + d
+        obj = state.obj_by_coords(c)
+        if obj and _obj_team(obj) == state.other_team:
+            out.append((d, obj))
+    return out
+
+
+def _allied_neighbors(state, coords):
+    n = 0
+    for d in ALL_DIRS:
+        obj = state.obj_by_coords(coords + d)
+        if obj and _obj_team(obj) == state.our_team:
+            n += 1
+    return n
+
+
+def init_turn(state):
+    """Pick one army-wide target each turn and clear per-turn reservations."""
+    global turn_cache
+    turn_cache["reserved"] = set()
+    turn_cache["planned_attack"] = {}
 
     allies = state.objs_by_team(state.our_team)
     enemies = state.objs_by_team(state.other_team)
-    for q in target_ids:
-        if not target_ids[q]:
-            q_allies = [ally for ally in allies if Quadrant.from_coords(ally.coords) == q]
-            q_enemies = [enemy for enemy in enemies if Quadrant.from_coords(enemy.coords) == q]
+    if not enemies:
+        turn_cache["target_id"] = None
+        return
 
-            if q_enemies and q_allies:
-                closest_enemy = min(q_enemies, key=lambda enemy: total_distance_for_units(q_allies, enemy))
-                target_ids[q] = closest_enemy.id
+    # Prefer enemies already in contact, low-health enemies, then enemies near our army.
+    def score(enemy):
+        adjacent = _allied_neighbors(state, enemy.coords)
+        total_walk = 0
+        for ally in allies:
+            total_walk += ally.coords.walking_distance_to(enemy.coords)
+        # Lower is better.  A large adjacent bonus prevents target switching mid-fight.
+        return total_walk + enemy.health * 4 - adjacent * 18
+
+    turn_cache["target_id"] = min(enemies, key=score).id
 
 
-robot_state: Dict[str, dict] = {}
+def _choose_step(state, unit, target):
+    """Return a good movement direction toward target, or None if boxed in."""
+    direct = unit.coords.direction_to(target.coords)
+
+    # Consider all directions.  Sorting by resulting walking distance gives robust
+    # pathing around allies/walls; slight primary-direction bias keeps advances direct.
+    candidates = []
+    for d in ALL_DIRS:
+        dest = unit.coords + d
+        dist = dest.walking_distance_to(target.coords)
+        bias = 0 if d == direct else (1 if d == direct.rotate_cw or d == direct.rotate_ccw else 3)
+        candidates.append((dist, bias, d, dest))
+    candidates.sort(key=lambda x: (x[0], x[1]))
+
+    mem = robot_memory.setdefault(unit.id, {})
+    last = mem.get("last")
+
+    # On turns just before respawn, do not finish the turn on a spawn square: units
+    # on spawn are cleared at the beginning of turns 11,21,... before new spawns.
+    avoid_spawn = (state.turn % 10 == 0)
+
+    fallback = None
+    for _, _, d, dest in candidates:
+        if not _is_empty_legal(state, dest):
+            continue
+        if _key(dest) in turn_cache["reserved"]:
+            continue
+        if avoid_spawn and dest.is_spawn():
+            continue
+        if last is not None and _key(dest) == last:
+            fallback = d
+            continue
+        turn_cache["reserved"].add(_key(dest))
+        mem["last"] = _key(unit.coords)
+        return d
+
+    # If all good moves merely reverse the last step, take the best such move rather
+    # than freeze.  Freezing on spawn/border is usually worse than oscillation.
+    if fallback is not None:
+        dest = unit.coords + fallback
+        turn_cache["reserved"].add(_key(dest))
+        mem["last"] = _key(unit.coords)
+        return fallback
+    mem["last"] = _key(unit.coords)
+    return None
 
 
-def robot(state: State, unit: Obj) -> Optional[Action]:
-    past_coords: Optional[Coords] = robot_state.setdefault(unit.id, {}).get("past_coords")
-    robot_state[unit.id]["past_coords"] = unit.coords
-    
-    id = target_ids[Quadrant.from_coords(unit.coords)]
-    if id:
-        target = state.obj_by_id(id)
-        if target:
-            debug.inspect(target)
-            direction = unit.coords.direction_to(target.coords)
+def robot(state, unit):
+    enemies = state.objs_by_team(state.other_team)
+    if not enemies:
+        return None
 
-            if unit.coords.distance_to(target.coords) == 1:
-                # we're right next to them
-                return Action.attack(direction)
-            else:
-                move_target = state.obj_by_coords(unit.coords + direction)
-                if not move_target:
-                    return Action.move(direction)
-                else:
-                    directions = [direction.rotate_cw, direction.rotate_ccw]
-                    destinations = [unit.coords + direction for direction in directions]
-                    if target.coords.distance_to(destinations[0]) < target.coords.distance_to(destinations[1]) \
-                            and not state.obj_by_coords(destinations[0]) \
-                            and past_coords != destinations[0]:
-                        return Action.move(directions[0])
-                    elif not state.obj_by_coords(destinations[1]) \
-                            and past_coords != destinations[1]:
-                        return Action.move(directions[1])
-                    else:
-                        return None
-        else:
-            raise Exception('Id points to nonexistent target')
+    # 1. If adjacent to enemies, focus the lowest-health / most-surrounded one.
+    adjacent = _adjacent_enemies(state, unit)
+    if adjacent:
+        d, enemy = min(adjacent, key=lambda de: (de[1].health, -_allied_neighbors(state, de[1].coords)))
+        return Action.attack(d)
 
+    # 2. Otherwise advance on the army-wide target (fall back to personal nearest).
+    target = state.obj_by_id(turn_cache.get("target_id"))
+    if target is None:
+        target = min(enemies, key=lambda e: unit.coords.walking_distance_to(e.coords) + e.health * 2)
+
+    step = _choose_step(state, unit, target)
+    if step is not None:
+        return Action.move(step)
+
+    # 3. Boxed in by allies: attack toward the target to punish enemies that step in.
+    return Action.attack(unit.coords.direction_to(target.coords))
