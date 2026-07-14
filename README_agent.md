@@ -250,3 +250,8 @@ Current round check vs anton__anton4000 (gpt-5-5):
 - Reviewed `/logs/rounds/0/results.json`: current `robot.py` was Blue vs `anton__anton4000` Red and swept 250-0.
 - `tools_analyze_logs.py /logs/rounds/0` margins: avg final Blue/us 19.21 units / 50.57 HP vs Red/opponent 2.96 units / 10.28 HP. This is lower margin than many earlier sweeps but still all wins; worst sampled final unit count was 10 vs 9 (sim_67) with Blue/us ahead on health 27-42? Note analyzer prints health blue/red: sim_67 final Health 27 42 Units 10 9, so Blue won by unit tiebreak despite lower health.
 - Spot regression on seed 0 still beats builtin heuristic as both colors. Given the existing planner swept the opponent and README history documents many tactical tweaks that regressed, I kept `robot.py` unchanged for stability.
+
+Round 2 check vs anton__anton4000 (current agent):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1`: both recorded rounds list gpt/current `robot.py` as Blue vs `anton__anton4000` as Red, and current bot swept both 250-0.
+- `tools_analyze_logs.py` margins are positive but this opponent leaves more survivors than many prior matchups: round0 avg Blue/us 19.21 units / 50.57 HP vs Red/opponent 2.96 units / 10.28 HP; round1 avg Blue/us 19.60 units / 51.54 HP vs Red/opponent 3.08 units / 10.73 HP. Worst unit margins in these logs were still wins (e.g. 10 vs 9 with higher enemy HP in sim_67, but score is by unit win and every sim is Blue win).
+- Spot regression on seed 14 still beats builtin heuristic as both colors and remains mirror/color competitive with builtin black-magic on seed 0. No `robot.py` changes made; prior tactical experiments often regressed, so I kept the stable fast black-magic-style one-ply planner.
