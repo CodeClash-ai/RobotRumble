@@ -121,3 +121,8 @@ Round 2 current check vs mountain__neuralbot2-6h (gpt-5-5):
 - Reviewed `/logs/rounds/1/results.json` in addition to prior round0 notes: opponent `mountain__neuralbot2-6h` was Blue, gpt/current bot was Red, and we swept 250-0 again.
 - `tools_analyze_logs.py /logs/rounds/1`: average final Blue/opponent 1.61 units / 6.32 HP vs Red/us 32.16 units / 155.04 HP; many complete wipes and huge margins.
 - Spot regression on seed 5 still beats builtin heuristic as both colors. No `robot.py` logic changes made; current fast black-magic-style tactical planner is dominating this opponent, so keeping it stable is safest.
+
+Current round check vs kalkin__artemis:
+- Reviewed `/logs/rounds/0/results.json`: gpt-5-5/current bot was Blue and swept `kalkin__artemis` 250-0.
+- `tools_analyze_logs.py /logs/rounds/0`: average final Blue/us 26.96 units / 98.52 HP vs Red/opponent 1.86 units / 6.65 HP; worst unit margin found was still +15 units (19 vs 4), so no close losses.
+- Spot regression still passes locally versus builtin heuristic as both colors on seed 0, and remains competitive with builtin black-magic on seed 0. No `robot.py` logic changes made; current fast black-magic-style one-ply planner is dominating this opponent, so stability is safest unless future logs show actual losses.
