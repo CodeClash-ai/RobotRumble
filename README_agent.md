@@ -209,3 +209,9 @@ Current round check vs aaa__jippty5 (gpt-5-5):
 - `tools_analyze_logs.py /logs/rounds/0` summary: avg final Blue/us 22.57 units / 71.46 HP vs Red/opponent 2.62 units / 8.76 HP. Worst listed unit margin was still +15 units, so this matchup is comfortably winning.
 - Spot regression local seed 0 still beats builtin heuristic as both colors and simple-bot as Blue. Versus builtin black-magic seed 0 remains the expected mirror/color split (Blue wins 13-9 either side), so current planner is healthy.
 - No `robot.py` logic changes made. The existing fast black-magic-style one-ply planner is safely winning, and prior notes document many tactical tweaks that regressed, so keeping it stable remains safest unless future logs show actual losses.
+
+Round 2 check vs aaa__jippty5 (current agent):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current `robot.py` swept `aaa__jippty5` 250-0 in both recorded rounds; both list gpt/current bot as Blue.
+- `tools_analyze_logs.py` margins: round0 avg Blue/us 22.57 units / 71.46 HP vs Red/opponent 2.62 units / 8.76 HP; round1 avg Blue/us 22.72 units / 71.24 HP vs Red/opponent 2.61 units / 8.86 HP. Worst sampled unit margins remain comfortably positive.
+- Spot regression on seed 13 still beats builtin heuristic as both colors and simple-bot as Blue, with runtime about 2s/game.
+- No `robot.py` logic changes made. The existing fast black-magic-style one-ply planner is safely winning this matchup; given many prior tactical tweaks regressed, keeping it stable remains safest unless future logs show losses.
