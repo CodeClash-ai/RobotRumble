@@ -69,3 +69,9 @@ Round 2 check vs ldang__nemo (current agent):
 - `tools_analyze_logs.py` margins remain very large: round0 avg us/Red 26.30 units / 112.14 HP vs opponent 1.24 units / 4.55 HP; round1 avg us/Blue 26.30 units / 111.62 HP vs opponent 1.22 units / 4.64 HP.
 - Spot regression local seed 0 still beats builtin heuristic as both colors and is competitive with builtin black-magic (`robot.py` as Blue won 13-9 units; as Red lost mirrored 9-13 units). Runtime about 2.1-2.3s/game.
 - No logic changes made. Given two sweeps and previous notes that tactical tweaks regressed, safest action is to keep the current planner stable unless later logs show losses.
+
+Current round check vs navster8__bash-brothers:
+- Reviewed `/logs/rounds/0/results.json`: opponent `navster8__bash-brothers` was Blue, gpt-5-5/current bot was Red, and we swept 250-0.
+- `tools_analyze_logs.py /logs/rounds/0`: average final Blue/opponent 1.216 units / 4.608 HP vs Red/us 26.148 units / 111.688 HP; every sim was a Red win, with several complete enemy wipes.
+- Spot regression still passes locally: current `robot.py` beat builtin heuristic as Red on seed 0 (20-5 units) and as Blue on seed 0 (15-4 units).
+- No logic changes made. The black-magic-style tactical planner continues to dominate this opponent by a very large margin, so keeping `robot.py` stable is safest unless later logs show actual losses.
