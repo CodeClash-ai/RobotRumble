@@ -125,11 +125,12 @@ def _score(friends, enemies):
         # (health_score - friend_health_score) is exactly -enemy_sqrt-health.
         enemy_health_score = health_score - friend_health_score
         return (unit_score, enemy_health_score, health_score, friend_health_score, surround_score, distance_score)
-    if CURRENT_TURN >= 60:
-        # Against current scatter/retreat-style opponents, preserving net HP in
-        # equal-unit late branches can let too many enemy bodies survive the
-        # final spawn waves.  Keep unit count primary, then prefer pressure:
-        # surrounded/contacted positions and closeness before raw HP.
+    if CURRENT_TURN >= 30:
+        # Against the current retreat/scatter opponent, losses start diverging
+        # around turns 30-50: preserving net HP in equal-unit branches lets the
+        # enemy build a spread-out body lead.  Keep unit count primary, then
+        # prefer pressure/contact and closeness before raw HP earlier in the
+        # midgame to force conversions before the late spawn waves.
         return (unit_score, surround_score, distance_score, health_score)
     return (unit_score, surround_score, health_score, distance_score)
 
