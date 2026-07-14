@@ -2228,3 +2228,50 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   timeout — poll w/ sleeps). Results VERY NOISY — run 2+ times (~24+ games). Baseline to
   beat: ~62% win. DO NOT revert to cohesion-gang bots (they FEED walk_retreat's free retreat
   = our attacks miss = we LOSE 0-4). Regression guard: MUST still crush simple-bot.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND) — opponent = mitch84__walk_retreat *** IMPROVED: TRAP (block predicted retreat tile) ***
+- Confirmed /logs/rounds/0 (LOST 16-227-7 w/ old inherited bot) AND /logs/rounds/1
+  (WON 150-81-19 w/ the predictive-attack bot) results.json: opponent = mitch84__walk_retreat,
+  opus-4-8 was Blue both rounds. R0->R1 jump = the predictive-attack fix (prior teammate).
+- Opp UNCHANGED (git show origin/human/mitch84/walk_retreat:robot.py diffs CLEAN vs
+  walk_retreat_opp.py). Recap: per unit, retreat() fires FIRST if enemies>1 (2+ of OUR units
+  adjacent) AND a blank adjacent tile exists -> moves to blanks[0] (first blank in Direction
+  iteration order = N,S,E,W, matching our DIRECTIONS). Else if dist==1 attack toward closest
+  enemy; else move toward closest enemy. MOVEMENT resolves BEFORE ATTACKS (verified
+  logic/logic/src/lib.rs), so attacking a unit that retreats MISSES. NO focus-fire, NO
+  wounded-retreat (only ganged-retreat), NO cohesion. Direction enum order confirmed
+  N,S,E,W in logic/logic/src/types.rs (retreat tile = first blank N,S,E,W).
+- BASELINE (inherited predictive-attack robot.py = /tmp/robot_baseline_r2.py) vs
+  walk_retreat_opp.py (ab.sh N=12): 7W-4L-1T (~58%). Games close on unit counts.
+- CHANGE MADE (DEPLOYED, robot.py = robot_r2_walkretreat_trap_backup.py): added a "TRAP"
+  tiebreak as the HIGHEST-priority advance sort key. In init_turn precompute retreat_tiles =
+  the set of tiles each about-to-flee enemy (attackers_on>=2) WILL retreat TO (first blank
+  N,S,E,W). In the advance loop, moving ONTO a retreat tile sets trap=0 (else 1); new sort
+  key = (trap, dist, cdist, th, diag, th-su). So our approaching units prefer to STEP ONTO
+  the enemy's predicted escape tile, BLOCKING its retreat (blanks shrinks) so next turn it
+  can't flee and gets surround-killed. Kept the predictive-attack (attack the flee-TO tile),
+  cautious advance (strict th>su+1), cohesion, wounded-safe, spawn-evac.
+- A/B RESULTS vs walk_retreat_opp.py (ab.sh N=12, both colors), THREE independent runs:
+    * TRAP (DEPLOYED): 8-4-0, 7-5-0, 9-1-2 => COMBINED 24W-10L-2T over 36 games (~67%).
+    * baseline (predictive-attack, no trap): 7-4-1 (~58%).
+  TRAP is better (~67% vs ~58%) and consistently >=7 wins/12. Regression guard PASS: TRAP
+  crushes simple-bot BOTH colors (30-1 Blue, 31-3 Red). syntax OK (ast.parse). ~4-5s/game,
+  no errors/timeouts.
+- Backups (persistent /workspace): robot_r2_walkretreat_trap_backup.py (DEPLOYED). Prior
+  baseline (predictive-attack, no trap) = robot_r0_predictattack_backup.py (== /tmp/robot_baseline_r2.py).
+- Next teammate (PRIORITY = widen margin, we WIN ~67% but NOISY): the CORE exploit is
+  movement-before-attacks + retreat-when-2+-adjacent. Ideas to improve further:
+    (1) FULL SURROUND: fill ALL of a fleeing unit's blank tiles so blanks is empty -> it
+        CANNOT retreat and (if adjacent) it ATTACKS/stays -> then we all hit it. The trap
+        blocks ONE tile (blanks[0]); blocking all needs multi-unit coordination.
+    (2) When we've trapped an enemy (blocked its blanks[0]), on the FOLLOWING turn predict it
+        will flee to the NEW blanks[0] and attack there / block that too.
+    (3) Combine trap-blocking with predictive-attack: currently a unit either traps (moves
+        onto retreat tile) OR predicts-and-attacks the flee tile. Consider having ONE unit
+        trap-block while ANOTHER attacks the (now un-fleeable) enemy same turn.
+  Test vs walk_retreat_opp.py BOTH colors (ab.sh N=12 in BACKGROUND: nohup ./ab.sh robot.py
+  walk_retreat_opp.py 12 > /tmp/out.txt & ; ~4-5s/game, N>=6 exceeds the 30s AGENT shell
+  timeout — poll w/ sleeps). Results VERY NOISY — run 2-3 times (~36 games). Baseline to
+  beat: ~67% win / 24W-10L-2T/36. DO NOT revert to cohesion-gang bots that FEED the free
+  retreat (our attacks miss = we LOSE 0-4 / 16-227). Regression guard: MUST still crush
+  simple-bot both colors.
