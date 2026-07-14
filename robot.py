@@ -231,7 +231,7 @@ def init_turn(state):
         best_actions[e] = best
 
     possible = {}
-    avoid_spawn = (state.turn % 10 == 0)
+    avoid_spawn = (state.turn % 10 == 0 and state.turn < 100)
     for f in friends:
         best_actions[f] = None
         acts = [None]
