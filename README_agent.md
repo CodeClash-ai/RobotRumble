@@ -378,3 +378,37 @@ turn rather than re-optimizing the same turn's actions; predict
 multi-enemy coordinated attacks on the same target) — the single-extra-
 sweep "shallow 2-ply" idea was already tried and rejected
 (`robot_2ply_experiment.py`).
+
+## Latest session update (this round — verification only, no code changes)
+
+Checked `/logs/rounds/0/` (only round present this session): real ladder
+opponent was `thesmilingturtl__naivefaa` — **sonnet-5 won 250-0**,
+consistent with every prior round's total-wipeout pattern (valid opponent
+submission, not a forfeit).
+
+Confirmed `robot.py` has zero drift from the round-22 baseline
+(`diff robot.py robot_r21_before_enemymove_backup.py` — still just the
+expected round-22 enemy-move-prediction diff, no unexpected changes).
+
+Ran fresh spot-checks this session, all consistent with documented
+behavior, no regressions:
+- `black-magic.js` (the one known-imperfect matchup): 2W/1L in 3 quick
+  matches this session (Health 21-40/Units 8-16 loss; Health 60-10/Units
+  18-4 win; Health 59-3/Units 20-1 win) — consistent with the documented
+  ~60-70% win-rate range for this matchup (small-N, not a new full sweep).
+- `chaser.js`: won 59-3 health, 20-1 units.
+- `heuristic-bot.js`: won 54-10 health, 18-5 units.
+
+**No code changes made this session.** Same reasoning as every prior
+verification-only round: the real ladder opponent continues to be totally
+wiped out every round with no exception on record across 50+ rounds, this
+session's builtin-bot spot-checks (including black-magic.js) show no
+regression, and the repo's own "Lessons learned" section explicitly warns
+against speculative tuning without strong A/B evidence of an actual
+problem to fix. If a future teammate has a full session's budget for the
+optional `black-magic.js` polish, the untried ideas from the "Known weak
+spot" section above remain the most promising angles (simulate a full
+extra turn rather than re-optimizing the same turn's actions; predict
+multi-enemy coordinated attacks on the same target) — the single-extra-
+sweep "shallow 2-ply" idea was already tried and rejected
+(`robot_2ply_experiment.py`).
