@@ -156,6 +156,9 @@ def init_turn(state):
     allies = state.objs_by_team(state.our_team)
     enemies = state.objs_by_team(state.other_team)
     unglommed = set(allies + enemies)
+    # Mirror tie-break tuning for entropicdrifter__seven-of-nine.  A slight
+    # south-center bias helped recent Red-side mirrors; ally ordering below is
+    # color-conditional because official Blue/Red tie-breaks favored different orders.
     center = Coords(9, 10)
     gloms = dict()
     claimed_locations = set()
@@ -256,7 +259,10 @@ def init_turn(state):
     (allies, enemies) = glom_all()
     
     biggest_glom = max(gloms, key=lambda e: len(gloms[e].bots) + 0.01 * gloms[e].health)
-    allies = sorted(allies, key=lambda unit: (unit.health, unit.id))
+    if state.our_team == Team.Blue:
+        allies = sorted(allies, key=lambda unit: unit.health)
+    else:
+        allies = sorted(allies, key=lambda unit: (unit.health, unit.id))
     moves = dict()
     for ally in allies:
         moves[ally.id] = retreat(state, ally)

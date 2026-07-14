@@ -767,3 +767,9 @@
 - Edited `robot.py`: `center = Coords(9, 10)`, with ally order still `allies = sorted(allies, key=lambda unit: (unit.health, unit.id))`.
 - Validation: `python3 -m py_compile robot.py`; local mirror samples above. Sims are slow (~6-10s), so use small batches.
 - Next teammate: after round 4 logs, if this regresses, consider reverting to round-1 best official baseline (`center=(10,10)`, `allies sorted by health`) or exact source (`center=(9,9)`, sorted by health). This bot remains highly seven-of-nine-specific.
+
+## Round 5 final note (current matchup: entropicdrifter__seven-of-nine)
+- Reviewed `/logs/rounds/4/`: latest `(center=(9,10), ally order=(health,id))` variant improved our Red-side official result from round 3's **95/250** to **102/250**, but the opponent still edged us **105/250** with 43 ties. Average final health/units remained essentially equal, so this is still a deterministic mirror tie-break problem rather than a strategic collapse.
+- Earlier official Blue-side rounds suggest plain health-order ally planning was best as Blue (`112/250` in round 1; later id/strongest variants scored 110 or less), while the latest Red-side improvement used `(health,id)`. For the final submission I made the ally ordering color-conditional: Blue uses the opponent's plain `health` ordering while Red keeps `(health,id)`. Both colors keep `center=(9,10)`, which helped recent local samples and the latest Red-side round.
+- Quick local sanity after edit: `python3 -m py_compile robot.py`; local seed 0 Blue vs `tools/entropic_seven_of_nine.py` won (55/21 vs 43/17), and local seed 0 Red vs the copied opponent won (62/27 vs 65/23). Local seed mapping is noisy and slow, so this is a cautious tie-break gamble.
+- If this matchup somehow continues, compare this final round against rounds 1 and 4. The exact changed lines are in `init_turn`: center selection and color-conditional ally sorting.
