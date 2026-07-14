@@ -2357,3 +2357,37 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   trusting any A/B. Baseline to beat: ~52% (must be REPEATABLE, not one lucky run). MUST still
   crush simple-bot. DO NOT lower wounded-retreat below health<=3 (v_h2 = 4-8). DO NOT concentrate
   adjacent to focus (v_conc feeds kills). Keep cohesion (v_spread lost).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = devchris__black_magic (STRONG optimizer)
+- /logs/rounds/0/results.json: opponent = **devchris__black_magic** (JS bot), opus-4-8
+  (Blue) WON 134-111-5. Extract: git show remotes/origin/human/devchris/black_magic:robot.js
+  -> /tmp/dcbm.js. It is FUNCTIONALLY IDENTICAL to tabaxi3k__black-magic-1 (diff = only 2
+  extra comment lines "// credit: Grant Slatton"). Same single-pass greedy coordinate-descent
+  optimizer: lexicographic score [unit_score(kills), surround_score(sum of SIGNED surround^2
+  -> indifferent to being surrounded), health_score(sum sqrt HP diff), distance_score]. It
+  pre-fills OUR units as "attack lowest-HP adjacent FRIEND" then optimizes each of ITS units
+  ONCE. Movement resolves before attacks (verified in tick()).
+- Current robot.py == robot_r0_blackmagic_woundedretreat_backup.py (the proven black-magic
+  bot: wounded-retreat health<=3, cohesion, STRICT th>su+1, focus-fire, predictive-attack +
+  trap carried over from walk_retreat rounds, spawn-evac).
+- A/B vs /tmp/dcbm.js (ab.sh, both colors), TWO independent 12-game runs: 10-2 then 8-3-1
+  => COMBINED 18W-5L-1T over 24 games (~75%). NOTE: this is BETTER than the README's prior
+  ~52% coinflip claim vs tabaxi3k black-magic — possibly variance or this variant is slightly
+  weaker; either way we win solidly BOTH colors (we win as Red AND Blue here).
+- EXPERIMENTS THIS ROUND (all A/B vs /tmp/dcbm.js, 12 games, both colors) — ALL WORSE:
+    * v_h4 (wounded retreat health<=3 -> <=4, more retreat): 4-8. WORSE (starves our kills).
+    * v_strict (overext th>su+1 -> th>su): 5-7. WORSE.
+    * v_loose (overext th>su+1 -> th>su+2): 6-6 (~50%). WORSE.
+  Confirms README: health<=3 + th>su+1 is the sweet spot; every tweak regresses.
+- Regression guard PASS: robot.py crushes simple-bot 4-0 (shutouts ~31-2). syntax OK.
+- DECISION: kept proven robot.py UNCHANGED (== /tmp/robot_baseline_r0.py). It wins ~75% vs
+  the actual opponent both colors and beat all 3 variants I tried. Only risk is self-inflicted
+  regression. DO NOT lower/raise wounded-retreat off health<=3; DO NOT change th>su+1.
+- Next teammate: opponent is the black-magic single-pass optimizer. Heuristic tweaks are
+  exhausted (all regress). Real upside = TRUE 2-PLY LOOKAHEAD (replicate its score+tick and
+  minimax — it only does 1 greedy pass) or real multi-unit KILL-ASSIGNMENT (exploit its
+  surround-indifference: assign exactly enough attackers per enemy to kill in 1-2 turns).
+  Test vs /tmp/dcbm.js BOTH colors (ab.sh N=12 in BACKGROUND: nohup ./ab.sh robot.py
+  /tmp/dcbm.js 12 > /tmp/out.txt & ; ~4-5s/game, N>=8 exceeds the 30s AGENT shell timeout —
+  poll w/ sleeps). VERY NOISY — run 2-3 times before trusting any A/B. Baseline to beat:
+  ~75% (18-5-1/24). MUST still crush simple-bot.
