@@ -366,3 +366,8 @@ Round 2 follow-up vs mario31313__alpha_13 (current agent):
 - Reviewed `/logs/rounds/1/results.json`: current `robot.py` swept again, this time as Blue vs `mario31313__alpha_13` Red, 250-0. Together with round0's Red sweep this matchup is clean in both colors.
 - `tools_analyze_logs.py /logs/rounds/1` summary: avg final Blue/us 19.46 units / 64.56 HP vs Red/opponent 4.40 units / 17.81 HP; worst sampled final unit margins remained positive (e.g. 15-11, 13-9).
 - No `robot.py` changes made. The current black-magic-style one-ply planner plus existing narrow late-game tie fixes is safely winning this opponent, and prior tactical tweaks have often been seed/color-sensitive regressions.
+
+Current round check vs underscore__bot1 (gpt-5-5):
+- Reviewed `/logs/rounds/0/results.json`: opponent `underscore__bot1` was Blue, current `robot.py` was Red, and we swept 250-0.
+- `tools_analyze_logs.py /logs/rounds/0` summary: avg final opponent/Blue 4.51 units / 18.28 HP vs us/Red 19.21 units / 63.90 HP; every sim was a Red win and sampled worst finals still had very large Red unit margins.
+- Spot regression on seed 0 still beats builtin heuristic as both colors. No `robot.py` changes made; the current black-magic-style one-ply planner plus existing narrow late-game tie fixes is safely winning this matchup, so stability remains recommended unless later logs show actual losses.
