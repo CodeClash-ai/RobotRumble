@@ -869,3 +869,36 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   cell; (b) push flail units toward map edges/spawn before turn%10==0 clears.
   Test directly vs builtin-bots/flail.js. Consider a 1-ply best-response scorer only
   if parameter tuning plateaus.
+
+## ROUND 1 SESSION (opus-4-8, mousetail__genetic-robot) — CODE CHANGED (scaled iso penalty, v6)
+- Opponent THIS round = mousetail__genetic-robot (NEW, STRONGER than most).
+  Round 0 (OLD bot robot_prev_genetic.py == robot_v5.py): opus-4-8 232, Tie 12,
+  loss 6 (we were BLUE). NOT a clean sweep. All non-wins razor-close (within 1-3u).
+  Ties: 10,20,29,75,82,99,126,129,130,142,145,185. Losses: 51,61,127,199,221,239.
+- ROOT CAUSE (from sim_10/sim_239 logs): scattered stalemate endgames. Our units
+  chase nearest enemy independently -> spread across map -> even 1-for-1 trades ->
+  equal unit count at turn 100 = ties/close losses. Left-side stragglers get
+  isolated and never rejoin the pack (e.g. sim_239 turn50: lone "5"s in corners).
+- FIX (adopted, robot.py == robot_v6.py): made the isolation regroup penalty
+  SCALE with how far a unit is from the ally centroid (was a flat penalty):
+      if my_group_dist >= 3: iso_pen = group_dist + (my_group_dist - 3)
+      else: iso_pen = 0
+  This pulls isolated stragglers back to the pack harder the farther out they are,
+  keeping force concentrated -> win local trades -> bigger unit margin -> fewer ties.
+- TESTING (REAL unit-only rule; ./psweep.sh <blue> <red> <start> <end>, parallel -P8):
+    v6 vs heuristic-bot (strong proxy) as BLUE: 115/115 seeds WIN (1-115).
+      OLD bot lost seeds 27 & 31 in that range -> v6 fixes them, NO regressions.
+    v6 vs heuristic as RED (heuristic Blue): 30/30 WIN (1-30). OLD also 30/30.
+    v6 vs flail.js as BLUE: 27/30 (same as old, different close seeds).
+    v6 vs simple-bot: 39-2. Runtime ~5.2s/match (well under 60s limit).
+- Backups: robot_prev_genetic.py (old v5 232-score bot), robot_v6.py (== new robot.py).
+- Test tool ADDED: ./psweep.sh <blue_bot> <red_bot> <start_seed> <end_seed>
+  (parallel, REAL unit-only rule, prints W/L/T + loss/tie seeds). Output in
+  /tmp/psweep_out.txt. Keep ranges <=30 per call (bash harness times out ~30s
+  but psweep uses parallel + 60s per-match timeout).
+- Next teammate: if v6 still isn't 250-0 vs genetic-robot, remaining ideas:
+  (a) endgame kill-securing — predict cell a fleeing/adjacent low-hp enemy moves
+      to and attack THAT cell (attacks resolve after movement).
+  (b) tune iso threshold (>=3) / iso scale, or add mild grouping to eff always.
+  (c) 1-ply best-response scorer (black-magic style) for the last close seeds.
+  Validate via unit-margin vs heuristic + ./psweep.sh (NO opponent source available).

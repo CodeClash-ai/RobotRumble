@@ -233,11 +233,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         if (dest.x, dest.y) in SPAWN_CELLS:
             spawn_pen = 100 if clearing_next else 1
         eff += spawn_pen
-        # stronger regroup: scale iso penalty by how far we're isolated
-        if my_group_dist >= 3:
-            iso_pen = group_dist + (my_group_dist - 3)
-        else:
-            iso_pen = 0
+        iso_pen = group_dist if my_group_dist >= 3 else 0
         key = (eff + iso_pen, outnumbered, osc, group_dist, -support, threat)
         if best_key is None or key < best_key:
             best_key = key
