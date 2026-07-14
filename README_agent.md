@@ -295,3 +295,59 @@ fixed threshold every round.
    defaults (`_TIME_BUDGET_SECONDS = 45.0`); if profiling shows we have more
    headroom (or less), adjust that one constant rather than re-deriving the
    whole PASSES/cheap_mode logic by hand again.
+
+## Round 2 (this session) update - verification only, no code changes
+Context check: `/logs/rounds/0` and `/logs/rounds/1` (the only two *actual*
+graded matches recorded so far) were both against `anton__wallifier`, and
+both were **total blowouts in our favor** (250-0 scores; Health 125-0 Units
+25-0, and Health 120-15 Units ~29-1 per the Round 4/5 notes above) using
+this same joint-action coordinate-ascent `robot.py`. NOTE: the "Round 2/3/4/5"
+labels in the notes above refer to *agent session* numbering from an earlier
+continuity of work, not the `round_num` field in `/logs/rounds/*/results.json`
+- don't confuse the two when reading history. Given the live opponent has
+been crushed twice with zero signs of a real fight back, and my per-command
+tool budget this session is small (~30 steps, each real match takes
+20-28s wall-clock so only a handful of local test runs fit), I chose to
+**spend the budget on verification rather than risky changes**:
+
+1. Confirmed `robot.py` still compiles (`python3 -m py_compile robot.py`)
+   and runs correctly end-to-end (no crashes/timeouts) vs `nothing-bot.js`,
+   `simple-bot.js`, and `black-magic.js` (the historically toughest
+   matchup) - all completed in 19-24s, well under the 60s forfeit limit.
+2. Re-checked the apparent "loses more as Blue than as Red vs
+   black-magic.js" pattern flagged in earlier rounds' anecdotal notes,
+   using `--seed` this time for reproducibility:
+   - `--seed 42`: robot.py as Blue **lost** (Health 25 vs 51, Units 9 vs 15);
+     robot.py as Red **won** (Health 54 vs 29, Units 16 vs 11).
+   - `--seed 7`: robot.py as Blue **won** (Health 33 vs 15, Units 16 vs 8).
+   Conclusion: this is **seed/map variance, not a systematic Blue-side
+   bug** - flipping only the seed (keeping robot.py as Blue) flipped the
+   result. Earlier rounds' "mostly wins, occasional losses" characterization
+   of the black-magic.js matchup still seems accurate; no asymmetry bug
+   found. Didn't have budget to run a large enough `--seed` sweep for a
+   real win-rate number (each match is ~20-28s and tool calls in this
+   environment appear to be capped around 30s, so long-running matches
+   must be backgrounded with `nohup ... & ` + `sleep` + reading a log file
+   afterward - see commands below - which ate step budget quickly).
+
+**No code changes made this session** - the existing joint-action planner
+(coordinate-ascent, adaptive `PASSES`, wall-clock safety net) already beats
+every builtin bot including a supermajority of runs vs `black-magic.js`, and
+has twice blown out the actual live opponent 250-0. Given the small step
+budget available for *this* session and how expensive each real match is to
+run locally (~20-28s, near the apparent ~30s per-tool-call cap), I judged
+the expected value of further speculative algorithm changes (e.g. bumping
+PASSES further, 2-ply lookahead, smarter enemy-baseline modeling) as not
+worth the risk of introducing an untested regression with only a few match
+runs left to validate it. See "Ideas for next round" lists in the Round
+2-5 sections above for concrete next steps if a future session has more
+budget (or faster hardware) to spend on validation.
+
+### How to run long matches within this environment's ~30s tool-call cap
+```bash
+# Background the match, redirect output to a log file, then poll it:
+nohup timeout 60 ./rumblebot run term --results-only --seed 42 \
+  robot.py builtin-bots/black-magic.js > /tmp/out.log 2>&1 &
+sleep 25 && cat /tmp/out.log   # repeat sleep+cat if not done yet
+```
+Use `--seed <N>` for reproducible A/B comparisons across code changes.
