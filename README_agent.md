@@ -1411,3 +1411,43 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   * Validate any change vs black-magic (best proxy), heuristic (must stay ~16/16),
     flail. Use ./psweep.sh <blue> <red> <start> <end> (keep range <=16, bash harness
     times out ~30s; psweep uses its own parallel + 60s per-match timeout).
+
+## ROUND 2 SESSION (opus-4-8, mountain__neuralbot4-3h) [2nd occurrence] — KEEP robot.py UNCHANGED (robot_bm2.py 2-sweep)
+- Opponent = mountain__neuralbot4-3h (one of the STRONGER opponents). History:
+  R0 (Blue): opus-4-8 245, opponent 5 (losses seeds 78,91,133,174,204).
+  R1 (Red):  opus-4-8 247, opponent 3 (losses seeds 40,77,167). Decisive wins both.
+- robot.py == robot_bm2.py (black-magic-style 2-SWEEP greedy best-response scorer,
+  adopted last session). Verified: syntax OK, `def robot` line 228, range(2) sweeps
+  line 199. vs simple-bot 28-0, runtime 5.2s (<<60s).
+- EXPERIMENTS THIS SESSION (validated vs black-magic = best neuralbot proxy; the
+  losing seeds are close attritional endgames like black-magic's out-trading style).
+  BASELINE (current 2-sweep) vs black-magic as BLUE: seeds 1-16 = 12W-3L-1T,
+    seeds 17-32 = 12W-4L (aggregate 24-7-1). As RED (bm Blue): 1-16 = 9W-6L-1T.
+    vs heuristic 12/12, vs flail 12/12. Strong & balanced on both sides.
+  1. 3 SWEEPS (range(3)): REGRESSED 12-3-1 -> 10-6 vs bm. Greedy over-converges /
+     over-commits. REJECTED.
+  2. ENEMY-MOVEMENT PREDICTION (enemies with no adjacent friend step toward nearest
+     friend in lookahead): REGRESSED 12-3-1 -> 10-6 vs bm. Enemy move model doesn't
+     match bm/neuralbot actual behavior; adds noise. REJECTED.
+  3. LINEAR health_score (h instead of sqrt(h)): REGRESSED 12-3-1 -> 11-5 vs bm.
+     Concave sqrt is better — it prefers focus-firing to KILL units over spreading
+     damage. REJECTED. (Keep sqrt.)
+  4. SURROUND-WEIGHTED tiebreak (compare s1*1.5+s2 instead of strict lexicographic
+     s1 then s2): REGRESSED 12-3-1 -> 9-7 vs bm. Combining surround with health lets
+     the greedy sacrifice unit kills for positioning. REJECTED. Strict lexicographic
+     ordering (unit_score dominant, then spawn_pen, surround, health, distance) is best.
+- CONCLUSION: No net-positive change found on the best available proxy (black-magic);
+  EVERY tweak regressed it. The 2-sweep scorer is well-tuned and already scores
+  245-247/250 vs neuralbot4-3h (decisive wins). Kept robot.py == robot_bm2.py.
+- NEXT TEAMMATE (to push past ~245-247 vs neuralbot4-3h):
+  * Do NOT re-try: 3+ sweeps, enemy-move prediction, linear health, surround-weighted
+    tiebreak — all tested this session and REGRESS the black-magic proxy.
+  * The remaining losses are close attritional endgames vs a strong out-trader. The
+    only untested high-value idea is a real depth-2 (2-ply) lookahead with an enemy
+    best-response INSIDE the search (not just a fixed enemy prediction) — high effort,
+    profile runtime (currently ~5s, budget 60s). Or a proper minimax on the few
+    closest units. Validate ANY change vs black-magic (must beat 24-7-1 aggregate as
+    Blue seeds 1-32) AND stay 12/12 vs heuristic + flail.
+  * Test tool: ./psweep.sh <blue> <red> <start> <end> (parallel; REAL unit-only rule).
+    Keep ranges <=16; the outer bash harness times out ~30s, so launch longer sweeps
+    with nohup to a /tmp file and poll.
