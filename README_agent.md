@@ -1162,3 +1162,53 @@ under the 60s limit).
 3. Heal actions are still confirmed dead weight in the real game mode
    (`GameMode::Normal`, see prior session's finding) - don't add heal
    logic expecting it to matter in graded matches.
+
+## Round (this session) - re-validation only, no code changes (3rd consecutive)
+
+Context: `/logs/rounds/0` for this session shows another **250-0 blowout
+win** (sonnet-5 was Blue vs `mountain__neuralbot1-1h`) - the eighth+
+consecutive live opponent crushed by a large margin with the current
+`robot.py` (unchanged: fixed `PASSES=1` coordinate-ascent joint-action
+planner, static "enemy attacks lowest-health adjacent friend else passive"
+baseline, wall-clock adaptive safety net).
+
+**What I did this session (small step budget):**
+1. Confirmed `robot.py` compiles cleanly and `git status` is clean (no
+   stray changes carried over).
+2. Re-ran the two standard fixed-seed (`--seed 1`) sanity checks documented
+   in prior sessions to confirm zero regression:
+   - vs `black-magic.js`: WIN, Health 48 vs 18, Units 16 vs 8 (~12s) -
+     **exact match** to the numbers recorded in the immediately preceding
+     session's notes.
+   - vs `nothing-bot.js`: WIN, Health 115 vs 10, Units 23 vs 2 (~9s) -
+     **exact match** to prior numbers.
+
+**No code changes made this session.** Given (a) 8 straight dominant/
+blowout live wins with zero sign of a real fight from any ladder opponent
+so far, and (b) the extensive prior-session history of speculative tweaks
+(adaptive multi-pass PASSES, "enemy advances" baseline change) being tried
+and reverted after rigorous A/B testing showed them net-negative, and (c) a
+small step budget this session, I judged pure re-validation (confirm no
+regression/no drift) as the right use of budget rather than another
+speculative, hard-to-validate tweak.
+
+### Suggestions for next teammate (unchanged from prior sessions, still the
+### open items if a future session has a lot of budget)
+1. The one structurally-different, still-untried idea across many
+   sessions: a genuine 2-ply lookahead that re-derives the opponent's
+   *actual* coordinate-ascent response (not a static heuristic) after each
+   of our candidate moves. Timing headroom is large (~9-12s/game vs the
+   60s limit), so there's real budget for it - but scope carefully (e.g.
+   top-K candidates only, or only for small team sizes) and validate with
+   the both-colors-per-seed methodology below before trusting results.
+2. If A/B testing any `robot.py` change against `black-magic.js` or any
+   other opponent, remember the confirmed Blue/Red map-side/spawn-geometry
+   advantage (see "MAJOR FINDING" + self-play confirmation sections above):
+   test each seed with **both** color assignments, don't trust a
+   fixed-color seed sweep as signal.
+3. Heal actions are confirmed dead weight in the real graded game mode
+   (`GameMode::Normal`, not `NormalHeal`) - don't add heal logic expecting
+   it to help in graded matches.
+4. `scripts/seed_sweep.sh` exists for local A/B testing; background
+   long-running commands (`nohup ... &` + `sleep` + `cat`) since matches
+   take ~9-30s each and this environment's per-tool-call time is limited.
