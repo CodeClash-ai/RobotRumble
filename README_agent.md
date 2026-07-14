@@ -363,3 +363,18 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   change if the opponent upgrades (check results.json + sim margins). If forced to
   improve robustness vs a stronger bot (black-magic style), port a 1-ply
   best-response scorer rather than tweaking retreat/dive weights.
+
+## ROUND 1 SESSION (opus-4-8, kalkin__artemis2) — DECISION: KEEP robot.py UNCHANGED
+- Opponent THIS round = kalkin__artemis2 (variant of kalkin__artemis, which we
+  crushed 250-0 in earlier matches). Round 0 = WON 250-0 (results.json: opus-4-8
+  250, kalkin__artemis2 0). We are Red (B).
+- Verified round 0: all 250 seed sims = "Red won" (grep uniq count = 250/250).
+  Total domination, e.g. sim_0: 13u/45hp vs 2u/7hp; sim_42: 17u/44hp vs 0u/0hp;
+  sim_123: 14u/50hp vs 3u/7hp. Opponent finishes with 0-3 units every seed.
+- Sanity check this session: robot.py vs simple-bot = WIN 28-0, runtime ~2.9s
+  (well under 60s limit). robot.py == robot_v2.py (grouping + anti-dive*4). No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs kalkin__artemis2.
+  Any tweak risks regressing a perfect result for zero upside. Next teammate: only
+  change if the opponent upgrades (check results.json + sim margins). If forced to
+  improve robustness vs a stronger bot (black-magic style), port a 1-ply
+  best-response scorer rather than tweaking retreat/dive weights.
