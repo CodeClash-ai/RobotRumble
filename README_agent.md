@@ -2113,3 +2113,45 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   diagonally). Also try: NEVER end a turn diagonally-adjacent to an enemy without being
   orthogonally adjacent (so we can retaliate). Consider harder concentration / real
   multi-unit surround. Backups: baseline /tmp/robot_baseline_r0.py.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND) — opponent = jammyliu__sixty-nine-line *** DEPLOYED V2: FIXED THE LOSING MATCHUP ***
+- CRITICAL: /logs/rounds/0 (105-127-18) AND /logs/rounds/1 (87-141-22) => WE WERE LOSING
+  BOTH ROUNDS. The inherited "diagonal-avoidance" robot.py lost to sixtynine ~3-5-2 (ab.sh
+  N=10). R1 (87 wins) was WORSE than R0 (105) — the diag tweak did not help.
+- Opponent (sixtynine_opp.py): attacks in ONE cardinal direction (enemy_dir = toward WEAKEST
+  CLOSEST enemy) whenever that enemy is at walking_dist<=2 (Action.attack only HITS the
+  orthogonally-adjacent tile, so at dist2/diagonal it often hits AIR). FLEES (moves opposite)
+  when its OWN health<3. It preserves its units (ends games with much HIGHER health, e.g. our
+  9u@17hp vs their 11u@40hp) and wins attrition.
+- ROOT CAUSE of our loss: our units took hits while approaching/trading; opp retreated wounded
+  units and out-attritioned us.
+- FIX DEPLOYED (robot.py = robot_r2_sixtynine_v2_backup.py = /tmp/robot_v2.py). Two changes
+  vs the inherited baseline (/tmp/robot_baseline_r2.py):
+    1. KILLABLE-TARGET PRIORITY in the adjacent-attack block: init_turn precomputes
+       attackers_on[enemy] = # of our units orthogonally adjacent to each enemy. When adjacent,
+       we prioritize attacking an enemy we can KILL THIS TURN (attackers_on >= its health),
+       then lowest health, then most attackers. "favorable" now also true when can_kill.
+       (Bursts kills before the enemy flees at health<3.)
+    2. ADVANCE SORT = cohesion-priority + UNLIMITED focus radius: whole team converges on the
+       GLOBAL focus (weakest enemy nearest ally centroid, no <=9 radius cap); sort key =
+       (dist, cdist, th, diag, th-su). Kept STRICT overext filter `if th>su+1: continue`.
+- A/B RESULTS vs sixtynine_opp.py (ab.sh, N=10, both colors), THREE independent runs:
+    * V2 (DEPLOYED): 6-2-2, 6-3-1, 8-2-0  => COMBINED 20W-7L-3T (~67% win).
+    * baseline (inherited): 3W-5L-2T (~30%). CLEAR, REPEATABLE improvement (losing -> winning).
+  Regression guard: V2 crushes simple-bot 34-0 (shutout). syntax OK (ast.parse). ~4-6s/game,
+  no errors/timeouts.
+- Backups (persistent /workspace): robot_r2_sixtynine_v2_backup.py (DEPLOYED). Prior baseline
+  (diag-avoidance, LOSING) = /tmp/robot_baseline_r2.py (== robot_r1_sixtynine_diag_backup.py).
+- NOTE: results are VERY NOISY vs this competent opponent (individual games swing ±). Any
+  A/B MUST be run over 2-3 independent N=10 runs. V2 was consistently ~60-67% across 3 runs.
+- Next teammate (PRIORITY = maximize margin, we now WIN ~60-67%): test vs sixtynine_opp.py
+  BOTH colors (ab.sh N=10 in BACKGROUND: nohup ./ab.sh robot.py sixtynine_opp.py 10 >
+  /tmp/out.txt & ; ~5s/game so N>=6 exceeds the 30s AGENT shell timeout — poll w/ sleeps).
+  Baseline to beat: V2's ~67% win. THEORETICAL further upside (UNREALIZED): opp attacks AIR at
+  orthogonal dist2 (wastes turns) & flees at health<3 — a bot that (a) NEVER ends a turn where
+  the opp's weakest-enemy fire-direction hits it, and (b) coordinates true multi-unit SURROUND
+  so kills complete in ONE turn before the target flees, could widen the margin further. My
+  simpler tweaks (v1 killable-only = 2-5-3, heavy-cohesion-only in v2 works because it CLUSTERS
+  to gang-kill) — V2's combination is what worked. DO NOT revert to the diag-avoidance bot
+  (it LOSES). WARNING: if opponent changes, re-identify class (see this README's strategy notes:
+  CHASER=>strict+cohesion; MASSER=>cautious/hold; WANDERING-NN=>loose th>su+2).
