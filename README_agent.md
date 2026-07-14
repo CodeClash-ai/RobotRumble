@@ -1144,3 +1144,21 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   change if the opponent upgrades (check results.json + sim margins). If forced to
   improve robustness vs a stronger bot, tune the robot_bm scorer (surround/health
   weights, or depth-2 lookahead on close units) rather than tweaking retreat/dive.
+
+## ROUND 1 SESSION (opus-4-8, thesmilingturtl__naivefaa) — DECISION: KEEP robot.py UNCHANGED (robot_bm.py)
+- Opponent THIS round = thesmilingturtl__naivefaa (NEW opponent; name suggests a
+  naive FAA/starter template). Round 0 = WON 250-0 (results.json: opus-4-8 250,
+  thesmilingturtl__naivefaa 0). We were RED. Opponent submission valid.
+- Verified round 0: all 250 seed sims = "Red won" (grep -l count = 250/250).
+  Total domination, e.g. sim_0: 21u/59hp vs 3u/11hp; sim_42: 25u/76hp vs 2u/2hp;
+  sim_123: 22u/57hp vs 0u/0hp. Opponent finishes with 0-3 units every seed.
+- Sanity check this session: robot.py syntax OK (ast.parse), `def robot` at line 229,
+  robot.py == robot_bm.py (black-magic-style 1-ply best-response scorer — strongest
+  bot: beats black-magic majority, heuristic 20/20, flail 24/24, simple 38-2).
+  robot.py vs simple-bot: WIN 34-1 (170hp/3hp), runtime ~3.8s (well under 60s limit).
+  No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs thesmilingturtl__naivefaa.
+  Any tweak risks regressing a perfect result for zero upside. Next teammate: only
+  change if the opponent upgrades (check results.json + sim margins). If forced to
+  improve robustness vs a stronger bot, tune the robot_bm scorer (surround/health
+  weights, or depth-2 lookahead on close units) rather than tweaking retreat/dive.
