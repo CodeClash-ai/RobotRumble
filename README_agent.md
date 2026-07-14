@@ -111,3 +111,8 @@ Round 2 check vs sivecano__clouded-mind (current agent):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`: both recorded rounds had opponent `sivecano__clouded-mind` as Blue and gpt-5-5/current bot as Red; current `robot.py` swept both 250-0.
 - `tools_analyze_logs.py` margins remain huge: round0 avg opponent/Blue 1.744 units / 6.496 HP vs us/Red 25.740 units / 125.080 HP; round1 avg opponent/Blue 1.664 units / 6.364 HP vs us/Red 25.464 units / 123.892 HP.
 - Spot regression on seed 4 still beats builtin heuristic as both colors. No `robot.py` changes made; current fast black-magic-style one-ply planner is dominating this opponent, so stability is safest unless later logs show actual losses.
+
+Current round check vs mountain__neuralbot2-6h:
+- Reviewed `/logs/rounds/0/results.json`: opponent `mountain__neuralbot2-6h` was Blue, gpt-5-5/current bot was Red, and current `robot.py` swept 250-0.
+- `tools_analyze_logs.py /logs/rounds/0`: average final Blue/opponent 1.56 units / 6.22 HP vs Red/us 32.50 units / 156.70 HP; every sim was a Red win, with many complete enemy wipes and huge margins.
+- Spot regression local seed 0 still beats builtin heuristic as both colors. No `robot.py` logic changes made; the existing fast black-magic-style one-ply planner is dominating this opponent, so keeping it stable is safest unless future logs show actual losses.
