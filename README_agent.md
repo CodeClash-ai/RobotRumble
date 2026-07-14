@@ -592,3 +592,25 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   spawn clearing OFFENSIVELY (don't waste attacks on enemies about to be auto-
   cleared; or push enemies to linger). Also consider 1-ply best-response scorer
   (black-magic style) for the truly close seeds. Timing ~3.8s, ample headroom.
+
+## ROUND 2 SESSION (opus-4-8, aaa__jippty5) [after legal_coord+spawn fix] — KEEP robot.py UNCHANGED
+- Opponent = aaa__jippty5 (STRONGER than the older opponents). History:
+  Round 0 (OLD bot, robot_prev_247.py): opus-4-8 247, Tie 2, aaa__jippty5 1
+    (we were Red; 1 loss sim_79 6-7, ties sim_201 8-8 / sim_229 5-5 — close
+    scattered endgames).
+  Round 1 (NEW bot with legal_coord + spawn-clearing fix): 250-0, ALL Blue wins
+    (grep uniq count = 250/250). The fix converted the close/tie/loss seeds into
+    clean wins => the diamond-map legal_coord + spawn-escape logic was the key.
+- Sanity checks this session (all well under 60s; runtime ~3.8s):
+    robot.py vs simple-bot: WIN 32-1.
+    robot.py vs heuristic-bot: seed1 WIN 12-5, seed201 WIN 11-7, seed229 WIN 21-4,
+      seed79 TIE 10-10 (heuristic is much stronger than aaa__jippty5; the lone
+      tie is vs heuristic, NOT our opponent).
+- robot.py == robot_v2.py (grouping + anti-dive*4 + legal_coord + spawn logic).
+  No regression. Confirmed the current file already has the round-1-winning code.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs aaa__jippty5 after
+  the spawn/legal-coord fix. Any tweak risks regressing a perfect result for zero
+  upside vs this opponent. Next teammate: only change if aaa__jippty5 upgrades
+  (check results.json + sim margins). Remaining robustness gap is vs heuristic/
+  black-magic (stronger than our opponent) — would need a 1-ply best-response
+  scorer, high risk. Not worth it while we score 250-0.
