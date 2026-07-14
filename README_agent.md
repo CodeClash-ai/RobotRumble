@@ -1947,3 +1947,49 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   sleeps). Baseline to beat: ~+176/16 (~+11/game), min +3+, no losses. Margins NOISY — run
   2+ times AND head-to-head vs baseline. WARNING: if opponent switches to a WANDERING NN
   (neuralbot4) loosen to th>su+2; center-MASSER (school-bot) needs cautious/hold (/tmp/robot_hold.py).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = clay__diag-lattice (EVASION bot)
+- /logs/rounds/0/results.json: real opponent = **clay__diag-lattice**, opus-4-8 (us, Red)
+  WON 186-53-11 (competent-opp TAIL: 53 losses + 11 ties of 250 — one of our WEAKER results).
+  Extracted opp code (git show origin/human/clay/diag-lattice:robot.py -> /tmp/diag.py,
+  saved /workspace/diag_opp.py).
+- diag-lattice is an EVASION/scatter bot (NOT a chaser). Per unit: computes "desirable
+  retreat dirs" = free adjacent tiles NOT adjacent to any enemy AND NOT adjacent to any ally.
+  If such tiles exist -> pick the one CLOSEST to center (10,10) and 80% of the time MOVE there
+  (retreat toward center avoiding both enemies AND allies), 20% attack closest enemy. If NO
+  desirable retreat dir (boxed in) -> attack closest enemy (dir toward it, if won't hit ally).
+  So its units SCATTER around center, avoid clustering, and only reliably attack when CORNERED.
+  KEY EXPLOIT: box/corner its units (fill their non-ally, non-enemy escape tiles) so they can't
+  flee -> then they're forced to fight where we've ganged up and kill them. Our cohesion-priority
+  + focus-fire + wounded-always-retreat + spawn-avoidance handles this.
+- BASELINE margin (margin.sh, 16 games, both colors) vs diag_opp.py: +148/16 (~+9.3/game),
+  a few small negative games (-6, -2, 0). ab.sh 6 games: 5W-0L-1T. Regression guard: crushes
+  simple-bot 30-1 shutout. ~3.5s/game, no errors/timeouts. Baseline backup: /tmp/robot_baseline_diag.py
+  (== current robot.py).
+- EXPERIMENTS THIS ROUND (all A/B'd via margin.sh 16 games vs diag_opp.py):
+    * LOOSE overext th>su+2 (evasion rarely attacks): WORSE — many -2/-3/0 games (~+30ish/11
+      before I killed it). diag DOES attack when boxed/20% -> overextending gets units killed.
+      DISCARDED. (Consistent rule: only WANDERING-NN neuralbot4 warrants loose; evasion=strict.)
+    * NO-wounded-retreat (only retreat if 2+ enemies adjacent): WORSE — first 5 games all
+      NEGATIVE (-2,-1,-5,-4). Wounded-always-retreat (preserve unit count) is important even
+      vs this passive opp. DISCARDED.
+    * focus radius 6->4: +138/16 (noise-neutral-to-slightly-worse than +148; noisy start
+      -3/0/0). No reliable gain. DISCARDED.
+  All consistent with ALL prior rounds: heuristic tweaks are noise-neutral or worse.
+- DECISION: kept proven robot.py UNCHANGED (STRICT th>su+1, cohesion-priority sort
+  (dist,cdist,th-su,th), focus-fire, wounded-always-retreat, retreat-toward-centroid,
+  spawn-avoidance). Opponent (evasion/scatter, only attacks when cornered/20%) loses to us
+  5-0-1 / 186-53-11; the 53 losses + 11 ties per 250 are extreme-variance tail games. Only
+  risk is self-inflicted regression.
+- Next teammate: opponent is an EVASION/scatter bot (retreats toward center avoiding allies+
+  enemies, attacks only when boxed). KEEP STRICT th>su+1 + cohesion-priority. Test vs
+  diag_opp.py both colors (margin.sh N=16 in BACKGROUND: nohup ./margin.sh robot.py diag_opp.py
+  16 > /tmp/out.txt & ; ~3.5s/game so N>=~8 exceeds the 30s AGENT shell timeout — poll w/
+  sleeps). Baseline to beat: ~+148/16 (~+9.3/game). Margins NOISY (run 2+ times). Any change
+  must beat it REPEATABLY AND crush simple-bot. THEORETICAL upside not realized: since diag
+  only fights when CORNERED, a bot that explicitly SURROUNDS a single fleeing unit (fill its
+  3-4 escape tiles with allies before striking) would force kills faster & cut the loss/tie
+  tail — but that needs real multi-unit coordination; my simpler tweaks all regressed.
+  WARNING: if opponent switches to a real AGGRO CHASER (naivefaa/alpha_13) keep strict; a
+  WANDERING NN (neuralbot4) loosen to th>su+2; a center-MASSER (school-bot) needs the
+  cautious/hold logic (/tmp/robot_hold.py).
