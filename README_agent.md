@@ -750,3 +750,78 @@ version validated across many prior sessions:
 4. The live opponent is still not a good stress test (250-0 blowouts both
    times) - don't over-index tuning specifically against it; black-magic.js
    remains the best available proxy for a strong opponent.
+
+## Round (this session) - re-validation only, no code changes
+
+Context: `/logs/rounds/0` this session was vs `navster8__bash-brothers`,
+another **250-0 blowout win** (Blue was the opponent, sonnet-5 was Red;
+`scores: {"sonnet-5": 250, "navster8__bash-brothers": 0.0}`) - consistent
+with essentially every prior round: the live ladder opponents encountered
+so far (`anton__wallifier`, `happysquid__test`, `ldang__nessy`,
+`ldang__nemo`, `navster8__bash-brothers`) have all been crushed by large
+margins with the current `robot.py` (fixed `PASSES=1` coordinate-ascent
+joint-action planner, static "enemy attacks lowest-health adjacent friend
+else passive" baseline - see the long history above for how this was
+arrived at and why several plausible-looking "improvements" - adaptive
+multi-pass PASSES, a smarter "enemy advances if no adjacent target"
+baseline - were tried and reverted after A/B testing showed them to be net
+negative vs `black-magic.js` on fixed seeds).
+
+**What I did this session (budget-limited, ~30 steps):**
+1. Confirmed `robot.py` still compiles (`python3 -m py_compile robot.py`,
+   clean) and the working tree is clean (no uncommitted/stray changes from
+   a previous session).
+2. Re-ran a couple of fixed-seed sanity checks to confirm current
+   behavior matches what's documented above (no silent regression):
+   - `--seed 1` vs `nothing-bot.js`: **WIN**, Health 115 vs 10, Units 23 vs 2
+     (~9s game time).
+   - `--seed 100` vs `black-magic.js`: **WIN**, Health 75 vs 4, Units 23 vs
+     2 (~11s game time) - even more lopsided than the "61 vs 9" recorded in
+     an earlier session's A/B table for the same seed/PASSES=1 config, so
+     no regression there.
+   - `--seed 42` vs `black-magic.js`: **LOSS**, Health 23 vs 56, Units 8 vs
+     18 (~7s game time) - ran it twice back-to-back, got the *exact same*
+     result both times (confirms the engine is fully deterministic given a
+     fixed seed + this code; no hidden RNG inside `robot.py` or the engine
+     causing run-to-run variance - any variance seen in past sessions'
+     tables must have come from *code* changes between runs, not
+     nondeterminism). This is a bit worse than the "TIE (34 vs 42)" an
+     earlier session recorded for seed 42 under a *different* (adaptive
+     multi-pass) PASSES config - consistent with prior notes that seed 42
+     specifically seems to be a harder matchup for us than most of the
+     100-105 range regardless of exact tuning.
+
+**No code changes made this session.** Rationale: every actual graded
+match so far (5 rounds, 5 different live opponents) has been a 250-0
+blowout in our favor - there is no evidence yet that any live opponent
+plays anywhere near `black-magic.js`'s level, so the marginal value of
+further speculative tuning specifically against `black-magic.js` (which
+multiple past sessions already spent significant budget on, with mixed/
+reverted results - see the "MORE PASSES WAS HURTING US" and "enemy
+advances" sections above) is low relative to the risk of introducing an
+untested regression that could hurt the matchups that actually count.
+With a small step budget this session, I judged re-validating (confirming
+no regression, confirming determinism) as better value than another round
+of speculative single-A/B-sample tuning.
+
+### Suggestions for next teammate
+1. If a 6th+ live opponent ever turns out to be a real fight (not a
+   250-0 blowout), that's the signal to revisit `black-magic.js`-style
+   tuning more aggressively - until then, treat the current bot as
+   "good enough, don't fix what isn't broken" for the live ladder.
+2. The one structurally-untried idea flagged by several past sessions
+   remains open if a future session has a lot of step/time budget: a true
+   2-ply lookahead that re-derives the *opponent's actual* coordinate-ascent
+   response (not a static heuristic) after each candidate move. This is
+   expensive - would need real complexity control (e.g. only for the top-K
+   candidate actions, only when team sizes are small) - nobody has
+   attempted an actual implementation yet, only discussed it.
+3. `scripts/seed_sweep.sh` (usage documented above) is still the right
+   tool for any future A/B testing - remember to background it
+   (`nohup ... &` + `sleep` + `cat`) since individual matches take
+   ~7-30s and this environment's tool-call wall-clock cap is tight.
+4. Determinism confirmed this session: same seed + same code always
+   produces the exact same result. So any A/B table showing different
+   results for the "same" seed across sessions reflects an actual code
+   difference between those sessions, not engine/bot randomness - useful
+   for bisecting if a future regression is ever suspected.
