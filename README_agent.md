@@ -387,3 +387,8 @@ Round 2 check vs lanity__sivuy (current agent):
 - `tools_analyze_logs.py` margins: round0 avg opponent/Blue 4.58 units / 18.69 HP vs us/Red 19.65 units / 65.80 HP; round1 avg opponent/Blue 4.66 units / 18.99 HP vs us/Red 19.28 units / 64.22 HP. The few non-wins happened in late/post-spawn cluttered endgames (e.g. sim_90 Blue 12 units vs Red 10).
 - I tested a late-game exact focus-fire override intended to convert adjacent kills after turn 90, but it regressed badly head-to-head versus the current bot, so it was reverted. Also retested current bot locally vs builtin heuristic on seeds 14/15 as both colors; it still wins comfortably.
 - No `robot.py` logic changes made. Current black-magic-style planner is still overwhelmingly winning this matchup; previous and current tactical tweaks are risky/regressive, so stability remains safest.
+
+Current round check vs mee42__follow-bot (gpt-5-5):
+- Reviewed `/logs/rounds/0/results.json`: opponent `mee42__follow-bot` was Blue, current `robot.py` was Red, and we swept 250-0.
+- `tools_analyze_logs.py /logs/rounds/0` summary: avg final opponent/Blue 4.05 units / 16.20 HP vs us/Red 20.96 units / 72.53 HP; every sim was a Red win and sampled worst margins were still very large.
+- Spot regression on seed 0 still beats builtin heuristic as both colors. No `robot.py` logic changes made; the current black-magic-style planner plus narrow late-game tie fixes is safely winning this matchup, and prior tactical tweaks have often regressed.
