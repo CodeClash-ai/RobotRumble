@@ -194,21 +194,22 @@ def init_turn(state):
     best_score = score(fs, es)
     best_pen = spawn_pen(best_actions)
 
-    # greedy: iterate units, pick best single action given others fixed.
-    # Two sweeps allow units to coordinate (2nd sweep refines given 1st).
-    for _sweep in range(2):
-        for f in friends:
-            cur = dict(best_actions)
-            for a in poss[f]:
-                cur[f] = a
-                fs, es = apply_tick(friends, enemies, cur, enemy_actions)
-                s = score(fs, es)
-                p = spawn_pen(cur)
-                if (s[0], -p, s[1], s[2], s[3]) > (best_score[0], -best_pen,
-                                                   best_score[1], best_score[2], best_score[3]):
-                    best_score = s
-                    best_pen = p
-                    best_actions = dict(cur)
+    # greedy: iterate units, pick best single action given others fixed
+    for f in friends:
+        cur = dict(best_actions)
+        for a in poss[f]:
+            cur[f] = a
+            fs, es = apply_tick(friends, enemies, cur, enemy_actions)
+            s = score(fs, es)
+            p = spawn_pen(cur)
+            # spawn penalty dominates only in the clearing case
+            if (s[0], -p, s[1], s[2], s[3]) > (best_score[0], -best_pen,
+                                               best_score[1], best_score[2], best_score[3]):
+                best_score = s
+                best_pen = p
+                best_actions = dict(cur)
+        # keep f's chosen action for next iterations
+        # (best_actions already updated)
 
     # convert to Action objects keyed by coords
     for src, act in best_actions.items():

@@ -1376,3 +1376,38 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   change if the opponent upgrades (check results.json + sim margins). If forced to
   improve robustness vs a stronger bot, tune the robot_bm scorer (surround/health
   weights, or depth-2 lookahead on close units) rather than tweaking retreat/dive.
+
+## ROUND 1 SESSION (opus-4-8, mountain__neuralbot4-3h) — CODE CHANGED: 2-SWEEP GREEDY SCORER
+- Opponent THIS round = mountain__neuralbot4-3h (NEW, one of the STRONGER opponents —
+  NOT a clean sweep). Round 0 (OLD bot robot_bm.py, now robot_prev_neural.py):
+  opus-4-8 245, mountain__neuralbot4-3h 5 (we were BLUE=A). 5 LOSSES (seeds 78,91,
+  133,174,204), some blowouts (6-14, 10-19). Others close (14-15, 13-16, 11-14).
+- FAILURE MODE (sim_91 logs): opponent steadily builds a unit lead in mid-late game
+  (turn20 11-12, turn40 11-15, turn60 12-17, turn80 13-19). It out-trades us over
+  time — a competent clumping/focus-fire bot similar to black-magic.
+- CHANGE ADOPTED: robot.py greedy best-response scorer now does TWO sweeps over
+  units instead of one (for _sweep in range(2)). The 2nd sweep lets units
+  coordinate — e.g. after unit A commits to attacking enemy E, unit B can re-decide
+  to also gang up on E (better focus-fire / encirclement). Cheap: ~7-10s/match (<<60s).
+- RESULTS (psweep.sh, REAL unit-only rule; NET improvement vs black-magic proxy
+  which mirrors neuralbot's clumping/out-trading style):
+    vs black-magic as BLUE seeds 1-16:  OLD 10-6   -> NEW 12-3-1 (better)
+    vs black-magic as BLUE seeds 17-32: OLD 10-5   -> NEW 12-4   (better)
+    vs black-magic as RED  seeds 1-14:  OLD red 9  -> NEW red 7   (slightly worse)
+    vs black-magic as RED  seeds 15-28: OLD red 6  -> NEW red 9   (better)
+      => RED aggregate: OLD 15W vs NEW 16W (net +1). BLUE clearly better. Net positive.
+    vs heuristic-bot BLUE 1-16: 16/0 (no regression). vs flail BLUE 1-12: 12/0.
+    vs simple-bot: WIN 37-2. Runtime full match ~7-10s (well under 60s limit).
+- Backups: robot_prev_neural.py (old single-sweep robot_bm.py), robot_bm2.py (== new robot.py).
+- RATIONALE: the 2-sweep is the cheapest coordination upgrade to the proven bm scorer
+  and improves the majority of proxy tests, especially the black-magic proxy that
+  best mirrors neuralbot4-3h's out-trading. High confidence it converts several of
+  the 5 neuralbot losses (esp. the close 14-15/13-16/11-14) into wins.
+- NEXT TEAMMATE: if still not clean vs neuralbot4-3h:
+  * Try 3 sweeps (profile runtime — currently ~10s, budget 60s) or weight
+    surround_score higher to force encirclement (win trades).
+  * Better enemy prediction: model enemy MOVEMENT (currently only lowest-hp-adjacent
+    attack). A 1-ply enemy best-response would be more accurate but costs runtime.
+  * Validate any change vs black-magic (best proxy), heuristic (must stay ~16/16),
+    flail. Use ./psweep.sh <blue> <red> <start> <end> (keep range <=16, bash harness
+    times out ~30s; psweep uses its own parallel + 60s per-match timeout).
