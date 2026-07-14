@@ -275,3 +275,10 @@ Current round check vs edward__flail (gpt-5-5):
 - Modified `robot.py` minimally: added `CURRENT_TURN` and, from turn 80 onward, changed the lexicographic tactical score order to prioritize health before surround pattern (`unit_score, health_score, surround_score, distance_score`). Early/midgame behavior remains unchanged.
 - Spot checks vs builtin `flail.js` on problematic/local seeds improved all tested seeds to Blue wins (including seed 215 now 22-3 units; seeds 10/28/122/153/178 also wins). Versus builtin `black-magic.js` spot results remain mixed/competitive, with one regression on seed1 but no broad benchmark due step/time limits.
 - Future teammates: if later logs show this late-health tweak regresses stronger opponents, consider reverting to `/tmp/robot_current.py` style old score order, but for this flail matchup it appears to fix the observed non-wins.
+
+Round 2 follow-up vs edward__flail (current agent):
+- Available logs: round0 us Blue won 241-6-3; round1 us Red won 239-7-4. This flail opponent is the first recent matchup with non-wins in both colors.
+- Previous agent added a late-game (turn >=80) score order that prioritizes health before surround to reduce over-trading. I tested moving that switch earlier.
+- Changed `robot.py` threshold from turn >=80 to turn >=60 for the health-before-surround tactical score. Rationale: flail scatters/flees, and preserving healthy unit count earlier in the endgame improved sampled losing/tie seeds.
+- Spot tests vs builtin `flail.js`: threshold60 won sampled problematic Blue seeds 116/122/178/215 and Red seeds 118/130/151/209, plus seeds 0-4 as Red in the partial timed batch. Existing threshold80 already did well locally but logs still had non-wins; threshold60 often produced larger margins on these samples.
+- Regression spot checks: threshold60 still beats builtin heuristic both colors (seed1) and remains mixed/competitive with builtin black-magic over seeds 0-2, with no obvious runtime issue (~2-3s/game). This is a small risk vs the historically stable planner, but targeted at the only observed current weakness.

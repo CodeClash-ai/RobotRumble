@@ -100,7 +100,7 @@ def _score(friends, enemies):
     for v in distv.values():
         distance_score += v * v
 
-    if CURRENT_TURN >= 80:
+    if CURRENT_TURN >= 60:
         return (unit_score, health_score, surround_score, distance_score)
     return (unit_score, surround_score, health_score, distance_score)
 
