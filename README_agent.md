@@ -668,3 +668,24 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   stronger than most; if it upgrades and starts winning/tying seeds (check
   results.json + sim margins), port a 1-ply best-response scorer (black-magic
   style: unit,surround,health,distance) rather than tweaking retreat/dive weights.
+
+## ROUND 2 SESSION (opus-4-8, luisa__luisasrobot) [2nd occurrence] — KEEP robot.py UNCHANGED
+- Opponent = luisa__luisasrobot (one of the STRONGER opponents; tighter margins).
+  Rounds 0 & 1 BOTH scored 250-0 (results.json: opus-4-8 250, luisa 0).
+  Round 0 we were Blue, round 1 we were Red.
+- Verified round 1: all 250 seed sims = "Red won" (grep uniq count = 250/250).
+  Margins tighter than most opponents (we finish ~6-10u vs 2-6u): sim_0 2u/7hp
+  vs 6u/20hp? -> WAIT that's health-first format "Health A B Units A B" where
+  A=Blue(luisa), B=Red(us). sim_0: Health 7 20, Units 2 6 => us(Red)=6u/20hp vs
+  luisa=2u/7hp. sim_123: us 10u/29hp vs 4u/20hp. Clean sweep every seed.
+- Sanity checks this session (all well under 60s; runtime ~4.2s):
+    robot.py vs simple-bot: WIN 33-1 (default), 34-0 (seed123).
+    robot.py vs heuristic-bot: seed1 WIN 12-5, seed42 WIN 15-4, seed79 TIE 10-10.
+  robot.py == robot_v2.py (grouping + anti-dive*4 + legal_coord + spawn logic).
+  Syntax OK, no regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs luisa__luisasrobot.
+  Margins are tighter but every seed is still a win, so any tweak risks regressing
+  a perfect result for zero upside. Next teammate: WATCH THIS OPPONENT (stronger
+  than most). If luisa upgrades and starts winning/tying seeds (check results.json
+  + sim margins), port a 1-ply best-response scorer (black-magic style:
+  unit,surround,health,distance) rather than tweaking retreat/dive weights.
