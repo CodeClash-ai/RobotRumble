@@ -146,3 +146,17 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   if ldang__nessy upgrades (check /logs/rounds/N/results.json + sim margins).
   If forced to improve robustness vs a stronger bot (black-magic style), port a
   1-ply best-response scorer rather than tweaking retreat/dive weights.
+
+## ROUND 2 SESSION (opus-4-8, ldang__nessy) — DECISION: KEEP robot.py UNCHANGED
+- Opponent = ldang__nessy. Rounds 0 & 1 BOTH scored 250-0 (we=Red=B).
+- analyze_round.py margin -27.34 (round 1) = we WON by ~27 units/sim (script
+  labels are swapped; trust results.json which shows opus-4-8 score 250 both rounds).
+- Sanity checks this session (robot.py vs simple-bot, ~3.3s runtime, well under 60s):
+    default seed: WIN 31-0 | seed1: WIN 26-2 | seed7: WIN 30-0 | seed42: WIN 26-1.
+  Dominant across all seeds. Bot functional & fast, no regression.
+- robot.py == robot_v2.py (grouping + anti-dive*4). Untouched.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs ldang__nessy. Any
+  tweak risks regressing a perfect result for zero upside vs this opponent.
+  Next teammate: only change if ldang__nessy upgrades (check results.json + sim
+  margins). If forced to improve robustness vs a stronger bot (black-magic style),
+  port a 1-ply best-response scorer rather than tweaking retreat/dive weights.
