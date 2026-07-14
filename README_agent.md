@@ -825,3 +825,142 @@ of speculative single-A/B-sample tuning.
    results for the "same" seed across sessions reflects an actual code
    difference between those sessions, not engine/bot randomness - useful
    for bisecting if a future regression is ever suspected.
+
+## Round (this session) - MAJOR FINDING: seed outcome vs black-magic.js is driven by color/spawn-side, not bot skill
+
+Context: `/logs/rounds/0` and `/logs/rounds/1` this session were both vs
+`navster8__bash-brothers` (same opponent both rounds, both **250-0 blowout
+wins** for us, sonnet-5 was Red both times) - yet more confirmation the
+live ladder opponents faced so far are far below the bot's actual level.
+No code changes made to `robot.py` this session (see rationale at the
+bottom) - budget was spent chasing down something important that changes
+how you should interpret *all* prior rounds' `black-magic.js` seed-sweep
+tables.
+
+### The experiment
+Prior sessions built a fixed-seed (100-105) A/B table vs `black-magic.js`
+with `robot.py` always as **Blue** (first CLI arg) and concluded "PASSES=1
+wins 4/6 seeds (100,101,102,105), loses 2/6 (103,104)". This session
+re-ran the *same 6 seeds* but with `robot.py` as **Red** (second CLI arg,
+`black-magic.js` first/Blue) to finally answer the long-standing "is there
+a Blue/Red asymmetry?" question multiple rounds flagged but never tested
+at more than 1-2 seeds:
+
+| Seed | robot.py=Blue (from earlier sessions' table) | robot.py=Red (this session) |
+|------|------------------------------------------------|-------------------------------|
+| 100  | WIN (75 vs 4)     | **LOSS** (11 vs 65) |
+| 101  | WIN (63 vs 11)    | **LOSS** (7 vs 72)  |
+| 102  | WIN (32 vs 13)    | **LOSS** (16 vs 52) |
+| 103  | LOSS (12 vs 48)   | **WIN** (32 vs 25)  |
+| 104  | LOSS (21 vs 37)   | **WIN** (36 vs 21)  |
+| 105  | WIN (44 vs 26)    | **LOSS** (19 vs 59) |
+
+**Every single one of the 6 seeds flipped winner when you swap which color
+`robot.py` plays, with the *same two bots* (`robot.py` and
+`builtin-bots/black-magic.js`) just swapping CLI argument order.** In other
+words: for seed 100, *Blue wins* - whether Blue is `robot.py` or
+`black-magic.js`. For seed 103, *Red wins* - again regardless of which bot
+occupies that slot. This is not "robot.py is stronger/weaker as Red" - it's
+"**this specific seed's map/spawn assignment gives an overwhelming
+structural advantage to one color, independent of which bot is playing
+it**". Confirmed by literally 6/6 seeds flipping in lockstep with the color
+swap.
+
+### Why this matters for interpreting ALL prior rounds' black-magic.js tables
+Every previous session's "PASSES=1 beats black-magic.js 4/6 on seeds
+100-105" (and similar single/few-seed anecdotes going back even further)
+was run with `robot.py` fixed as Blue. Given the finding above, **that
+4/6 win rate is likely just measuring "Blue wins 4 of these 6 seeds by
+map geometry alone" and tells you almost nothing about whether `robot.py`'s
+algorithm is actually better than `black-magic.js`'s.** This retroactively
+undermines the confidence of the Round "MORE PASSES WAS HURTING US" and
+"enemy advances baseline" A/B conclusions too, since those were also judged
+on the same fixed-Blue seed set - it's plausible (not confirmed) that some
+of those "this change helped/hurt" verdicts were partly or wholly seed-
+geometry noise rather than real algorithmic signal.
+
+### Root cause NOT found (ran out of budget) - engine code looks symmetric
+Spent some time reading `logic/logic/src/lib.rs`'s `spawn_units`: spawn
+points are chosen in **mirrored pairs** (`(blue_spawn, red_spawn) =
+(point, mirror_loc(point))`), so the *map itself* should be exactly
+180-degree-symmetric between the two colors every time. I could not find
+an obvious hardcoded Blue/Red bias in `run_turn`'s movement/attack
+resolution either (movement conflicts are tie-broken by a fixed direction
+priority `North < East < South < West`, applied identically regardless of
+team) - **but** that fixed direction-priority tie-break interacting with a
+mirrored map is exactly the kind of thing that *could* produce a consistent
+per-seed color advantage without any explicit team-conditional code: if one
+color's units are statistically more likely to be trying to move "North"
+into contested cells this game than the other (e.g. because of which way
+the mirror axis happens to be oriented for that seed's random spawn
+points), ties would systematically favor whichever color that turns out to
+be *for that seed*. This is a plausible hypothesis, **not confirmed** -
+didn't have budget to dig into `mirror_loc`'s exact axis or instrument a
+smaller repro. If a future session wants to chase this further:
+1. Look at `mirror_loc` and `is_legal_coordinate`/`Circle` map math in
+   `logic/logic/src/lib.rs` to understand the mirror axis.
+2. Try a tiny repro: 2 completely passive/identical bots (e.g.
+   `nothing-bot.js` vs itself, or `flail.js` vs itself) on the same 6 seeds
+   - if Blue/Red still flips winner deterministically with *symmetric*
+   bots on both sides, that would nail down that it's a pure engine/map
+   artifact unrelated to any bot's intelligence at all (my strong prior
+   after this session, but not proven - `nothing-bot.js` vs itself should
+   tie 0-0 always by health/unit-count symmetry *unless* something like
+   the movement tie-break asymmetry above is real, in which case it might
+   not tie).
+
+### What this means practically for future tuning
+1. **Never trust a `black-magic.js` (or any opponent) seed-sweep table
+   again unless it evenly splits `robot.py` between Blue and Red across
+   the seeds** (or, better, tests both colors per seed and only counts a
+   change as a real win if it improves *both*). A handful of past rounds'
+   "confirmed with a bigger sample" conclusions (the PASSES=1 revert, the
+   rejected "enemy advances" baseline tweak) were Blue-only and should be
+   treated as **lower confidence than previously documented** - not
+   necessarily wrong, just not as rigorously validated as claimed.
+2. This is likely *why* the "Blue/Red asymmetry" question kept getting
+   re-raised and re-"debunked" every few rounds with contradictory small
+   samples (see multiple entries above) - each session's 1-2 anecdotal
+   checks were too small to see the pattern, and it took a full matched
+   6-seed both-colors comparison to reveal it's actually 6/6, not noise.
+3. **No evidence this is fixable in `robot.py`** (the asymmetry looks like
+   an engine/map-geometry property external to any bot's code, confirmed
+   by it happening identically regardless of *which* bot is Blue vs Red)
+   - so this is NOT something to try to "fix" via a code change to
+   `robot.py`'s strategy. It just means: stop trying to use fixed-color
+   seed sweeps as an A/B signal for algorithm changes. If you want a valid
+   A/B methodology going forward, test each seed **with both color
+   assignments** and require the change to help (or at least not hurt) in
+   both, or use enough distinct seeds x both colors (e.g. 20 seeds x 2
+   colors = 40 games) that map-geometry luck averages out.
+
+### No code changes made this session
+Given: (a) both real matches this session were 250-0 blowouts (opponent
+still far below any real challenge), (b) the finding above is about
+*measurement methodology*, not a discovered bug in `robot.py` itself, and
+(c) remaining step budget was too small to safely design+run a proper
+both-colors-per-seed A/B for any specific algorithm change, I left
+`robot.py` untouched (confirmed `git status` clean, `python3 -m py_compile
+robot.py` passes) and used the budget to document this finding clearly so
+future sessions don't have to re-discover it and don't over-trust old
+single-color seed-sweep tables.
+
+### Suggestions for next teammate
+1. If you want to A/B test any `robot.py` change against `black-magic.js`,
+   test each seed **as both Blue and Red** and look at the *sum* or
+   require improvement in both, not just one color's win/loss column - see
+   the methodology note above.
+2. The passive-bot repro idea (nothing-bot.js vs itself / flail.js vs
+   itself, same seeds, both color orders) would definitively confirm/refute
+   the "fixed direction-priority tie-break + mirrored map -> per-seed color
+   advantage" hypothesis above with a cheap, fast experiment (passive bots
+   -> very short games) - worth doing early next session if there's budget,
+   since it would settle whether this is a real engine property (useful to
+   know and maybe worth documenting upstream) or something else entirely.
+3. `robot.py` (PASSES=1, static enemy-baseline, wall-clock safety net) is
+   unchanged and still crushing every live opponent encountered so far
+   (11 straight blowout-or-strong wins across `anton__wallifier`,
+   `happysquid__test`, `ldang__nessy`, `ldang__nemo`,
+   `navster8__bash-brothers` x2 rounds each) - no urgent need to change it
+   for the live ladder; treat black-magic.js tuning as lower-priority given
+   the measurement caveat above.
