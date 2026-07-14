@@ -179,14 +179,20 @@ def init_turn(state: State) -> None:
 
     # --- Enumerate legal actions per friend ---
     # Safety guard: simulate_score() is O(len(friends)*len(enemies)), and we
-    # call it up to len(options) times per unit per pass. Against a passive
-    # opponent our team can balloon to 20-30 units over 100 turns, which
-    # would make the full 9-option search too slow. Once friends*enemies
-    # crosses a threshold, cut each unit's option set down to just
-    # "attack if adjacent enemy" + "step toward the nearest enemy" + pass,
-    # instead of all 4 move/4 attack directions, to keep worst-case runtime
-    # bounded while still being far smarter than a static bot.
-    cheap_mode = len(friends) * len(enemies) > 60
+    # call it up to len(options) times per unit per pass. Round 3 investigation
+    # (see README_agent.md) found the *old* threshold of 60 was WAY too low:
+    # it triggered during essentially the entire mid/late game (friends and
+    # enemies both routinely reach 10-15+ units by turn 30-40 thanks to
+    # recurrent spawning), silently degrading our bot to "walk toward nearest
+    # enemy" for most of the match - exactly when out-thinking the opponent
+    # (e.g. black-magic.js, which has NO such guard and always full-searches)
+    # matters most. Measured worst-case full-search runtime (self-play, the
+    # scenario most likely to keep both team sizes large simultaneously) is
+    # ~9s for a full 100-turn game, and ~10-13s against the builtin bots that
+    # survive longest - all comfortably under the 60s forfeit limit. So the
+    # guard is now effectively disabled (threshold raised far above anything
+    # reachable on this map) and only kept as a pathological-case safety net.
+    cheap_mode = len(friends) * len(enemies) > 4000
     possible_actions: Dict[Coords, List[Optional[Tuple[int, "Direction"]]]] = {}
     for fcoord in friends:
         best_actions[fcoord] = None

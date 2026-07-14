@@ -116,3 +116,73 @@ done
   `/logs/edits/sonnet-5_r1.traj.json` and in this file's earlier section -
   reverting to greedy-per-unit is a safe fallback that is known to beat
   every builtin bot except black-magic.js.
+
+## Round 3 update
+Investigated why the Round 2 joint-action planner (`robot.py`) was losing to
+`black-magic.js`, `flail.js`, and `needle-bot.js` despite the algorithm being
+essentially a faithful port of black-magic.js's own coordinate-ascent search.
+
+**Root cause found:** the `cheap_mode` performance guard added in Round 2
+(`friends*enemies > 60` -> restrict each unit to only 1 candidate direction
+instead of all 4 move + 4 attack dirs) was far too aggressive. Because units
+recurrently spawn (4 more every 10 turns per side while spawn points remain
+open, see `logic/logic/src/lib.rs` `spawn_units`), both teams routinely reach
+10-15+ units by turn 30-40, so `friends*enemies` blows past 60 almost
+immediately and the bot spends most of the match in the dumbed-down
+"walk toward nearest enemy" mode - exactly when tactical play (target
+selection, focus fire, avoiding bad trades) matters most. `black-magic.js`
+has NO such guard and always does the full search, which is why it kept
+beating us even though our scoring function and algorithm structure are
+copied from it.
+
+**Fix:** raised the `cheap_mode` threshold from 60 to 4000 (i.e. effectively
+disabled under all normal circumstances on this map size, kept only as a
+pathological-case safety net). Re-measured worst-case runtime with the full
+search always on:
+- self-play (`robot.py` vs `robot.py`, the scenario most likely to keep both
+  team sizes large simultaneously for a long time): **~9s/game**
+- vs every builtin bot that survives long enough to build up a big team
+  (`simple-bot.js`, `heuristic-bot.js`, `chaser.js`, `random-bot.js`,
+  `nothing-bot.js`): **~7-13s/game**
+
+All comfortably under the 60s forfeit limit, so there was no need for the
+guard to ever trigger in practice - the Round 2 threshold was just picked
+too conservatively without re-timing after the surrounding code changed.
+
+### Results after the fix (single runs, no `--seed` so treat as directional)
+| Opponent            | Before (threshold=60) | After (threshold=4000) |
+|----------------------|------------------------|--------------------------|
+| nothing-bot.js       | WIN                    | WIN                      |
+| simple-bot.js        | WIN                    | WIN                      |
+| flail.js             | mixed (won/lost across runs) | WIN (multiple runs) |
+| random-bot.js        | WIN                    | WIN                      |
+| chaser.js             | WIN                   | WIN                      |
+| heuristic-bot.js     | WIN                    | WIN                      |
+| needle-bot.js        | mixed (won/lost)       | WIN (multiple runs)      |
+| black-magic.js       | LOSS (badly, e.g. 1-51 health) | mostly WIN, occasional close loss (e.g. 27-28 health) - much improved, was previously a blowout loss every time |
+
+### Notes / caveats for next teammate
+- No `--seed` flag was used in any of this round's local testing (maps are
+  randomized each run), so all win/loss tables above are directional signal
+  from a handful of runs each, not statistically rigorous. If you have step
+  budget, add `--seed` (check `./rumblebot run term --help` /
+  `run batch --help` for exact flag support) and run e.g. 10-20 iterations
+  per matchup for real win-rate numbers, especially for the still-competitive
+  `black-magic.js` matchup.
+- `black-magic.js` is still the toughest matchup (near coin-flip now, was a
+  guaranteed loss before this fix). Ideas if you want to push further:
+  1. Try `PASSES = 2` or `3` (currently 1) now that we know we have runtime
+     budget to spare (~9s/game at PASSES=1, 60s limit) - multi-pass
+     coordinate ascent should find a better local optimum than a single
+     sweep, which is likely necessary to actually beat (not just tie) an
+     opponent using the *same* single-sweep algorithm as us.
+  2. `black-magic.js` uses a hardcoded diamond-map legality formula
+     (`is_legal_coordinate`) instead of querying real terrain objects - if
+     the actual generated map ever has irregular obstacles beyond the plain
+     diamond border, our `_is_blocked` (which queries `state.obj_by_coords`
+     for real) may have an edge/disadvantage there; not investigated further
+     this round.
+  3. Consider re-lowering `cheap_mode`'s threshold back down ONLY if future
+     map-size/spawn-setting changes make unit counts grow much larger than
+     what was measured here (double-check timing again after any such
+     change - don't just trust this round's numbers forever).
