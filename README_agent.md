@@ -1800,3 +1800,45 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   depth-2 minimax with enemy best-response INSIDE the search (do NOT re-try 3+ sweeps,
   enemy-move/approach prediction, linear health, surround-weighted tiebreak, or
   symmetric surround — all previously tested and REGRESS the black-magic proxy).
+
+## ROUND 1 SESSION (opus-4-8, mitch84__walk_retreat) — KEEP robot.py UNCHANGED (robot_bm3.py)
+- Opponent = mitch84__walk_retreat (NEW; NOT a clean sweep). Round 0 result:
+  opus-4-8 222, mitch84__walk_retreat 19, Tie 9 (we were RED=B). ~28 non-wins/250.
+  Still a DECISIVE win: avg units us(Red) 18.7 vs mitch(Blue) 9.2.
+- NEW FAILURE MODE (opposite of black-magic out-trader): mitch SPREADS its units
+  all across the map and RETREATS from any threat, keeping units alive at 5hp far
+  from our force. Our CLUMPED bot leaves most of the map to them and can't catch
+  the scattered fleeing units. Win rule = units-only, so mitch wins close seeds by
+  keeping many scattered survivors. (sim_218 LOSS 17u-5u: mitch had 17 units at
+  5hp spread everywhere; our 5 units clumped in one corner.)
+  Losses (mitch,us): 5,42,51,61,62,76,90,111,123,149,161,182,184,187,198,218,239,
+  245,248. Ties: 8,28,35,47,48,79,133,146,229.
+- EXPERIMENT THIS SESSION: added a per-friend "hunt nearest enemy" term to
+  distance_score (linear pull toward each friend's NEAREST enemy) so free units
+  peel off to chase scattered foes. Tested weights 0.02/0.005/0.002:
+    * 0.02  -> black-magic 11/12 (regressed from 12/12).
+    * 0.005 -> black-magic 12/12 (s1-12) BUT 11-1 (s13-24, baseline was 11-0-1) — regressed.
+    * 0.002 -> black-magic 10-2 (s13-24) — WORSE.
+  CONFIRMED (again) prior teammates' finding: ANY spreading/hunting change
+  REGRESSES the black-magic proxy (a clumping out-trader). The two failure modes
+  are in direct tension (chase-scatter vs stay-clumped). REJECTED / reverted.
+- Could NOT build a faithful walk_retreat proxy: my /tmp/walk_retreat.js (pure
+  retreat/spread) dies easily (we win 30+ to 3), unlike the real mitch which keeps
+  17 survivors. So no reliable proxy to tune the chase behavior against.
+- CONCLUSION: No code change. robot.py == robot_bm3.py (verified byte-identical,
+  syntax OK, vs simple-bot 35-2). We already win 222-19-9 decisively; the hunt
+  term risks flipping many black-magic-style wins for uncertain gain vs one
+  spreading opponent I can't proxy. Not worth it.
+- NEXT TEAMMATE (to push past ~222 vs walk_retreat, a SPREAD+RETREAT bot):
+  * The gap = catching/killing scattered fleeing units without un-clumping vs
+    strong out-traders. The hunt-nearest-enemy term (weight-tuned) is the natural
+    lever but consistently regresses black-magic — only re-try if you build a
+    FAITHFUL walk_retreat proxy AND verify black-magic stays 12/12 (s1-12) and
+    ~11-0-1 (s13-24) simultaneously. Likely needs a CONDITIONAL hunt: only pull
+    units that are already free (no adjacent/near enemy AND lots of allies nearby)
+    toward distant lone enemies, so it doesn't break clumped trades vs black-magic.
+  * Alternatively detect the opponent's spread and switch modes (e.g. if enemies'
+    spread/variance is high, enable hunting; if clumped, stay clumped).
+  * DO NOT re-try (all regress black-magic): unconditional hunt term, 3+ sweeps,
+    enemy-move/approach prediction, linear health, surround-weighted tiebreak,
+    symmetric surround, dual/reversed-order greedy.
