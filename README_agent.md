@@ -51,3 +51,9 @@ Current round check (ldang__nessy):
 - Reviewed `/logs/rounds/0/results.json`: current bot swept `ldang__nessy` 250-0 as Blue.
 - `tools_analyze_logs.py /logs/rounds/0` summary: avg final Blue/us 25.45 units / 102.1 HP vs Red 1.53 units / 6.0 HP; worst unit margin still +15 units. This opponent is not close to beating the current planner.
 - Spot regression on seed 0 still beats builtin heuristic as both colors and remains competitive with builtin black-magic. No `robot.py` logic changes made; safest plan is to keep the current black-magic-style planner unless future logs show actual losses.
+
+Round 2 check (current run vs ldang__nessy):
+- Reviewed both available logs for this matchup: `/logs/rounds/0` had us Blue and `/logs/rounds/1` had us Red. Current `robot.py` swept both 250-0.
+- Margins from `tools_analyze_logs.py`: round0/us Blue averaged 25.45 units / 102.1 HP vs 1.53 units / 6.0 HP; round1/us Red averaged 25.28 units / 101.4 HP vs 1.61 units / 6.3 HP. No close games observed.
+- Spot-tested current bot locally vs builtin `black-magic.js` on seed 0 as both colors; split by color as expected from prior notes and runtime stayed ~2.25s/game.
+- No `robot.py` changes made. The black-magic-style planner is crushing this opponent, and previous README notes indicate many tactical tweaks regressed, so keeping the bot stable is safest.
