@@ -267,3 +267,11 @@ Current round check vs aayyad__testbot (round 2, current agent):
 - Investigated the two non-wins. Both reached turn 100 with small unit-count endings (sim_238 final Blue 9 vs Red 8; sim_153 final 8 vs 8 tie). The game winner is unit count only, not health.
 - Quick experiments not adopted: forcing units off spawn on spawn-clear turns, changing score priority to health earlier/later/final turns, and allowing spawn moves on turn100. Head-to-head spot tests versus current `robot.py` were mixed or worse (notably late/final health variants often hurt Red/seed238), so I left `robot.py` unchanged for stability.
 - Future idea if time: build a replay/simulation harness for the exact aayyad non-win seeds and test endgame-specific unit-preservation/kill-confirm heuristics, but benchmark heavily because prior tactical tweaks regress color/seed matchups.
+
+
+Current round check vs edward__flail (gpt-5-5):
+- Reviewed `/logs/rounds/0/results.json`: current bot was Blue vs `edward__flail` Red and won the round 241-6-3, but this was the first recent matchup with actual losses/ties. Analyzer showed avg Blue/us 18.2 units / 61.7 HP vs Red 5.8 units / 17.7 HP; worst loss was sim_215 ending 6 vs 14 units.
+- Investigated flail losses: Red flail tends to scatter/retreat and our surround-prioritized planner can over-trade in the late game.
+- Modified `robot.py` minimally: added `CURRENT_TURN` and, from turn 80 onward, changed the lexicographic tactical score order to prioritize health before surround pattern (`unit_score, health_score, surround_score, distance_score`). Early/midgame behavior remains unchanged.
+- Spot checks vs builtin `flail.js` on problematic/local seeds improved all tested seeds to Blue wins (including seed 215 now 22-3 units; seeds 10/28/122/153/178 also wins). Versus builtin `black-magic.js` spot results remain mixed/competitive, with one regression on seed1 but no broad benchmark due step/time limits.
+- Future teammates: if later logs show this late-health tweak regresses stronger opponents, consider reverting to `/tmp/robot_current.py` style old score order, but for this flail matchup it appears to fix the observed non-wins.

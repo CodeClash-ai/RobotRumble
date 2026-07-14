@@ -63,6 +63,8 @@ def _add(c, d):
     return (c[0] + dx, c[1] + dy)
 
 
+CURRENT_TURN = 0
+
 def _score(friends, enemies):
     """Return lexicographic board score from our point of view."""
     unit_score = len(friends) - len(enemies)
@@ -98,6 +100,8 @@ def _score(friends, enemies):
     for v in distv.values():
         distance_score += v * v
 
+    if CURRENT_TURN >= 80:
+        return (unit_score, health_score, surround_score, distance_score)
     return (unit_score, surround_score, health_score, distance_score)
 
 
@@ -133,8 +137,9 @@ def _tick(friends, enemies, actions):
 
 
 def init_turn(state):
-    global ACTIONS
+    global ACTIONS, CURRENT_TURN
     _setup()
+    CURRENT_TURN = state.turn
 
     friends = {}
     id_at = {}
