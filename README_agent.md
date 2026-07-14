@@ -1464,3 +1464,77 @@ seeds to produce that evidence for this specific idea).
    unreliable for judging code changes (still fine for just eyeballing
    raw win/loss against a fixed opponent if color-balance doesn't matter
    for your question, e.g. "does this crash?").
+
+## Round (this session) - full regression re-validation, no code changes
+
+Context: `/logs/rounds/0` this session was vs `mountain__neuralbot2-6h`,
+another **250-0 blowout win** (sonnet-5 was Blue) - now 14+ consecutive
+live-opponent rounds crushed by a large margin with the current `robot.py`
+(unchanged from the immediately-preceding session, which applied the
+"enemy advances toward nearest friend if no adjacent target" baseline
+tweak - validated that time via `scripts/paired_ab.sh`, see the section
+above titled "RE-TESTED & APPLIED the 'enemy advances if not adjacent'
+baseline change").
+
+**What I did this session (small step budget, prioritized broad regression
+coverage since the previous session's change hadn't yet been spot-checked
+against the *full* builtin-bot suite, only `black-magic.js` + `nothing-bot.js`
++ a `simple-bot.js` spot check):**
+
+1. Confirmed `robot.py` compiles cleanly and `git status` was clean at the
+   start of the session (no stray changes carried over).
+2. Ran fixed-seed (`--seed 1`) sanity checks against **all 8** builtin bots
+   plus self-play, to fully regression-test the "enemy advances" change
+   applied last session against the complete suite for the first time:
+
+| Opponent            | Result | Health (us vs them) | Units (us vs them) | Time |
+|----------------------|--------|----------------------|----------------------|------|
+| black-magic.js       | WIN    | 51 vs 21             | 18 vs 10             | ~12s |
+| nothing-bot.js       | WIN    | 115 vs 15            | 23 vs 3              | ~9s  |
+| flail.js             | WIN    | 82 vs 8              | 24 vs 4              | ~13s |
+| simple-bot.js        | WIN    | 165 vs 11            | 33 vs 3              | ~15s |
+| chaser.js            | WIN    | 63 vs 8              | 24 vs 3              | ~10s |
+| heuristic-bot.js     | WIN    | 63 vs 24             | 22 vs 10             | ~13s |
+| needle-bot.js        | WIN    | 88 vs 7              | 24 vs 2              | ~9s  |
+| random-bot.js        | WIN    | 160 vs 13            | 32 vs 3              | ~16s |
+| self-play (robot.py vs robot.py) | Blue won | 33 vs 28 | 14 vs 12 | ~16s |
+
+**All 9 games: wins (or, for self-play, a normal non-degenerate result),
+all comfortably under the 60s forfeit limit (worst case ~16s).** The
+`black-magic.js` seed-1 numbers (51 vs 21, was 48 vs 18 before last
+session's baseline-tweak change) and `nothing-bot.js` numbers (115 vs 15,
+was 115 vs 10) shifted slightly from previously-recorded pre-tweak values,
+which is expected and consistent (same seed, different code -> different
+exact numbers, still comfortable wins) - not a regression.
+
+**No code changes made this session.** Given (a) 14+ straight
+dominant/blowout live wins with zero sign of a real fight from any ladder
+opponent encountered so far, (b) last session's "enemy advances" baseline
+change is now confirmed to not have broken anything across the *entire*
+builtin-bot suite (previously only spot-checked against 2-3 bots), and
+(c) a small step budget this session, I judged completing that full
+regression sweep (rather than another speculative tweak) as the best use
+of this session's budget - it closes out the "only spot-checked a couple
+of bots" caveat left open at the end of the previous session's notes.
+
+### Suggestions for next teammate (unchanged priority list, still open)
+1. The one structurally-different, still-untried idea across many
+   sessions: a genuine 2-ply lookahead that re-derives the opponent's
+   *actual* coordinate-ascent response (not the current static baseline
+   heuristic, even with the "advances if not adjacent" improvement) after
+   each of our candidate moves. Timing headroom remains large (~9-16s/game
+   vs the 60s limit observed this session), so there's real budget for it.
+   Use `scripts/paired_ab.sh` (color-balanced) to validate, not a
+   fixed-color seed sweep - see "MAJOR FINDING" sections above for why.
+2. Heal actions are confirmed dead weight in the real graded game mode
+   (`GameMode::Normal`, not `NormalHeal`) - don't add heal logic expecting
+   it to help in graded matches.
+3. `robot.py` is unchanged from last session's validated version (PASSES=1
+   coordinate-ascent joint-action planner + "enemy attacks lowest-health
+   adjacent friend, else advances toward nearest friend" baseline +
+   wall-clock adaptive safety net) - no urgent need to touch it for the
+   live ladder given 14+ straight dominant wins across many distinct
+   opponents; only invest further in `black-magic.js`-style tuning if a
+   live opponent ever turns out to be a real fight, or if you want to
+   pursue the 2-ply lookahead idea for its own sake with good timing
+   headroom to spare.
