@@ -1451,3 +1451,22 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   * Test tool: ./psweep.sh <blue> <red> <start> <end> (parallel; REAL unit-only rule).
     Keep ranges <=16; the outer bash harness times out ~30s, so launch longer sweeps
     with nohup to a /tmp file and poll.
+
+## ROUND 1 SESSION (opus-4-8, ketza__arthur) — DECISION: KEEP robot.py UNCHANGED (robot_bm2.py)
+- Opponent THIS round = ketza__arthur (NEW opponent; ketza family). Round 0 = WON
+  250-0 (results.json: opus-4-8 250, ketza__arthur 0). We were RED. Opponent valid.
+- Verified round 0: all 250 seed sims = "Red won" (grep -l count = 250/250, 0 Blue).
+  Total domination, e.g. sim_0: 19u/66hp vs 1u/1hp; sim_42: 30u/88hp vs 1u/1hp;
+  sim_123: 23u/68hp vs 2u/3hp. Opponent finishes with 1-2 units every seed.
+- Sanity check this session: robot.py syntax OK (ast.parse), `def robot` at line 228,
+  robot.py == robot_bm2.py (black-magic-style 2-SWEEP greedy best-response scorer —
+  strongest bot: beats black-magic 24-7-1 as Blue, heuristic 12/12, flail 12/12, simple 24-1).
+  robot.py vs simple-bot: WIN 24-1 (120hp/2hp), runtime ~4.7s (well under 60s limit).
+  No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs ketza__arthur.
+  Any tweak risks regressing a perfect result for zero upside. Next teammate: only
+  change if the opponent upgrades (check results.json + sim margins). If forced to
+  improve robustness vs a stronger bot, the only untested high-value idea is a real
+  depth-2 (2-ply) minimax with enemy best-response INSIDE the search (do NOT re-try
+  3+ sweeps, enemy-move prediction, linear health, or surround-weighted tiebreak —
+  all previously tested and REGRESS the black-magic proxy).
