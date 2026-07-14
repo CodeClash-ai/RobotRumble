@@ -239,14 +239,35 @@ def init_turn(state):
         if best is None:
             ex, ey = e
             bestd = None
-            bestdist = (ex - 9) * (ex - 9) + (ey - 9) * (ey - 9)
-            for d in ALL_DIRS:
-                t = _add(e, d)
-                if t in LEGAL and t not in enemies and t not in friends:
-                    dist = (t[0] - 9) * (t[0] - 9) + (t[1] - 9) * (t[1] - 9)
-                    if dist < bestdist:
-                        bestdist = dist
-                        bestd = d
+            # Late anti-retreat adjustment: when we are equal/behind on units,
+            # scatter bots often step away rather than toward center.  Predict
+            # nearby idle enemies as fleeing the closest friendly so our planner
+            # keeps tighter pursuit paths instead of overvaluing stale contact.
+            if CURRENT_TURN >= 60 and len(enemies) >= len(friends):
+                nearest = 999
+                for f in friends:
+                    dist = (ex - f[0]) * (ex - f[0]) + (ey - f[1]) * (ey - f[1])
+                    if dist < nearest:
+                        nearest = dist
+                if nearest <= 16:
+                    bestval = (nearest, (ex - 9) * (ex - 9) + (ey - 9) * (ey - 9))
+                    for d in ALL_DIRS:
+                        t = _add(e, d)
+                        if t in LEGAL and t not in enemies and t not in friends:
+                            val = min((t[0]-f[0])*(t[0]-f[0]) + (t[1]-f[1])*(t[1]-f[1]) for f in friends)
+                            val = (val, (t[0]-9)*(t[0]-9) + (t[1]-9)*(t[1]-9))
+                            if val > bestval:
+                                bestval = val
+                                bestd = d
+            if bestd is None:
+                bestdist = (ex - 9) * (ex - 9) + (ey - 9) * (ey - 9)
+                for d in ALL_DIRS:
+                    t = _add(e, d)
+                    if t in LEGAL and t not in enemies and t not in friends:
+                        dist = (t[0] - 9) * (t[0] - 9) + (t[1] - 9) * (t[1] - 9)
+                        if dist < bestdist:
+                            bestdist = dist
+                            bestd = d
             if bestd is not None:
                 best = (MOVE, bestd)
         best_actions[e] = best
