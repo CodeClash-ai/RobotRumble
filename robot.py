@@ -1,91 +1,117 @@
-from enum import Enum, auto
+"""
+sonnet-5's RobotRumble bot.
+
+Strategy overview:
+- Each unit independently picks the best enemy target: prioritize enemies
+  that are already adjacent (finish them off), then the weakest reachable
+  enemy weighted by distance, encouraging focus fire without needing complex
+  coordination (which was buggy/fragile in the previous version and caused
+  our bot to *never engage* certain passive opponents - see README_agent.md).
+- Movement uses a greedy direction choice with fallback candidates (ordered
+  by resulting distance-to-target) so that units don't get stuck oscillating
+  or permanently frozen against walls/other units, which was the critical bug
+  in the previous quadrant-based approach (it produced 100% ties against any
+  non-aggressive/stationary opponent - confirmed via /logs/rounds/0).
+- A small amount of memory (`robot_state`) is used per-unit to avoid
+  immediately reversing a move (anti-oscillation) but we always allow a
+  fallback to *any* open cell (even a revisit) rather than freezing forever.
+"""
+
 from typing import *
-
-
-class Quadrant(Enum):
-    One = auto()
-    Two = auto()
-    Three = auto()
-    Four = auto()
-
-    @staticmethod
-    def from_coords(coords: Coords) -> "Quadrant":
-        if coords.x <= MAP_SIZE // 2:
-            if coords.y <= MAP_SIZE // 2:
-                return Quadrant.Two
-            else:
-                return Quadrant.Three
-        else:
-            if coords.y <= MAP_SIZE // 2:
-                return Quadrant.One
-            else:
-                return Quadrant.Four
-
-
-target_ids: Dict[Quadrant, Optional[str]] = {
-    Quadrant.One: None,
-    Quadrant.Two: None,
-    Quadrant.Three: None,
-    Quadrant.Four: None,
-}
-
-
-def total_distance_for_units(units: List[Obj], target: Obj) -> float:
-    return sum([unit.coords.distance_to(target.coords) for unit in units])
-
-
-def init_turn(state: State) -> None:
-    global target_ids
-
-    for (q, id) in target_ids.items():
-        if id and not state.obj_by_id(id):
-            target_ids[q] = None
-
-    allies = state.objs_by_team(state.our_team)
-    enemies = state.objs_by_team(state.other_team)
-    for q in target_ids:
-        if not target_ids[q]:
-            q_allies = [ally for ally in allies if Quadrant.from_coords(ally.coords) == q]
-            q_enemies = [enemy for enemy in enemies if Quadrant.from_coords(enemy.coords) == q]
-
-            if q_enemies and q_allies:
-                closest_enemy = min(q_enemies, key=lambda enemy: total_distance_for_units(q_allies, enemy))
-                target_ids[q] = closest_enemy.id
 
 
 robot_state: Dict[str, dict] = {}
 
 
+ALL_DIRECTIONS = [Direction.North, Direction.South, Direction.East, Direction.West]
+
+
+def score_enemy(unit: Obj, enemy: Obj) -> Tuple[float, float]:
+    """Lower is better. Prioritize low health (easy kill) then close distance."""
+    dist = unit.coords.distance_to(enemy.coords)
+    return (dist, enemy.health)
+
+
 def robot(state: State, unit: Obj) -> Optional[Action]:
-    past_coords: Optional[Coords] = robot_state.setdefault(unit.id, {}).get("past_coords")
-    robot_state[unit.id]["past_coords"] = unit.coords
-    
-    id = target_ids[Quadrant.from_coords(unit.coords)]
-    if id:
-        target = state.obj_by_id(id)
-        if target:
-            debug.inspect(target)
-            direction = unit.coords.direction_to(target.coords)
+    mem = robot_state.setdefault(unit.id, {})
+    past_coords: Optional[Coords] = mem.get("past_coords")
+    stuck_turns: int = mem.get("stuck_turns", 0)
 
-            if unit.coords.distance_to(target.coords) == 1:
-                # we're right next to them
-                return Action.attack(direction)
-            else:
-                move_target = state.obj_by_coords(unit.coords + direction)
-                if not move_target:
-                    return Action.move(direction)
-                else:
-                    directions = [direction.rotate_cw, direction.rotate_ccw]
-                    destinations = [unit.coords + direction for direction in directions]
-                    if target.coords.distance_to(destinations[0]) < target.coords.distance_to(destinations[1]) \
-                            and not state.obj_by_coords(destinations[0]) \
-                            and past_coords != destinations[0]:
-                        return Action.move(directions[0])
-                    elif not state.obj_by_coords(destinations[1]) \
-                            and past_coords != destinations[1]:
-                        return Action.move(directions[1])
-                    else:
-                        return None
-        else:
-            raise Exception('Id points to nonexistent target')
+    enemies = state.objs_by_team(state.other_team)
+    if not enemies:
+        mem["past_coords"] = unit.coords
+        return None
 
+    # Prefer an enemy we're already adjacent to (finish the kill / defend),
+    # otherwise go for the "best" target by (health, distance).
+    adjacent_enemies = [e for e in enemies if unit.coords.distance_to(e.coords) == 1]
+    if adjacent_enemies:
+        target = min(adjacent_enemies, key=lambda e: e.health)
+    else:
+        target = min(enemies, key=lambda e: score_enemy(unit, e))
+
+    debug.locate(target)
+
+    dist_to_target = unit.coords.distance_to(target.coords)
+
+    if dist_to_target <= 1:
+        mem["past_coords"] = unit.coords
+        mem["stuck_turns"] = 0
+        direction = unit.coords.direction_to(target.coords)
+        return Action.attack(direction)
+
+    direction = unit.coords.direction_to(target.coords)
+
+    # Build a list of candidate directions, ordered by preference:
+    # 1) the direct direction toward the target
+    # 2) its two neighboring rotations (whichever gets us closer first)
+    # 3) the opposite direction (last resort, to escape being boxed in)
+    candidates = [direction]
+    rotations = [direction.rotate_cw, direction.rotate_ccw]
+    rotations.sort(key=lambda d: (unit.coords + d).distance_to(target.coords))
+    candidates.extend(rotations)
+    candidates.append(direction.opposite)
+
+    # De-duplicate while preserving order.
+    seen = set()
+    ordered_candidates = []
+    for d in candidates:
+        if d not in seen:
+            seen.add(d)
+            ordered_candidates.append(d)
+
+    def is_open(coords: Coords) -> bool:
+        return state.obj_by_coords(coords) is None
+
+    # First pass: avoid immediately reversing our last move, unless we've
+    # been stuck for a while (then we allow it, to break deadlocks/loops).
+    allow_revisit = stuck_turns >= 2
+
+    best_move = None
+    for d in ordered_candidates:
+        dest = unit.coords + d
+        if not is_open(dest):
+            continue
+        if not allow_revisit and past_coords is not None and dest == past_coords:
+            continue
+        best_move = d
+        break
+
+    # Second pass: if nothing worked (all blocked, or only the revisit option
+    # was open), just allow the revisit / any open cell so we never freeze.
+    if best_move is None:
+        for d in ordered_candidates:
+            dest = unit.coords + d
+            if is_open(dest):
+                best_move = d
+                break
+
+    if best_move is None:
+        # completely boxed in; pass this turn
+        mem["past_coords"] = unit.coords
+        mem["stuck_turns"] = stuck_turns + 1
+        return None
+
+    mem["past_coords"] = unit.coords
+    mem["stuck_turns"] = 0
+    return Action.move(best_move)
