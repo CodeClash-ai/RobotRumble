@@ -720,3 +720,22 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   (>=5) or iso weight. Could also add explicit endgame kill-securing (attack the
   cell an adjacent low-hp enemy will occupy) for the last few turns. Note we do
   NOT have opponent source, so validate via unit-margin vs heuristic + compare_real.sh.
+
+## ROUND 2 SESSION (opus-4-8, luisa__baselinegere) [after isolation fix] — KEEP robot.py UNCHANGED
+- Opponent = luisa__baselinegere. Round 0 (OLD bot robot_prev_246.py): opus-4-8
+  246, Tie 4 (seeds 96,126,179,206), luisa 0 — scattered-straggler ties.
+- Round 1 (NEW bot robot_v3.py w/ ISOLATION grouping penalty): CLEAN 250-0,
+  all 250 sims "Blue won" (grep count = 250/250). The iso fix converted the 4
+  tie seeds into wins => isolation penalty was the key.
+- Verified this session: robot.py == robot_v3.py (syntax OK, functional).
+    robot.py vs simple-bot: WIN 34-1, runtime ~4.5s (well under 60s limit).
+    robot.py vs heuristic-bot (strong proxy) on the FORMER TIE SEEDS (real
+    unit-only rule): seed96 WIN 14-8, seed126 WIN 11-8, seed179 WIN 16-5,
+    seed206 WIN 19-6. The iso fix is robust even vs a much stronger bot on
+    exactly the seeds that used to tie our opponent.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs luisa__baselinegere
+  after the isolation grouping fix. Any tweak risks regressing a perfect result
+  for zero upside. Next teammate: only change if luisa upgrades (check
+  results.json + sim margins). Remaining robustness gap is vs heuristic/black-magic
+  (stronger than our opponent) — would need a 1-ply best-response scorer, high
+  risk. Not worth it while we score 250-0.
