@@ -902,3 +902,36 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   (b) tune iso threshold (>=3) / iso scale, or add mild grouping to eff always.
   (c) 1-ply best-response scorer (black-magic style) for the last close seeds.
   Validate via unit-margin vs heuristic + ./psweep.sh (NO opponent source available).
+
+## ROUND 2 SESSION (opus-4-8, mousetail__genetic-robot) — DECISION: KEEP robot.py UNCHANGED (v6)
+- Opponent = mousetail__genetic-robot (STRONG; NOT a clean sweep). History:
+  Round 0 (v6): opus-4-8 232, Tie 12, genetic 6.  Round 1 (v6): 231, Tie 9, genetic 10.
+  robot.py == robot_v6.py (grouping + anti-dive*7 + iso>=3 scaled + legal_coord + spawn).
+- Round-1 non-wins (Blue=us): 10 losses + 9 ties. Losses often 3-unit gaps
+  (e.g. seed179 7-10, seed61 6-9). Root cause = genetic trades units efficiently;
+  our close games flip when survivors end scattered/even.
+- EXPERIMENTS THIS SESSION (validated via psweep.sh vs heuristic+flail proxies;
+  NO genetic source available):
+  1. ESCAPE-CELL attack tiebreak (prefer attacking cornered enemies so damage
+     lands vs fleeing bot): heuristic 24/24 (no change), but flail NET -1 win
+     over seeds 1-48 (42W vs v6's 43W) — marginal REGRESSION vs a fleeing bot.
+     REJECTED / reverted.
+  2. ALWAYS-ON grouping (eff += group_dist*0.08..0.15): helped flail slightly
+     (21->22) but REGRESSED heuristic (24/24 -> 22/24 with ties). Clumps units
+     too much vs a strong bot. REJECTED / reverted.
+- CONCLUSION: No net-positive change found on available proxies, and every tweak
+  risked regressing the proven v6 (which scores ~231/250). Kept robot.py == v6.
+  Verified: vs heuristic 24/24 (seeds 1-24 AND 25-48); vs simple-bot 39-2;
+  runtime ~5.2s (<<60s). robot.py syntax OK, functional, no regression.
+- NEXT TEAMMATE (to break the ~231 plateau vs genetic-robot):
+  * The remaining gap is winning CLOSE trades / avoiding scattered-even endgames.
+    Grouping-always and escape-cell BOTH tested neutral-to-negative on proxies —
+    do NOT re-try those blindly.
+  * Best untested idea: a real 1-ply best-response SCORER (black-magic style:
+    weight own units, surround, health, distance) evaluated over each unit's move
+    options — replaces the hand-tuned key. Higher effort but likely the only way
+    past the plateau. Validate carefully vs heuristic (must stay ~24/24) AND flail.
+  * Endgame kill-securing (predict a fleeing low-hp enemy's cell and attack it):
+    attacks resolve after movement, so this is theoretically sound but needs an
+    accurate flee model; genetic's flee rule is unknown. Test vs flail (known
+    fleer: flees directly away from nearest enemy) first.
