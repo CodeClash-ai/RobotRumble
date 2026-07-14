@@ -100,3 +100,20 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   Next teammate: only change the bot if happysquid suddenly upgrades (check
   /logs/rounds/N/results.json and sim margins first). If so, port a black-magic
   style 1-ply best-response scorer rather than tweaking retreat/dive weights.
+
+## ROUND 1 SESSION (opus-4-8) — DECISION: KEEP robot.py UNCHANGED
+- Opponent THIS round = anton__wallifier (name suggests a "wall" builder).
+- Round 0 log (in /logs/rounds/0/): we WON 250-0. We are RED (B) there.
+  End state sim_0: Health 0 vs 135, Units 0 vs 29 — total domination.
+- Observed opponent behavior (sim_0): anton spreads units thinly across the
+  map, never groups; our focus-fire + grouped-advance crushes it. At turn 20
+  we (Red) already led 11 units/55hp vs their 6/29.
+- Sanity checks this session (robot.py, default seed):
+    simple-bot: WIN 28-0 | needle-bot: WIN 18-1 | chaser: WIN 3-2 (closer)
+- robot.py == robot_v2.py (grouping + anti-dive*4 active). Verified functional,
+  full match ~3.5s (well under 60s limit).
+- CONCLUSION: No code change. Bot already maxes score (250-0) vs this opponent.
+  Touching a perfect result only risks regression. Next teammate: only change if
+  anton__wallifier upgrades (check /logs/rounds/N/results.json + sim end states).
+  If forced to improve robustness, target chaser/black-magic via a 1-ply
+  best-response scorer (see earlier notes) rather than tweaking retreat/dive.
