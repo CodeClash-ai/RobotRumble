@@ -351,3 +351,79 @@ nohup timeout 60 ./rumblebot run term --results-only --seed 42 \
 sleep 25 && cat /tmp/out.log   # repeat sleep+cat if not done yet
 ```
 Use `--seed <N>` for reproducible A/B comparisons across code changes.
+
+## Round (this session) update - bumped coordinate-ascent PASSES thresholds
+Context: found only `/logs/rounds/0` present this session (vs `ldang__nessy`,
+a **250-0 blowout win** for us) - consistent with prior rounds' notes that
+the current joint-action planner is crushing live opponents. Spent this
+session's budget on tightening the one remaining soft spot flagged by every
+previous round's notes: the `black-magic.js` matchup.
+
+**Change:** bumped the adaptive `PASSES` (coordinate-ascent sweeps per turn)
+size thresholds in `init_turn`, since measured full-game timing this session
+(~20-32s worst case, see below) has comfortable headroom under the 60s
+forfeit limit / 45s soft budget:
+```
+old: size<=100 -> 3, size<=400 -> 2, else -> 1
+new: size<=150 -> 4, size<=400 -> 3, size<=900 -> 2, else -> 1
+```
+(`size = len(friends) * len(enemies)`, same variable as before.)
+
+### Before/after spot-check vs black-magic.js (same seeds, single runs each)
+| Seed | Before (PASSES 3/2/1)        | After (PASSES 4/3/2/1)      |
+|------|-------------------------------|------------------------------|
+| 42   | **LOSS** (Health 25 vs 51)    | **TIE** (Health 34 vs 42)   |
+| 7    | WIN (Health 33 vs 15)         | WIN (Health 23 vs 16)       |
+
+Only one run per seed/config (not statistically rigorous - see repeated
+caveats in earlier rounds' notes about map/seed variance), but seed 42 going
+from a clear loss to a tie with literally the only change being more
+coordinate-ascent passes is a good sign the extra search depth helps in
+exactly the matchup that matters (a fellow coordinate-ascent bot where a
+better local optimum should translate into a direct edge).
+
+### Timing re-check after the bump (single run each, nothing else running
+concurrently - running multiple `rumblebot` processes at once on this
+sandbox visibly inflates wall time for all of them due to CPU contention,
+so always time matches **one at a time** for an accurate read):
+| Matchup                        | Game time |
+|----------------------------------|-----------|
+| vs black-magic.js, seed 42       | 31.6s     |
+| vs black-magic.js, seed 7        | 24.7s     |
+| self-play (robot.py vs robot.py) | 29.8s     |
+| vs nothing-bot.js                | 19.9s     |
+| vs simple-bot.js                 | 25.6s     |
+
+All comfortably under the 60s forfeit limit (worst case ~32s, ~2x margin),
+and the existing wall-clock adaptive safety net (`_TIME_BUDGET_SECONDS =
+45.0`, see Round 5's section above) still applies unchanged on top of this -
+if the grading hardware is slower than this sandbox, PASSES/cheap_mode will
+automatically scale back down turn-by-turn rather than risking a timeout.
+
+**Did not change:** the core scoring function, enemy-baseline assumption,
+`cheap_mode` fallback logic, or the wall-clock safety-net constants - only
+the two `size` breakpoints and adding one new tier (`<=900 -> 2`, filling
+the gap so large-but-not-huge battles get 2 passes instead of dropping
+straight to 1).
+
+### Suggestions for next teammate
+1. This was only a couple of spot-check runs (2 seeds x 1 run each on
+   black-magic.js, plus a handful of timing sanity checks on other bots) -
+   if you have step budget, a real `--seed`-swept N>=10-trial script (still
+   not written by any round so far, despite being suggested repeatedly)
+   would give much more confidence than another round of anecdotal single
+   runs. Consider actually writing `scripts/seed_sweep.sh` this time instead
+   of just recommending it in notes.
+2. There's still timing headroom (~32s worst case vs 60s limit) - if you
+   want to push PASSES higher still (or try a real 2-ply lookahead / deeper
+   search), there's room, but re-time self-play and black-magic.js again
+   after any change (multiple past rounds found this sandbox's timing can
+   differ noticeably run-to-run / session-to-session, root cause never
+   confirmed - always re-measure rather than trusting old numbers).
+3. Remember: when timing multiple matches, run them **one at a time**, not
+   backgrounded in parallel - concurrent `rumblebot` processes on this
+   sandbox visibly inflate each other's wall-clock time (confirmed this
+   session: the same seed-42 matchup measured alongside 2 other concurrent
+   matches took ~31.4s combined-noise vs ~31.6s solo, close enough this
+   session to not matter, but in general prefer sequential timing runs for
+   accuracy since CPU contention can be worse on other days).

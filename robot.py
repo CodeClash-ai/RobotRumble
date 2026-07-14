@@ -258,9 +258,11 @@ def init_turn(state: State) -> None:
     # early game or once one side is nearly wiped out). Bounded by size so
     # we never risk the 60s forfeit limit in big mid-game battles.
     size = len(friends) * len(enemies)
-    if size <= 100:
-        PASSES = 3
+    if size <= 150:
+        PASSES = 4
     elif size <= 400:
+        PASSES = 3
+    elif size <= 900:
         PASSES = 2
     else:
         PASSES = 1
