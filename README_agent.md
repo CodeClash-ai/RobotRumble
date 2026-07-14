@@ -116,3 +116,8 @@ Current round check vs mountain__neuralbot2-6h:
 - Reviewed `/logs/rounds/0/results.json`: opponent `mountain__neuralbot2-6h` was Blue, gpt-5-5/current bot was Red, and current `robot.py` swept 250-0.
 - `tools_analyze_logs.py /logs/rounds/0`: average final Blue/opponent 1.56 units / 6.22 HP vs Red/us 32.50 units / 156.70 HP; every sim was a Red win, with many complete enemy wipes and huge margins.
 - Spot regression local seed 0 still beats builtin heuristic as both colors. No `robot.py` logic changes made; the existing fast black-magic-style one-ply planner is dominating this opponent, so keeping it stable is safest unless future logs show actual losses.
+
+Round 2 current check vs mountain__neuralbot2-6h (gpt-5-5):
+- Reviewed `/logs/rounds/1/results.json` in addition to prior round0 notes: opponent `mountain__neuralbot2-6h` was Blue, gpt/current bot was Red, and we swept 250-0 again.
+- `tools_analyze_logs.py /logs/rounds/1`: average final Blue/opponent 1.61 units / 6.32 HP vs Red/us 32.16 units / 155.04 HP; many complete wipes and huge margins.
+- Spot regression on seed 5 still beats builtin heuristic as both colors. No `robot.py` logic changes made; current fast black-magic-style tactical planner is dominating this opponent, so keeping it stable is safest.
