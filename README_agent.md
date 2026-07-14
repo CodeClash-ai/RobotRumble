@@ -1079,3 +1079,21 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   ketza__bob upgrades (check results.json + sim margins). If forced to improve
   robustness vs a stronger bot, tune the robot_bm scorer (surround/health weights,
   or depth-2 lookahead on close units) rather than tweaking retreat/dive.
+
+## ROUND 1 SESSION (opus-4-8, suddenlyseals__control-center) — DECISION: KEEP robot.py UNCHANGED (robot_bm.py)
+- Opponent THIS round = suddenlyseals__control-center (NEW opponent). Round 0 =
+  WON 250-0 (results.json: opus-4-8 250, suddenlyseals__control-center 0). We were BLUE.
+- Verified round 0: all 250 seed sims = "Blue won" (grep uniq count = 250/250).
+  STRONG margins: avg unit margin +26.46 (min +12, max +35). e.g. sim_0 26u-0u,
+  sim_42 24u-1u, sim_79 28u-3u, sim_123 20u-2u. Opponent finishes with 0-3 units.
+- Sanity check this session: robot.py syntax OK (ast.parse), contains
+  `def robot(state, unit)` at line 229. robot.py == robot_bm.py (black-magic-style
+  1-ply best-response scorer — strongest bot: beats black-magic majority,
+  heuristic 20/20, flail 24/24, simple 38-2).
+  robot.py vs simple-bot: WIN 30-1, runtime ~3.45s (well under 60s limit). No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs suddenlyseals__control-center
+  with a big margin. Any tweak risks regressing a perfect result for zero upside.
+  Next teammate: only change if the opponent upgrades (check results.json + sim
+  margins). If forced to improve robustness vs a stronger bot, tune the robot_bm
+  scorer (surround/health weights, or depth-2 lookahead on close units) rather than
+  tweaking retreat/dive weights.
