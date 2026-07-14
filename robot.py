@@ -9,6 +9,7 @@
 ATTACK = 1
 MOVE = 2
 ALL_DIRS = [Direction.North, Direction.East, Direction.South, Direction.West]
+DIR_PRI = {Direction.North: 1, Direction.East: 2, Direction.South: 3, Direction.West: 4}
 
 DIR_DELTAS = None
 ACTIONS = {}
@@ -130,18 +131,59 @@ def _score(friends, enemies):
 
 
 def _tick(friends, enemies, actions):
-    """Simplified one-turn simulator.  Mutates friends/enemies."""
+    """One-turn simulator approximating engine movement conflicts, then attacks."""
+    # Approximate engine movement more accurately than the original black-magic
+    # tick: choose one mover per destination by N/E/S/W priority, cancel direct
+    # swaps, then reject move chains blocked by stationary/rejected units.
+    side_at = {}
+    health_at = {}
+    for c, h in friends.items():
+        side_at[c] = 0
+        health_at[c] = h
+    for c, h in enemies.items():
+        side_at[c] = 1
+        health_at[c] = h
+
+    movers_by_target = {}
     for source, action in actions.items():
-        if action is None or action[0] != MOVE:
+        if action is None or action[0] != MOVE or source not in side_at:
             continue
         target = _add(source, action[1])
-        if target in LEGAL and target not in friends and target not in enemies:
-            if source in friends:
-                friends[target] = friends[source]
-                del friends[source]
-            elif source in enemies:
-                enemies[target] = enemies[source]
-                del enemies[source]
+        if target in LEGAL:
+            movers_by_target.setdefault(target, []).append((source, action[1]))
+
+    chosen = {}
+    for target, arr in movers_by_target.items():
+        source, d = min(arr, key=lambda x: DIR_PRI[x[1]])
+        chosen[target] = source
+
+    # Cancel direct swaps.
+    movement = {}
+    for target, source in chosen.items():
+        if chosen.get(source) == target:
+            continue
+        movement[target] = source
+
+    moving_sources = set(movement.values())
+    occupied_static = set(side_at.keys()) - moving_sources
+    legal_moves = dict(movement)
+    while True:
+        blocked = [t for t in legal_moves if t in occupied_static]
+        if not blocked:
+            break
+        for t in blocked:
+            src = legal_moves.pop(t)
+            occupied_static.add(src)
+
+    for target, source in legal_moves.items():
+        side = side_at[source]
+        h = health_at[source]
+        if side == 0:
+            del friends[source]
+            friends[target] = h
+        else:
+            del enemies[source]
+            enemies[target] = h
 
     for source, action in actions.items():
         if action is None or action[0] != ATTACK:
@@ -158,7 +200,6 @@ def _tick(friends, enemies, actions):
     dead = [c for c, h in friends.items() if h <= 0]
     for c in dead:
         del friends[c]
-
 
 def init_turn(state):
     global ACTIONS, CURRENT_TURN
