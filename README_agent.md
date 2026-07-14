@@ -1212,3 +1212,84 @@ speculative, hard-to-validate tweak.
 4. `scripts/seed_sweep.sh` exists for local A/B testing; background
    long-running commands (`nohup ... &` + `sleep` + `cat`) since matches
    take ~9-30s each and this environment's per-tool-call time is limited.
+
+## Round (this session) - re-validation + new tooling: scripts/paired_ab.sh
+
+Context: `/logs/rounds/0` and `/logs/rounds/1` this session were both vs
+`mountain__neuralbot1-1h` (same opponent both rounds), both **250-0 blowout
+wins** (once as Blue, once as Red) - the ninth+/tenth+ consecutive live
+opponent crushed by a large margin with the current `robot.py` (unchanged:
+fixed `PASSES=1` coordinate-ascent joint-action planner, static "enemy
+attacks lowest-health adjacent friend else passive" baseline, wall-clock
+adaptive safety net).
+
+**What I did this session:**
+1. Confirmed `robot.py` compiles cleanly and `git status` was clean at the
+   start (no stray changes from a prior session).
+2. Re-ran the standard fixed-seed (`--seed 1`) sanity check vs
+   `black-magic.js`: **WIN**, Health 48 vs 18, Units 16 vs 8 (~12s) - exact
+   match to numbers recorded in multiple immediately-preceding sessions'
+   notes. No regression.
+3. Wrote **`scripts/paired_ab.sh`**, a proper implementation of the
+   "both-colors-per-seed" A/B methodology that many past sessions'
+   "MAJOR FINDING" write-ups (search this file for that heading) called for
+   but never actually built - only a single-color `seed_sweep.sh` existed
+   before this session. Usage:
+   ```bash
+   ./scripts/paired_ab.sh <version_A.py> <version_B.py> <opponent.js> <num_seeds> [start_seed]
+   # e.g. compare current robot.py against a candidate change:
+   cp robot.py /tmp/robot_baseline.py
+   # ... edit robot.py with your candidate change ...
+   nohup ./scripts/paired_ab.sh /tmp/robot_baseline.py robot.py \
+     builtin-bots/black-magic.js 10 100 > /tmp/ab.log 2>&1 &
+   sleep 300 && cat /tmp/ab.log
+   ```
+   For each seed it runs BOTH versions as BOTH Blue and Red vs the same
+   fixed opponent (4 matches/seed), and reports each version's *combined*
+   health margin (our_health-their_health summed across both color
+   assignments) - since both versions get the identical color-balanced
+   treatment per seed, this should cancel out the confirmed engine/map
+   Blue-vs-Red advantage (see the "MAJOR FINDING" and self-play-confirmation
+   sections above) much better than a fixed-color sweep, making it a valid
+   way to A/B test future `robot.py` changes.
+4. **Smoke-tested the script** by running it with the *same* file passed as
+   both "version A" and "version B" against `nothing-bot.js` (1 seed) - as
+   expected for byte-identical code, both versions reported the exact same
+   combined margin (220) and the script correctly declared it a tie,
+   confirming the parsing/arithmetic logic works before anyone relies on it
+   for a real decision.
+
+**No changes made to `robot.py` itself this session** - same rationale as
+several immediately preceding sessions: every real graded match so far
+(10 rounds now, several distinct live opponents, most recently
+`mountain__neuralbot1-1h` x2) has been a lopsided/blowout win, with zero
+evidence any live opponent plays near `black-magic.js`'s level, and the
+extensive prior-session history of speculative tweaks being tried and
+reverted after rigorous A/B testing (adaptive multi-pass PASSES, "enemy
+advances" baseline) argues for not casually tweaking again without a
+properly color-balanced A/B - which is exactly what this session's new
+tooling now makes cheap to do for whoever picks up the "real 2-ply
+lookahead" idea (still the main unimplemented lever, flagged by many
+sessions - see repeated "Suggestions for next teammate" sections above).
+
+### Suggestions for next teammate
+1. Use `scripts/paired_ab.sh` (not the older fixed-color `seed_sweep.sh`)
+   for any A/B testing of a `robot.py` code change - it's the properly
+   color-balanced methodology multiple past sessions asked for. Remember to
+   background it (`nohup ... &` + `sleep` + `cat`); it runs 4 matches per
+   seed so budget accordingly (~4 x 10-30s per seed).
+2. The one structurally-different, still-untried idea across many
+   sessions remains open: a genuine 2-ply lookahead that re-derives the
+   opponent's *actual* coordinate-ascent response (not a static heuristic)
+   after each of our candidate moves. Timing headroom is large (~9-12s/game
+   vs the 60s limit), so there's real budget for it - use
+   `scripts/paired_ab.sh` to validate it properly before trusting the
+   result, unlike several earlier sessions' fixed-color-sweep-based
+   conclusions (which are now flagged as lower-confidence than originally
+   claimed).
+3. Heal actions are confirmed dead weight in the real graded game mode
+   (`GameMode::Normal`, not `NormalHeal`) - don't add heal logic expecting
+   it to help in graded matches.
+4. `robot.py` is unchanged from many prior sessions' validated version -
+   still the right default; no urgent need to touch it for the live
+   ladder given 10 straight dominant/blowout wins.
