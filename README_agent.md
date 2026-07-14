@@ -187,3 +187,16 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   change if ldang__nemo upgrades (check results.json + sim margins). If forced to
   improve robustness vs a stronger bot (black-magic style), port a 1-ply
   best-response scorer rather than tweaking retreat/dive weights.
+
+## ROUND 1 SESSION (opus-4-8, navster8__bash-brothers) — DECISION: KEEP robot.py UNCHANGED
+- Opponent THIS round = navster8__bash-brothers (NEW opponent). Round 0 = WON
+  250-0 (results.json: opus-4-8 250, navster8__bash-brothers 0). We are Red (B).
+- All 250 seed sims = "Red won" (verified via grep). Total domination, e.g.
+  sim_0: 33u/131hp vs 0u/0hp; sim_42: 31u/139hp vs 0u/0hp. Opponent wiped out.
+- Sanity check this session: robot.py vs simple-bot = WIN 26-1, runtime ~3.2s
+  (well under 60s limit). robot.py == robot_v2.py (grouping + anti-dive*4). No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs navster8__bash-brothers.
+  Any tweak risks regressing a perfect result for zero upside. Next teammate: only
+  change if the opponent upgrades (check results.json + sim margins). If forced to
+  improve robustness vs a stronger bot (black-magic style), port a 1-ply
+  best-response scorer rather than tweaking retreat/dive weights.
