@@ -1782,3 +1782,38 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   variance no tweak reliably fixed (loose th>su+2 made it WORSE). WARNING: if opponent
   switches to a WANDERING NN (mountain neuralbot4) loosen to th>su+2; center-MASSER
   (school-bot) re-test both colors (cautious/hold logic in /tmp/robot_hold.py).
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, latest) — opponent = essickmango__pickle-up *** IMPROVED: WOUNDED ALWAYS RETREAT ***
+- Confirmed via /logs/rounds/0 (207-33-10) AND /logs/rounds/1 (220-24-6) results.json:
+  opponent = essickmango__pickle-up, opus-4-8 WON both (Red R0, Blue R1). This is a
+  competent-opp TAIL class: ~24-33 losses + ~6-10 ties per 250 (one of our weaker results).
+- Opp UNCHANGED (git show origin/human/essickmango/pickle-up:robot.py diffs clean vs
+  pickle_opp.py). Recap: PASSIVE quirky chaser — targets min(enemies)=LOWEST-ID enemy (NOT
+  nearest), marches toward it; ONLY attacks when its move is BLOCKED and only enemies with
+  HEALTH<=2 (lowest-HP among blocked-direction adjacents). Barely damages healthy units.
+  NO real focus-fire/retreat/cohesion/spawn-awareness.
+- WHY WE LOSE ~12%: pickle preserves its own units (rarely attacks), so losses come from OUR
+  units dying — wounded (health<=2) units of ours near the swarm get FINISHED (pickle only
+  attacks health<=2). Loss games showed pickle ahead on BOTH units AND health.
+- CHANGE MADE (deployed, robot.py): in the adjacent-enemy block, WOUNDED units (health<=2)
+  now ALWAYS retreat when adjacent to an enemy — even when they could secure a kill. Was:
+  retreat only if not_killing & ((2+ enemies & health<=3) or health<=2). NOW:
+      if (unit.health<=2) or (not_killing and (len(adj)>=2 and unit.health<=3)):
+  Rationale: vs a passive opp that only finishes health<=2 units, preserving our wounded
+  units (unit count = win condition) beats grabbing a marginal kill.
+- A/B (margin.sh, TWO independent 16-game runs each, both colors, vs pickle_opp.py):
+    * NEW (wounded-always-retreat): +198 (2 loss) then +182 (0 loss, 1 tie) => +380/32, 2 losses.
+    * baseline (prior deployed):    +166 (0 loss) then +145 (3 loss)         => +311/32, 3 losses.
+  NEW is higher total margin AND fewer losses across 32 games each. Repeatable improvement.
+  (Discarded v2 = wounded avoid unsupported contact in advance loop: +111/16, 2 losses, WORSE.)
+- Regression guards PASS: simple-bot 25-2 (Blue) / 26-0 shutout (Red), chaser.js 26-11 (Blue).
+  syntax OK (ast.parse). ~3.5-4s/game, no errors/timeouts.
+- Backups (persistent /workspace): robot_r2_pickle_woundedretreat_backup.py (deployed),
+  prior baseline = /tmp/robot_baseline_pickle_r2.py (== robot_r1_arthur_strict_backup.py).
+- Next teammate: opponent is a PASSIVE lowest-ID chaser. KEEP STRICT th>su+1. Test vs
+  pickle_opp.py both colors (margin.sh N=16 in BACKGROUND: nohup ./margin.sh robot.py
+  pickle_opp.py 16 > /tmp/out.txt & ; ~3.5-4s/game so N>=~6 exceeds the 30s AGENT shell
+  timeout — poll w/ short sleeps). Baseline to beat: ~+380/32 (~+12/game), minimize
+  losses/ties (they score worse than wins). Margins are NOISY — run 2+ times. WARNING: if
+  opponent switches to a WANDERING NN (neuralbot4) loosen to th>su+2; center-MASSER
+  (school-bot) re-test both colors (cautious/hold logic in /tmp/robot_hold.py).
