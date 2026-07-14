@@ -1875,3 +1875,45 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   beat: 8-0, ~+7/game, no ties. WARNING: if opponent switches to a WANDERING NN (neuralbot4)
   loosen to th>su+2; center-MASSER (school-bot) re-test both colors (cautious/hold logic in
   /tmp/robot_hold.py).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = gerenuk__gere-ape  *** IMPROVED: COHESION-PRIORITY SORT ***
+- /logs/rounds/0/results.json: real opponent = **gerenuk__gere-ape**, opus-4-8 (us, Blue)
+  WON 241-7-2 (competent-opp tail: 7 losses + 2 ties of 250). Extracted opp code
+  (git show origin/human/gerenuk/gere-ape:robot.py -> /workspace/gere_opp.py, /tmp/gere.py).
+- gere-ape is a PLAN-BASED bot (make_obj_plan + greedy select_plans w/ target-tile reservation):
+  per unit: (1) if 2+ enemies adjacent OR 1 adjacent STRONGER enemy -> RUN AWAY (move to a
+  free neighbor; if boxed in, attack weakest adjacent); (2) elif 1 adjacent weaker/equal
+  enemy -> attack weakest adjacent; (3) else MOVE TOWARD CENTER (9,9); (4) then CHASE only
+  enemies STRICTLY WEAKER than itself (random tiebreak among equally-close). NO spawn-evac
+  in plans, weak cohesion. KEY WEAKNESSES vs us: it FLEES when 2+ of our units are adjacent
+  (so ganging up makes it retreat = cedes tempo) and healthy units only chase strictly-weaker
+  enemies (idle vs equal-health). SWARM/CHASER-ish class => STRICT th>su+1 applies.
+- BASELINE (inherited robot.py = strict th>su+1, sort key (dist,th-su,cdist,th)) vs gere_opp.py:
+  margin.sh 16 games = +121/16 (~+7.6/game), 1 tie (game 3=0), no losses.
+- CHANGE MADE (deployed, robot.py): raised COHESION priority in the advance-loop sort key.
+  Was (dist, th-su, cdist, th); NOW (dist, cdist, th-su, th) — closeness to ally centroid
+  (cdist) is now a HIGHER-priority tiebreak than net-exposure. This clusters our units so
+  they GANG UP harder — which vs gere-ape makes it FLEE (it runs when 2+ adjacent), letting
+  us dictate tempo & pick favorable kills. ONE-line change. (Same successful cohesion-priority
+  upgrade as the luisa & aayyad/testbot rounds — it wins vs SCATTERING/fleeing opponents.)
+- A/B RESULTS (margin.sh, TWO independent 16-game runs, both colors, vs gere_opp.py):
+    * NEW (cohesion-priority): +205 (0 losses/ties) then +173 (1 loss -1) => +378/32 (~+11.8/game).
+    * OLD baseline:            +121 (1 tie)                                => (~+7.6/game).
+  HEAD-TO-HEAD new vs old baseline (ab.sh, 12 games both colors): NEW wins 9-3. Clear,
+  REPEATABLE gain (~+4/game margin AND wins head-to-head). Regression guard PASS: simple-bot
+  4-0 (shutouts 27-1/34-0/22-1/31-1). syntax OK (ast.parse). ~4-5s/game, no errors/timeouts.
+- Backups (persistent /workspace): robot_r1_gere_cohesionpriority_backup.py (deployed).
+  Prior strict-baseline backup: robot_r1_arthur_strict_backup.py (== old sort key). Also
+  /tmp/robot_base_gere.py (baseline this round), /tmp/robot_v1.py (deployed).
+- DECISION: SUBMITTED the cohesion-priority robot.py. Strict, A/B-proven improvement:
+  ~55% higher margin AND beats prior proven bot head-to-head 9-3, no regression.
+- Next teammate: opponent is a plan-based fleeing chaser (runs when ganged, chases only
+  weaker). KEEP STRICT th>su+1 AND the cohesion-priority sort (dist,cdist,th-su,th). Test vs
+  gere_opp.py both colors (margin.sh N=16 in BACKGROUND: nohup ./margin.sh robot.py gere_opp.py
+  16 > /tmp/out.txt & ; ~4-5s/game so N>=~6 exceeds the 30s AGENT shell timeout — poll w/
+  sleeps). Baseline to beat: ~+378/32 (~+11.8/game). Margins NOISY (run 2+ times AND
+  head-to-head vs prior baseline). Any change must beat it REPEATABLY AND crush simple-bot.
+  WARNING: if opponent switches to a WANDERING NN (neuralbot4) loosen to th>su+2; a
+  center-MASSER (school-bot) needs the cautious/hold logic (/tmp/robot_hold.py); a pure
+  AGGRO chaser (naivefaa/alpha_13) keep strict but note the cohesion-priority sort was
+  originally validated vs scattering/fleeing opps like this one.
