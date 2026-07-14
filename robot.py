@@ -101,6 +101,13 @@ def _score(friends, enemies):
     for v in distv.values():
         distance_score += v * v
 
+    if CURRENT_TURN >= 95 and unit_score == 0 and health_score <= 0:
+        # If the match is about to end tied on units and we are not ahead on
+        # total sqrt-health, turtling preserves the tie.  Keep unit count as
+        # the primary objective, but next prefer reducing enemy health so close
+        # endgames have a chance to convert before turn 100.
+        enemy_health_score = health_score - friend_health_score
+        return (unit_score, -enemy_health_score, health_score, surround_score, distance_score)
     if CURRENT_TURN >= 85:
         return (unit_score, friend_health_score, health_score, surround_score, distance_score)
     if CURRENT_TURN >= 60:
