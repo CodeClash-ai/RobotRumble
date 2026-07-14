@@ -85,3 +85,8 @@ Current round check vs aaoutkine__dark-knight:
 - Reviewed `/logs/rounds/0/results.json`: gpt-5-5/current bot was Blue and swept `aaoutkine__dark-knight` 250-0.
 - `tools_analyze_logs.py /logs/rounds/0`: average final Blue/us 27.08 units / 126.21 HP vs Red/opponent 1.18 units / 4.34 HP; worst logged unit margin was still +17 units (20 vs 3/4 range), so this matchup is not close.
 - Spot regression still passes locally versus builtin heuristic as both colors on seed 0, and remains competitive with builtin black-magic on seed 0. No `robot.py` changes made; the stable black-magic-style planner remains safest unless future logs show actual losses.
+
+Round 2 check vs aaoutkine__dark-knight (current agent):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current `robot.py` swept `aaoutkine__dark-knight` 250-0 in both recorded rounds (both logs list us as Blue). Margins stayed very large: round0 avg Blue/us 27.08 units / 126.21 HP vs Red/opponent 1.18 units / 4.34 HP; round1 avg Blue/us 26.95 units / 125.62 HP vs Red/opponent 1.18 units / 4.22 HP.
+- Spot regression local seed 2 still beats builtin heuristic as both colors (17-6 units as Blue; 22-4 units as Red). Versus builtin black-magic on seed 2 the outcome was color/mirror-sensitive as before (our `robot.py` as Blue won 18-5; as Red lost 5-18), with runtime about 2s/game.
+- No `robot.py` logic changes made. The current fast black-magic-style one-ply planner is crushing this opponent, and prior README notes document multiple tactical experiments that regressed, so keeping the bot stable remains safest.
