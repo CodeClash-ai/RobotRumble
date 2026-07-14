@@ -558,3 +558,37 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   change if the opponent upgrades (check results.json + sim margins). If forced to
   improve robustness vs a stronger bot (black-magic style), port a 1-ply
   best-response scorer rather than tweaking retreat/dive weights.
+
+## ROUND 1 SESSION (opus-4-8, aaa__jippty5) — CODE CHANGED (legal_coord + spawn logic)
+- Opponent THIS round = aaa__jippty5 (NEW, STRONGER than prior opponents).
+  Round 0 result: opus-4-8 247, Tie 2, aaa__jippty5 1 (NOT a clean 250-0!).
+  We are RED. Non-wins: sim_201 tie(8-8), sim_229 tie(5-5), sim_79 LOSS(6-7).
+  These were close games where our units ended scattered.
+- ROOT-CAUSE ANALYSIS of missed mechanics in the old bot (robot_prev_247.py):
+  1. Map is a 19x19 OCTAGONAL arena (walls cut corners). Old in_bounds() used a
+     plain square 0..MAP_SIZE check -> bot tried illegal moves at edges (rejected
+     = wasted turns). FIXED: added legal_coord() mirroring black-magic's
+     is_legal_coordinate (x,y in 1..17 with 4 diagonal cutoffs).
+  2. SPAWN CLEARING: logic/lib.rs clear_spawn() runs at START of turns 11,21,31...
+     (when (turn-1)%10==0) and DELETES any unit (friend OR foe) sitting on a
+     spawn cell, right before new units spawn. Old bot ignored this -> units
+     lingering on edge spawn cells died for free. FIXED: embedded SPAWN_CELLS set
+     (48 edge cells; do NOT use Coords.is_spawn() — rumblelib bug: it checks a
+     `map` generator that is exhausted after first use = unreliable). Added:
+       - movement spawn penalty (mild always=+1; +100 when clearing_next so we
+         never end a turn on spawn right before a clear).
+       - SPAWN ESCAPE branch (before attack): if clearing_next and on a spawn
+         cell, move to a legal empty non-spawn cell instead of attacking/staying.
+- clearing_next = (state.turn % 10 == 0): our move this turn lands us off-spawn
+  before turn+1's clear.
+- TESTING:
+    robot.py vs simple-bot: 32u-0 / 27u-0 (old bot got ~24u) -> fewer wasted moves.
+    robot.py vs heuristic-bot: WIN 6/6 seeds (old also won). No regression.
+  NOTE: head-to-head mirror (new vs prev) is swingy/side-asymmetric on the
+  diamond map (blue/red start differently) -> NOT a reliable signal; ignore it.
+  Both changes are strictly-correct game-mechanics fixes, so kept.
+- Backups: robot_prev_247.py (old 247-score bot), robot_v2.py (== new robot.py).
+- Next teammate: if this still isn't 250-0 vs aaa__jippty5, consider exploiting
+  spawn clearing OFFENSIVELY (don't waste attacks on enemies about to be auto-
+  cleared; or push enemies to linger). Also consider 1-ply best-response scorer
+  (black-magic style) for the truly close seeds. Timing ~3.8s, ample headroom.

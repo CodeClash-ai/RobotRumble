@@ -15,36 +15,6 @@ from typing import *
 DIRECTIONS = [Direction.North, Direction.South, Direction.East, Direction.West]
 MAX_HP = 5
 
-SPAWN_CELLS = frozenset([
-    (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13),
-    (2, 4), (2, 14), (3, 3), (3, 15), (4, 2), (4, 16), (5, 1), (5, 17),
-    (6, 1), (6, 17), (7, 1), (7, 17), (8, 1), (8, 17), (9, 1), (9, 17),
-    (10, 1), (10, 17), (11, 1), (11, 17), (12, 1), (12, 17), (13, 1), (13, 17),
-    (14, 2), (14, 16), (15, 3), (15, 15), (16, 4), (16, 14),
-    (17, 5), (17, 6), (17, 7), (17, 8), (17, 9), (17, 10), (17, 11), (17, 12), (17, 13),
-])
-
-
-def is_spawn_cell(c) -> bool:
-    return (c.x, c.y) in SPAWN_CELLS
-
-
-def legal_coord(c) -> bool:
-    # Octagonal arena (mirrors black-magic is_legal_coordinate), 1..17 valid range.
-    x, y = c.x, c.y
-    if x <= 0 or x > 17 or y <= 0 or y > 17:
-        return False
-    if y <= 5 - x:
-        return False
-    if y <= x - 13:
-        return False
-    if y >= x + 13:
-        return False
-    if y >= 31 - x:
-        return False
-    return True
-
-
 robot_state: Dict[str, dict] = {}
 
 _planned_moves: Dict[str, Coords] = {}
@@ -52,7 +22,7 @@ _attack_plan: Dict[str, int] = {}   # enemy id -> committed damage this turn
 
 
 def in_bounds(c: Coords) -> bool:
-    return legal_coord(c)
+    return 0 <= c.x < MAP_SIZE and 0 <= c.y < MAP_SIZE
 
 
 def cell_key(c: Coords):
@@ -86,40 +56,8 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         return None
 
     my = unit.coords
-    # spawn clearing happens at the START of turns 11,21,31,... i.e. when
-    # (turn-1)%10==0. A unit standing on a spawn cell at that moment is
-    # DELETED (friend or foe). So if the NEXT turn will clear (turn%10==0),
-    # we must not end this turn on a spawn cell.
-    clearing_next = (state.turn % 10 == 0)
 
     adj_enemies = [e for e in enemies if e.coords.walking_distance_to(my) == 1]
-
-    # ---- SPAWN ESCAPE ---- if next turn clears spawn and we're on a spawn
-    # cell, we MUST leave or we die for free. Prefer a legal, empty, non-spawn
-    # cell; among those, stay near allies / near action.
-    if clearing_next and is_spawn_cell(my):
-        cand = []
-        for d in DIRECTIONS:
-            dest = my + d
-            if not in_bounds(dest):
-                continue
-            if is_spawn_cell(dest):
-                continue
-            o = state.obj_by_coords(dest)
-            if o is not None:
-                continue
-            if any(cell_key(pd) == cell_key(dest) for pd in _planned_moves.values()):
-                continue
-            threat = enemy_adjacent_count(dest, enemies)
-            support = ally_support_count(dest, allies, unit.id)
-            outn = max(0, threat - support - 1)
-            ndist = min(e.coords.walking_distance_to(dest) for e in enemies)
-            cand.append(((outn, ndist), d, dest))
-        if cand:
-            cand.sort(key=lambda t: t[0])
-            _, d, dest = cand[0]
-            _planned_moves[unit.id] = dest
-            return Action.move(d)
 
     # ---- ATTACK DECISION ----
     if adj_enemies:
@@ -225,11 +163,6 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         group_dist = abs(dest.x - acx) + abs(dest.y - acy)
         # effective approach cost: distance to target plus danger penalty.
         eff = dist + outnumbered * 4
-        # avoid ending on a spawn cell (mild always; critical before a clear)
-        spawn_pen = 0
-        if (dest.x, dest.y) in SPAWN_CELLS:
-            spawn_pen = 100 if clearing_next else 1
-        eff += spawn_pen
         key = (eff, outnumbered, osc, group_dist, -support, threat)
         if best_key is None or key < best_key:
             best_key = key
