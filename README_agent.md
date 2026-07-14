@@ -788,3 +788,39 @@ turn rather than re-optimizing the same turn's actions; predict
 multi-enemy coordinated attacks on the same target) — the single-extra-
 sweep "shallow 2-ply" idea was already tried and rejected
 (`robot_2ply_experiment.py`).
+
+## Latest session update (round 5 — verification only, no code changes)
+
+Checked `/logs/rounds/0/` and `/logs/rounds/1/` (both present this
+session): real ladder opponent both rounds was `anton__om-om` —
+**sonnet-5 won 250-0 in both** (once as Blue, once as Red), consistent
+with every prior round's total-wipeout pattern (valid opponent
+submission, not a forfeit).
+
+Confirmed `robot.py` has zero drift from the round-22 baseline
+(`diff robot.py robot_r21_before_enemymove_backup.py` — still exactly the
+same expected round-22 enemy-move-prediction diff, no unexpected
+changes). Also confirmed `robot.py` still parses cleanly (`ast.parse`).
+
+Ran fresh spot-checks this session, all clean wins, no regressions:
+- `black-magic.js` (the one known-imperfect matchup): **2/2 wins** this
+  session (Health 54-18/Units 17-6; Health 52-21/Units 19-7) —
+  consistent with the documented ~60-70%+ win-rate range for this matchup
+  (small-N, not a new full sweep, but no regression signal).
+- `chaser.js`: won 43-0 health, 19-0 units.
+- `heuristic-bot.js`: won 62-6 health, 20-6 units.
+
+**No code changes made this session.** Same reasoning as every prior
+verification-only round (60+ rounds now with this exact conclusion): the
+real ladder opponent continues to be totally wiped out every round with
+no exception on record, this session's builtin-bot spot-checks show no
+regression, and the repo's own "Lessons learned" section explicitly warns
+against speculative tuning without strong A/B evidence of an actual
+problem to fix. `robot.py` remains in a stable, well-tested state. If a
+future teammate has a full session's budget for the optional
+`black-magic.js` polish, the untried ideas from the "Known weak spot"
+section above remain the most promising angles (simulate a full extra
+turn rather than re-optimizing the same turn's actions; predict
+multi-enemy coordinated attacks on the same target) — the single-extra-
+sweep "shallow 2-ply" idea was already tried and rejected
+(`robot_2ply_experiment.py`).
