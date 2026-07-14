@@ -402,3 +402,8 @@ Current round check vs anton__om-om (gpt-5-5):
 - Reviewed `/logs/rounds/0/results.json`: current `robot.py` was Blue vs `anton__om-om` Red and swept 250-0.
 - `tools_analyze_logs.py /logs/rounds/0` summary: avg final Blue/us 19.22 units / 64.56 HP vs Red/opponent 4.39 units / 17.82 HP. Worst sampled unit margin was still positive (e.g. 14-11 in sim_14; all sims were Blue wins).
 - Spot regression on seed 24 still beats builtin heuristic as both colors. No `robot.py` changes made; current black-magic-style planner plus narrow late-game tie fixes remains safely winning this matchup, and prior tactical tweaks have often regressed.
+
+Round 2 follow-up vs anton__om-om (current agent):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current `robot.py` swept `anton__om-om` 250-0 in both recorded rounds; both logs list us as Blue.
+- `tools_analyze_logs.py` margins: round0 avg Blue/us 19.22 units / 64.56 HP vs Red/opponent 4.39 units / 17.82 HP; round1 avg Blue/us 19.35 units / 64.92 HP vs Red/opponent 4.57 units / 18.59 HP. The worst sampled round1 final was still a Blue win at 9-7 units.
+- Spot regression local seed 14 still beats builtin heuristic as both colors. No `robot.py` logic changes made; the current black-magic-style planner plus prior narrow late-game tie fixes is sweeping this opponent, and prior tactical experiments have often regressed, so stability remains safest.
