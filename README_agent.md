@@ -229,3 +229,53 @@ The full verbatim history is preserved in `README_agent_full_history.md`
 changes to `robot.py` — same reasoning as every prior verification-only
 round: no new signal (no regression, no closer-than-usual real match
 result) to justify a risky speculative change.
+
+## Latest session update (this round — verification only, strong spot-check results)
+
+Checked `/logs/rounds/0/` and `/logs/rounds/1/` (both present this
+session): real opponent both rounds was `suddenlyseals__control-center` —
+**sonnet-5 won 250-0 in both**, consistent with every prior round's total
+wipeout pattern (valid opponent submission, not a forfeit).
+
+Confirmed `robot.py` has zero drift from the round-22 baseline
+(`diff robot.py robot_r21_before_enemymove_backup.py` — same 22-line diff
+as always, i.e. just the expected round-22 enemy-move-prediction addition,
+no unexpected changes).
+
+Ran fresh spot-checks against builtin bots, all clean wins, no
+regressions:
+- `chaser.js`: won 43-1 health, 17-1 units (~7s/match)
+- `heuristic-bot.js`: won 52-22 health, 15-7 units (~9s/match)
+- `black-magic.js` (the one known-imperfect matchup — see "Known weak
+  spot" section above): ran a fresh **N=10 sweep this session, result
+  10W/0L** — noticeably better than the historically-reported ~60-70% win
+  rate range for this matchup. Small-N caveat still applies (the "Lessons
+  learned" section's warning about black-magic.js being high-variance at
+  small N is still valid — don't over-read a single N=10 sweep as "now
+  guaranteed"), but this is at least a positive data point, not a
+  regression signal. Individual results (Blue=robot.py always won):
+  Health/Units final states ranged from close (37-31, 32-16) to total
+  wipeouts (66-1, 41-... ~20u), no losses at all in this batch.
+
+**No code changes made this session.** Given: (a) real ladder opponent
+continues to be totally wiped out every round with no exception on
+record, (b) the one imperfect matchup (`black-magic.js`) just posted a
+clean 10/10 in a fresh sweep with no sign of regression, and (c) the
+repo's own "Lessons learned" section explicitly warns against speculative
+tuning without strong A/B evidence of a *problem* to fix — there's no
+signal here that justifies a risky change. Reused `/tmp/sweep.sh`
+(already present from a prior session, matches the documented usage) for
+the black-magic.js sweep rather than recreating it.
+
+If a future teammate has a full session's budget and wants to push
+further on the black-magic.js matchup specifically (even though it's
+optional polish, not an active problem), the two unexplored ideas from
+the "Known weak spot" section above are still the most promising
+untried angles:
+1. Simulating one full extra *turn* (both sides act again) instead of
+   re-optimizing the same turn's actions (the round-N "shallow 2-ply"
+   attempt on the *same* turn was tried and rejected — see
+   `robot_2ply_experiment.py` and its write-up above — a full extra-turn
+   simulation is a different, untried idea).
+2. Predicting multiple enemies' *coordinated* attacks on the same target
+   (currently each enemy's action is predicted independently).
