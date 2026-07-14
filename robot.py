@@ -57,16 +57,15 @@ def robot(state, unit):
     if retreat_dir:
         return Action.move(retreat_dir)
 
-    adjacent = []
-    for direction in DIRS:
-        other = state.obj_by_coords(unit.coords + direction)
-        if other and other.team == state.other_team:
-            adjacent.append((other.health, direction, other))
-    if adjacent:
-        # Focus the weakest adjacent enemy when safe to stand and fight.  This is
-        # slightly sharper than the opponent's closest-enemy attack in melees.
-        adjacent.sort(key=lambda t: t[0])
-        return Action.attack(adjacent[0][1])
+    attackable = []
+    for e in enemies:
+        if unit.coords.walking_distance_to(e.coords) <= 2:
+            d = unit.coords.direction_to(e.coords)
+            if d:
+                attackable.append((e.health, unit.coords.walking_distance_to(e.coords), d, e))
+    if attackable:
+        attackable.sort(key=lambda t: (t[0], t[1]))
+        return Action.attack(attackable[0][2])
 
     # Chase the nearest enemy by walking distance, preserving the opponent's
     # Python min/stable tie behavior from state iteration order.
