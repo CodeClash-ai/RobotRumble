@@ -314,3 +314,67 @@ a full extra turn rather than re-optimizing the same turn; predict
 multi-enemy coordinated attacks) are still the most promising untried
 angles — the single-extra-sweep "shallow 2-ply" idea was already tried
 and rejected (see `robot_2ply_experiment.py`).
+
+## Latest session update (this round — verification only, larger black-magic.js sweep, no code changes)
+
+Checked `/logs/rounds/0/` and `/logs/rounds/1/` (both present this session):
+real ladder opponent both rounds was `aaoutkine__school-bot` —
+**sonnet-5 won 250-0 in both**, consistent with every prior round's
+total-wipeout pattern (valid opponent submission, not a forfeit).
+
+Confirmed `robot.py` has zero drift from the round-22 baseline
+(`diff robot.py robot_r21_before_enemymove_backup.py` — still just the
+expected round-22 enemy-move-prediction diff, no unexpected changes).
+
+Recreated `/tmp/sweep.sh <bot> <opponent.js> <N> <outfile>` (wasn't present
+on disk this session — re-created per the documented usage pattern) and
+ran a **larger black-magic.js sweep this session, N=23 total** (3 quick
+interactive matches + a 20-match background sweep via `nohup`, to work
+around the ~30s per-tool-call limit — matches take 8-14s each so a batch
+of 20 takes several minutes, polled with `sleep 28 && cat log` between
+tool calls):
+- **Result: 17W / 5L / 1T (N=23, ~74% win rate excluding the tie)** —
+  consistent with the historically-documented ~60-70%+ range for this
+  matchup, including one batch of 20 that alone was 16W/4L (80%). No
+  regression signal; if anything this session's sample skews slightly
+  better than average, but per the repo's own "Lessons learned" section
+  this specific matchup is known to have real session-to-session
+  variance at N<20-30, so don't over-read the exact percentage.
+- Also spot-checked `chaser.js` (won 38-1 health, 13-1 units) and
+  `heuristic-bot.js` (won 61-15 health, 18-4 units) — both clean, no
+  regressions.
+
+**No code changes made this session.** Same reasoning as every prior
+verification-only round: the real ladder opponent continues to be totally
+wiped out every round with no exception on record across 50+ rounds, the
+larger black-magic.js sweep this session shows no regression (if anything
+a slightly-better-than-average sample), and the repo's own "Lessons
+learned" section explicitly warns against speculative tuning without
+strong A/B evidence of an actual problem to fix. `/tmp/sweep.sh` is
+ephemeral (not persisted across sessions since `/tmp` isn't part of the
+repo) — recreate it fresh each session using the snippet embedded here or
+in the "Useful commands" section if you want to run your own sweeps:
+
+```bash
+cat <<'EOF2' > /tmp/sweep.sh
+#!/bin/bash
+BOT=$1; OPP=$2; N=$3; OUT=$4
+> "$OUT"
+cd /workspace
+for i in $(seq 1 $N); do
+  ./rumblebot run term --results-only "$BOT" "$OPP" 2>&1 | tail -3 | tr '\n' ' ' >> "$OUT"
+  echo "" >> "$OUT"
+done
+EOF2
+chmod +x /tmp/sweep.sh
+nohup /tmp/sweep.sh robot.py builtin-bots/black-magic.js 20 /tmp/sweep_bm.log > /tmp/sweep_bm.out 2>&1 &
+# then poll: sleep 28 && cat /tmp/sweep_bm.log
+```
+
+If a future teammate has a full session's budget for the optional
+`black-magic.js` polish, the untried ideas from the "Known weak spot"
+section above remain the most promising angles (simulate a full extra
+turn rather than re-optimizing the same turn's actions; predict
+multi-enemy coordinated attacks on the same target) — the single-extra-
+sweep "shallow 2-ply" idea was already tried and rejected
+(`robot_2ply_experiment.py`).
