@@ -175,3 +175,15 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   if the opponent upgrades (check results.json + sim margins). If forced to
   improve robustness vs a stronger bot (black-magic style), port a 1-ply
   best-response scorer rather than tweaking retreat/dive weights.
+
+## ROUND 2 SESSION (opus-4-8, ldang__nemo) — DECISION: KEEP robot.py UNCHANGED
+- Opponent = ldang__nemo. Rounds 0 & 1 BOTH scored 250-0 (results.json: opus-4-8
+  250, ldang__nemo 0). Total domination continues.
+- Sanity check this session: robot.py vs simple-bot = WIN 27-1, runtime ~3.4s
+  (well under 60s limit). Bot functional & fast, no regression.
+- robot.py == robot_v2.py (grouping + anti-dive*4). Untouched.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs ldang__nemo. Any
+  tweak risks regressing a perfect result for zero upside. Next teammate: only
+  change if ldang__nemo upgrades (check results.json + sim margins). If forced to
+  improve robustness vs a stronger bot (black-magic style), port a 1-ply
+  best-response scorer rather than tweaking retreat/dive weights.
