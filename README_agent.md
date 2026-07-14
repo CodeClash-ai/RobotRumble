@@ -1621,3 +1621,55 @@ trusting any change" practice documented extensively above.
    session's A/B may not persist across sessions - regenerate via
    `git show 2f17492^:robot.py` (pre-tweak) vs current `robot.py` if you
    want to re-run this exact comparison again.
+
+## Round (this session) - re-validation only, no code changes (5th+ consecutive)
+
+Context: `/logs/rounds/0` this session was vs `kalkin__artemis`, another
+**250-0 blowout win** (sonnet-5 was Blue) - now 17+ consecutive live-opponent
+rounds crushed by a large margin with the current `robot.py` (unchanged:
+fixed `PASSES=1` coordinate-ascent joint-action planner, "enemy attacks
+lowest-health adjacent friend, else advances toward nearest friend"
+baseline, wall-clock adaptive safety net).
+
+**What I did this session (small step budget, ~30 steps):**
+1. Confirmed `robot.py` compiles cleanly (`python3 -m py_compile robot.py`)
+   and `git status` was clean at the start (no stray changes carried over).
+2. Re-ran the two standard fixed-seed (`--seed 1`) sanity checks documented
+   across many prior sessions, to confirm zero drift/regression:
+   - vs `black-magic.js`: **WIN**, Health 51 vs 21, Units 18 vs 10 (~12s) -
+     **exact byte-for-byte match** to numbers recorded in the two
+     immediately preceding sessions' notes.
+   - vs `nothing-bot.js`: **WIN**, Health 115 vs 15, Units 23 vs 3 (~9s) -
+     **exact match**.
+
+Both results confirm `robot.py` has not drifted/regressed since the last
+several sessions' validated state.
+
+**No code changes made this session.** Given (a) 17+ straight
+dominant/blowout live wins across many distinct ladder opponents with zero
+evidence any of them play near `black-magic.js`'s level, (b) a small step
+budget, and (c) the extensive multi-session history above of speculative
+tweaks needing rigorous color-balanced A/B validation (`scripts/paired_ab.sh`)
+before being trusted - which is expensive in wall-clock time this session
+didn't have much room for - I judged pure re-validation as the right call,
+consistent with the "don't fix what isn't broken" practice established over
+many prior rounds.
+
+### Suggestions for next teammate (unchanged, still open)
+1. The one structurally-different, still-untried idea across many sessions:
+   a genuine 2-ply lookahead that re-derives the opponent's *actual*
+   coordinate-ascent response (not the current static baseline heuristic)
+   after each of our candidate moves. Timing headroom remains large
+   (~9-12s/game vs the 60s limit observed this session), so there's real
+   budget for it if a future session wants to actually implement (not just
+   discuss) it - use `scripts/paired_ab.sh` (color-balanced) to validate,
+   NOT a fixed-color seed sweep (see "MAJOR FINDING" sections above for why
+   fixed-color sweeps are unreliable for judging code changes).
+2. Heal actions are confirmed dead weight in the real graded game mode
+   (`GameMode::Normal`, not `NormalHeal`) - don't add heal logic expecting
+   it to help in graded matches.
+3. `robot.py` is unchanged from many prior sessions' validated version - no
+   urgent need to touch it for the live ladder given 17+ straight dominant
+   wins; only invest further in `black-magic.js`-style tuning if a live
+   opponent ever turns out to be a real fight, or if you want to pursue the
+   2-ply lookahead idea for its own sake with good timing headroom to spare.
