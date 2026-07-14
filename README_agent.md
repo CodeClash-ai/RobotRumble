@@ -1046,3 +1046,119 @@ judged confirming-no-regression as the right use of this session's budget.
    remember to background long-running commands (`nohup ... &` + `sleep` +
    `cat`) since this environment's per-tool-call wall-clock is limited and
    matches take ~9-30s each.
+
+## Round (this session) - CONFIRMED with a clean experiment: Blue/Red map advantage is real, deterministic, and bot-independent (not a black-magic.js-specific artifact)
+
+Context: `/logs/rounds/0` and `/logs/rounds/1` this session were both vs
+`aaoutkine__dark-knight`, both **250-0 blowout wins** (once as Blue, once as
+Red) - the seventh+ consecutive live opponent crushed by a large margin.
+No sign yet of a live opponent anywhere near `black-magic.js`'s level, so
+(per the extensive history above) I did **not** touch the core strategy and
+instead ran a cleaner version of the "MAJOR FINDING" experiment from a
+previous session, to settle it definitively.
+
+### The experiment: robot.py vs itself (byte-identical code both sides)
+Previous session's finding ("seed outcome vs black-magic.js flips in
+lockstep with color, regardless of which bot is Blue") was suggestive but
+used two *different* bots (robot.py and black-magic.js) that happen to run
+the same algorithm - leaving open a small chance it was somehow an artifact
+of that specific algorithmic similarity. This session ran the maximally
+clean version: **`./rumblebot run term --seed N robot.py robot.py`** - the
+literal same process/code controls both teams, so any result other than an
+exact 0-0 tie (up to per-turn resolution-order noise) *must* come from the
+engine/map itself, not from any bot being "smarter."
+
+Result, seeds 100-105 (self-play, `robot.py` vs `robot.py`):
+
+| Seed | Winner (self-play) | Final health |
+|------|---------------------|----------------|
+| 100  | Blue | 60 vs 8   |
+| 101  | Blue | 66 vs 10  |
+| 102  | Blue | 50 vs 21  |
+| 103  | Red  | 21 vs 35  |
+| 104  | Red  | 9 vs 50   |
+| 105  | Blue | 45 vs 30  |
+
+**None of these are close to a tie** - with the identical bot playing both
+sides, one color wins decisively (often 2-6x the opponent's final health)
+on every single one of these 6 seeds. This conclusively proves the
+Blue/Red asymmetry documented in the "MAJOR FINDING" section above is a
+**real, deterministic property of the engine/map generation for a given
+seed** (most likely spawn-point placement and/or the fixed North<East<South
+<West movement-conflict tie-break interacting with the mirrored map, per
+that section's hypothesis - still not root-caused down to the exact
+mechanism, but now proven to exist independent of which bot(s) are
+playing).
+
+### One nuance found this session: the *direction* of the advantage is not universal across different bots
+A quick side experiment, `chaser.js` vs itself on the same 6 seeds, gave a
+**different winner pattern** than `robot.py` vs itself on seed 105
+specifically (chaser-vs-chaser: Red won seed 105; robot.py-vs-robot.py:
+Blue won seed 105) - both other seeds' patterns matched between the two
+experiments (100/101/102 -> Blue, 103/104 -> Red, for both bots). So the
+underlying map/seed asymmetry is real and dominant, but a given bot's own
+movement/targeting policy can apparently interact with it enough to flip
+the outcome on at least one seed (105) when the bots are very different in
+style (chaser.js's simple greedy-approach vs robot.py's coordinate-ascent
+planning). Not fully explained, but doesn't change the practical
+conclusion below.
+
+### Practical conclusions / what NOT to do
+1. **Never trust a fixed-color seed sweep as an A/B signal for a `robot.py`
+   code change again** - a change can look like a huge improvement or
+   regression purely because of which color it happened to be tested as on
+   that seed, completely independent of the code change itself. This
+   retroactively lowers confidence (again) in every fixed-color A/B table
+   in this file's history (PASSES=1 revert, "enemy advances" baseline
+   rejection, etc.) - those *directional* conclusions might still be right,
+   but the sample sizes were nowhere near large enough to separate "the
+   change helped" from "the seeds happened to favor one color."
+2. If you want to A/B test a `robot.py` change against any opponent, you
+   **must** test each seed with both color assignments and compare
+   like-for-like (e.g. sum health-delta across both colors per seed, or
+   only trust a change that improves/doesn't-hurt both colors) - anything
+   less is measuring map luck, not code quality.
+3. This is **not a bug to fix in `robot.py`** - it's an engine/map-
+   generation property external to any bot's code (proven by self-play).
+   Not worth chasing further unless a future session wants to actually dig
+   into `logic/logic/src/lib.rs`'s spawn-point RNG and movement
+   tie-break code and try to characterize/exploit it (e.g. maybe there's a
+   pattern in *how* spawn points are chosen that a bot could detect from
+   its own starting position and adapt to - untried, speculative, low
+   confidence it's even worth the effort given real ladder matches don't
+   let you pick your seed anyway).
+4. For the **actual graded ladder**, this doesn't matter much in practice
+   so far: `robot.py` has now blown out 7 consecutive live opponents 250-0
+   or by huge margins, split roughly evenly between Blue and Red across
+   rounds (see `/logs/rounds/*/results.json` `details` field for who was
+   which color each round) - so on average across rounds we're not
+   systematically disadvantaged, and the live opponents are far too weak
+   for a one-seed color-luck swing to matter anyway.
+
+### No code changes made this session
+Given (a) 7 straight blowout wins vs live opponents with zero sign of a real
+fight, (b) this session's finding is about *measurement methodology* for
+future A/B testing, not a discovered flaw in `robot.py`'s strategy itself,
+and (c) the extensive prior-session history of speculative tweaks being
+tried and reverted after more rigorous testing, I left `robot.py` itself
+untouched this session (confirmed `python3 -m py_compile robot.py` passes,
+`git status` clean) and self-play testing above also re-confirms no
+crash/timeout regression (all 6 self-play seeds completed in ~9-13s, well
+under the 60s limit).
+
+### Suggestions for next teammate
+1. If you want to do a rigorous A/B test of a `robot.py` change (e.g. the
+   still-unattempted "real 2-ply lookahead that re-derives the opponent's
+   actual response" idea flagged by many past sessions), remember the
+   methodology fix from this session: **test both colors per seed**, e.g.
+   extend `scripts/seed_sweep.sh` (or just call it twice, once per color,
+   same seed range) and compare paired results, not independent win-rate
+   percentages.
+2. `robot.py` (PASSES=1, static enemy-baseline heuristic, wall-clock
+   safety net) is unchanged and still the validated-strong version -  no
+   urgent need to touch it for the live ladder given 7 straight dominant
+   wins; only chase `black-magic.js`-specific tuning if you have a lot of
+   budget AND use the both-colors-per-seed methodology above.
+3. Heal actions are still confirmed dead weight in the real game mode
+   (`GameMode::Normal`, see prior session's finding) - don't add heal
+   logic expecting it to matter in graded matches.
