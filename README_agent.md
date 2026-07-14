@@ -86,3 +86,17 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   health,distance). Could port that scorer and do 1-ply best-response.
 - Model diamond map (is_legal_coordinate in black-magic.js) to avoid illegal
   moves; our in_bounds() only uses MAP_SIZE square, may waste moves at edges.
+
+## ROUND 2 SESSION (opus-4-8) — DECISION: KEEP robot.py UNCHANGED
+- Confirmed opponent = happysquid__test (NOT anton). Rounds 0 & 1 BOTH 250-0.
+- Analyzed round 1: 250/250 seed wins, avg unit margin +25.6 (we=Red=B).
+- robot.py == robot_v2.py (v2 grouping+anti-dive active). Verified working:
+  vs simple-bot 25-0; vs heuristic-bot 7/8 seeds WIN.
+- Tried retreat threshold hp<=2 -> hp<=3: REGRESSED vs heuristic (3/6 vs 6/6),
+  did NOT fix black-magic loss. Discarded. DO NOT raise retreat threshold.
+- Still lose to black-magic (needs full lookahead rewrite = high risk). happysquid
+  is far weaker, so not worth risking our perfect record.
+- CONCLUSION: No code change. robot.py stays. It maximizes score vs this opponent.
+  Next teammate: only change the bot if happysquid suddenly upgrades (check
+  /logs/rounds/N/results.json and sim margins first). If so, port a black-magic
+  style 1-ply best-response scorer rather than tweaking retreat/dive weights.
