@@ -2460,3 +2460,43 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   poll w/ sleeps). Baseline to beat: killapp ~69% REPEATABLY. MUST still crush simple-bot.
   DO NOT lower wounded-retreat below health<=3; DO NOT change th>su+1; DO NOT do blind
   concentrate-attack (regresses — killapp only triggers on GUARANTEED kills).
+
+## Round 0 (opus-4-8, THIS ACTUAL ROUND) — opponent = mitch84__retreat_walk2 *** WAS LOSING 102-130! FIXED w/ IMPROVED RETREAT PREDICTION ***
+- /logs/rounds/0/results.json: opponent = **mitch84__retreat_walk2** (NEW variant of the old
+  mitch84__walk_retreat), opus-4-8 (Blue) LOST 102-130-18 with the inherited black-magic
+  killapp bot. Extract: git show origin/human/mitch84/retreat_walk2:robot.py -> /tmp/rw2.py,
+  saved /workspace/rw2_opp.py.
+- KEY DIFF vs old walk_retreat: retreat() now fires when (>1 of OUR units adjacent AND a
+  blank exists) OR (**exactly 1 of our units adjacent AND that unit's health > its own
+  health** AND blank exists). i.e. it also FLEES a lone stronger attacker (not just 2+).
+  Retreat resolves FIRST; MOVEMENT resolves BEFORE ATTACKS (verified logic/logic/src/lib.rs),
+  so attacking a fleeing unit MISSES. Also has walk_to pathing; NO focus-fire/cohesion.
+- ROOT CAUSE of our loss: the inherited predict_retreat only modeled the 2+-adjacent case,
+  so it MISSED the new 1-adjacent-stronger flee case -> our lone full-HP units adjacent to
+  wounded enemies attacked tiles the enemy VACATED = whiffed every turn = lost attrition.
+- FIX DEPLOYED (robot.py = robot_r0_retreatwalk2_predict_backup.py): rewrote predict_retreat
+  AND init_turn's retreat_tiles to EXACTLY model retreat_walk2: enemy e flees to first blank
+  N,S,E,W if (>1 our units adj to e) OR (1 our unit adj to e AND that unit's health>e.health).
+  Now: (a) attack block correctly detects fleers and attacks the flee-TO tile (or a stayer);
+  (b) retreat_tiles (trap targets) cover BOTH flee cases so the advance loop steps onto them
+  to BLOCK the enemy's escape. Kept STRICT th>su+1, wounded-retreat health<=3, cohesion,
+  focus-fire, spawn-evac, kill-approach.
+- A/B vs rw2_opp.py (ab.sh N=12, both colors), TWO independent runs:
+    * NEW (improved predict): 11-1 then 7-4-1 => COMBINED 18W-5L-1T over 24 games (~75%).
+    * BASELINE (inherited killapp bot): 2W-10L (LOSING — matches R0 102-130).
+  CLEAR, REPEATABLE improvement (losing -> winning). Regression guard PASS: crushes
+  simple-bot 4-0 (~33-2 shutouts). syntax OK (ast.parse). ~5s/game, no errors/timeouts.
+- Backups (persistent /workspace): robot_r0_retreatwalk2_predict_backup.py (DEPLOYED).
+  Prior baseline (black-magic killapp, LOSES to rw2) = /tmp/robot_baseline_r0.py
+  (== robot_r3_blackmagic_killapp_backup.py).
+- Next teammate: opponent is retreat_walk2 (flees a lone STRONGER attacker OR 2+ attackers;
+  movement-before-attacks). KEEP the improved predict_retreat (BOTH flee cases). Results
+  NOISY — A/B over 2+ N=12 runs vs rw2_opp.py (ab.sh N=12 in BACKGROUND: nohup ./ab.sh
+  robot.py rw2_opp.py 12 > /tmp/out.txt & ; ~5s/game, N>=6 exceeds the 30s AGENT shell
+  timeout — poll w/ short sleeps). Baseline to beat: ~75% (18-5-1/24). MUST still crush
+  simple-bot. THEORETICAL further upside (unrealized): FULL SURROUND — fill ALL of a fleeing
+  unit's blank tiles (blanks empty -> it CANNOT retreat -> stays/attacks -> we kill it). The
+  trap blocks ONE tile (first blank); blocking all needs multi-unit coordination. Also:
+  approach wounded enemies with a WEAKER (equal/lower HP) unit so the 1-adjacent flee doesn't
+  trigger (health NOT > its health), letting the attack LAND — untested idea worth A/B'ing.
+  DO NOT revert to cohesion-gang bots that ignore the flee prediction (they whiff = LOSE 2-10).
