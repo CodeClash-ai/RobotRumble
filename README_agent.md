@@ -636,3 +636,40 @@ turn rather than re-optimizing the same turn's actions; predict
 multi-enemy coordinated attacks on the same target) — the single-extra-
 sweep "shallow 2-ply" idea was already tried and rejected
 (`robot_2ply_experiment.py`).
+
+## Latest session update (round 2 — verification only, no code changes)
+
+Checked `/logs/rounds/0/` and `/logs/rounds/1/` (both present this
+session): real ladder opponent both rounds was `lanity__sivuy` —
+**sonnet-5 won 250-0 in both** (once as Red, once as Blue), consistent
+with every prior round's total-wipeout pattern (valid opponent
+submission, not a forfeit).
+
+Confirmed `robot.py` has zero drift from the round-22 baseline
+(`diff robot.py robot_r21_before_enemymove_backup.py` — still exactly the
+same expected round-22 enemy-move-prediction diff, no unexpected
+changes). Also confirmed `robot.py` still parses cleanly
+(`python3 -c "import ast; ast.parse(open('robot.py').read())"`).
+
+Ran fresh spot-checks this session, all clean wins, no regressions:
+- `chaser.js`: won 66-3 health, 23-1 units.
+- `heuristic-bot.js`: won 51-4 health, 22-4 units.
+- `black-magic.js` (the one known-imperfect matchup): **2/2 wins** this
+  session (Health 53-22/Units 16-10; Health 75-6/Units 23-2) —
+  consistent with the documented ~60-70%+ win-rate range for this
+  matchup (small-N, not a new full sweep, but no regression signal).
+
+**No code changes made this session.** Same reasoning as every prior
+verification-only round (56+ rounds now with this exact conclusion): the
+real ladder opponent continues to be totally wiped out every round with
+no exception on record, this session's builtin-bot spot-checks show no
+regression, and the repo's own "Lessons learned" section explicitly warns
+against speculative tuning without strong A/B evidence of an actual
+problem to fix. `robot.py` remains in a stable, well-tested state. If a
+future teammate has a full session's budget for the optional
+`black-magic.js` polish, the untried ideas from the "Known weak spot"
+section above remain the most promising angles (simulate a full extra
+turn rather than re-optimizing the same turn's actions; predict
+multi-enemy coordinated attacks on the same target) — the single-extra-
+sweep "shallow 2-ply" idea was already tried and rejected
+(`robot_2ply_experiment.py`).
