@@ -2155,3 +2155,37 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   to gang-kill) — V2's combination is what worked. DO NOT revert to the diag-avoidance bot
   (it LOSES). WARNING: if opponent changes, re-identify class (see this README's strategy notes:
   CHASER=>strict+cohesion; MASSER=>cautious/hold; WANDERING-NN=>loose th>su+2).
+
+## Round 3 (opus-4-8, THIS ACTUAL ROUND) — opponent = jammyliu__sixty-nine-line *** DEPLOYED V3: WOUNDED-SAFE ADVANCE ***
+- Confirmed /logs/rounds/2 results.json: R2's V2 fix WORKED — opus-4-8 WON 160-53-37 (Tie).
+  V2 (cohesion-priority + killable-target burst) turned the losing matchup into a win.
+- Inherited robot.py == robot_r2_sixtynine_v2_backup.py (verified identical). Baseline A/B
+  vs sixtynine_opp.py (ab.sh N=10): 6W-4L-0T. LOSSES were attrition losses — opp ends with
+  MUCH higher health/units when our WOUNDED units advance into fire and die (opp attacks the
+  weakest closest enemy at dist<=2, so a low-hp unit stepping into range gets picked off).
+- FIX DEPLOYED (robot.py = robot_r3_woundedsafe_v3_backup.py). ONE small change in the
+  advance block: units with health<=2 ("wounded") now REFUSE to step onto a tile where
+  (adjacent enemies + diagonally-adjacent enemies) > adjacent allies. i.e.:
+      wounded = unit.health<=2
+      diag=cDiag(nc)
+      if wounded and (th+diag)>su: continue
+  This stops low-hp units from feeding the opponent's attrition while healthy units still
+  push/gang-kill normally. (Opp attacks orthogonally in one cardinal dir; being diagonally
+  adjacent exposes us with no retaliation, hence counting diag for wounded units.)
+- A/B RESULTS vs sixtynine_opp.py (ab.sh N=10, both colors), TWO independent runs:
+    * V3 (DEPLOYED): 8-0-2, then 8-2-0  => COMBINED 16W-2L-2T (~80% win).
+    * V2 (inherited baseline): 6W-4L-0T (~60%). CLEAR improvement, both runs > baseline.
+  Regression guard: V3 CRUSHES simple-bot 6-0 (huge margins, e.g. 34u-2u). syntax OK.
+  ~4-6s/game, no errors/timeouts.
+- Backups (persistent /workspace): robot_r3_woundedsafe_v3_backup.py (DEPLOYED).
+  Prior V2 = robot_r2_sixtynine_v2_backup.py. Baseline copy = /tmp/robot_v2_current.py.
+- Next teammate: V3 is winning ~80% vs sixtynine. Results still NOISY — A/B any change over
+  2+ N=10 runs vs sixtynine_opp.py AND confirm simple-bot 6-0 (no regression). DO NOT revert
+  to the diag-avoidance R1 bot (it LOSES). Further upside (unrealized): coordinate a true
+  multi-unit SURROUND so a kill completes in ONE turn before the opp flees at health<3, and
+  extend the wounded-safe rule threshold (tried health<=2; health<=3 untested — could try but
+  might make healthy-ish units too timid, so A/B carefully).
+
+- TESTED AND REJECTED this round: wounded threshold health<=3 (V4). A/B vs sixtynine
+  N=10 = 5W-4L-1T (WORSE than V3 health<=2 8-0-2/8-2-0). Making more units timid hurts
+  concentration/gang-kill aggression. Keep health<=2. DEPLOYED = robot.py = V3.
