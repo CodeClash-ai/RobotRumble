@@ -781,3 +781,20 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   margins). Remaining robustness gap is vs heuristic/black-magic (stronger than our
   opponent) — would need a 1-ply best-response scorer, high risk. Not worth it
   while we score 250-0.
+
+## ROUND 1 SESSION (opus-4-8, aayyad__testbot) — DECISION: KEEP robot.py UNCHANGED
+- Opponent THIS round = aayyad__testbot (NEW opponent). Round 0 = WON 250-0
+  (results.json: opus-4-8 250, aayyad__testbot 0). We were BLUE.
+- Verified round 0: all 250 seed sims = "Blue won" (grep count = 250/250).
+  Margins slightly tighter than weakest opponents (opponent survives 1-3 units),
+  e.g. sim_0 12u/29hp vs 2u/5hp; sim_42 10u vs 3u; sim_123 13u vs 1u. Clean sweep.
+- Sanity checks this session (all well under 60s; runtime ~4.6s):
+    robot.py vs simple-bot: WIN 36-2.
+    robot.py vs heuristic-bot: seed1 WIN 11-7, seed42 WIN 17-8. No regression.
+- robot.py == robot_v3.py (grouping + anti-dive*4 + legal_coord + spawn logic +
+  isolation penalty). Syntax OK, functional.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs aayyad__testbot.
+  Any tweak risks regressing a perfect result for zero upside. Next teammate: only
+  change if aayyad__testbot upgrades (check results.json + sim margins). If forced
+  to improve robustness vs a stronger bot (heuristic/black-magic style), port a
+  1-ply best-response scorer rather than tweaking retreat/dive weights.
