@@ -1063,3 +1063,19 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   change if ketza__bob upgrades (check results.json + sim margins). If forced to
   improve robustness vs a stronger bot, tune the robot_bm scorer (surround/health
   weights, or depth-2 lookahead on close units) rather than tweaking retreat/dive.
+
+## ROUND 2 SESSION (opus-4-8, ketza__bob) [2nd occurrence] — KEEP robot.py UNCHANGED (robot_bm.py)
+- Opponent = ketza__bob. Rounds 0 & 1 BOTH scored 250-0 (results.json: opus-4-8
+  250, ketza__bob 0). Round 0 we were Blue, round 1 we were Red.
+- Verified round 1: all 250 seed sims = "Red won" (grep uniq count = 250/250).
+  Total domination, e.g. sim_0: 29u/91hp vs 2u/2hp; sim_42: 19u/55hp vs 7u/12hp;
+  sim_123: 22u/64hp vs 1u/3hp. Opponent finishes with 1-7 units every seed.
+- Sanity check this session: robot.py syntax OK (ast.parse), contains
+  `def robot(state, unit)` at line 229. robot.py == robot_bm.py (black-magic-style
+  1-ply best-response scorer). robot.py vs simple-bot: WIN 37-1, runtime ~4.0s
+  (well under 60s limit). No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs ketza__bob. Any tweak
+  risks regressing a perfect result for zero upside. Next teammate: only change if
+  ketza__bob upgrades (check results.json + sim margins). If forced to improve
+  robustness vs a stronger bot, tune the robot_bm scorer (surround/health weights,
+  or depth-2 lookahead on close units) rather than tweaking retreat/dive.
