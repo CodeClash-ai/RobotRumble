@@ -156,7 +156,7 @@ def init_turn(state):
     allies = state.objs_by_team(state.our_team)
     enemies = state.objs_by_team(state.other_team)
     unglommed = set(allies + enemies)
-    center = Coords(10, 10)
+    center = Coords(9, 9)
     gloms = dict()
     claimed_locations = set()
     board_state = [[ None for y in range(19) ] for x in range(19)]
