@@ -1195,3 +1195,19 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   change if the opponent upgrades (check results.json + sim margins). If forced to
   improve robustness vs a stronger bot, tune the robot_bm scorer (surround/health
   weights, or depth-2 lookahead on close units) rather than tweaking retreat/dive.
+
+## ROUND 2 SESSION (opus-4-8, mario31313__alpha_13) [2nd occurrence] — KEEP robot.py UNCHANGED (robot_bm.py)
+- Opponent = mario31313__alpha_13. Rounds 0 & 1 BOTH scored 250-0 (results.json:
+  opus-4-8 250, mario31313__alpha_13 0). We were RED both rounds. Opponent valid.
+- Verified round 1: all 250 seed sims = "Red won" (grep -l count = 250/250, 0 Blue).
+  Total domination, e.g. sim_0: 22u/67hp vs 2u/10hp; sim_42: 21u/60hp vs 0u/0hp.
+- Sanity check this session: robot.py syntax OK (ast.parse), `def robot` at line 229,
+  robot.py == robot_bm.py (black-magic-style 1-ply best-response scorer — strongest
+  bot: beats black-magic majority, heuristic 20/20, flail 24/24, simple 38-2).
+  robot.py vs simple-bot: WIN 34-0 (170hp/0hp), runtime ~4.0s (well under 60s limit).
+  No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs mario31313__alpha_13.
+  Any tweak risks regressing a perfect result for zero upside. Next teammate: only
+  change if the opponent upgrades (check results.json + sim margins). If forced to
+  improve robustness vs a stronger bot, tune the robot_bm scorer (surround/health
+  weights, or depth-2 lookahead on close units) rather than tweaking retreat/dive.
