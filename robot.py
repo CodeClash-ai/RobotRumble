@@ -124,7 +124,7 @@ def score(friends, enemies):
         dx = f[0] - cx
         dy = f[1] - cy
         center_score -= ((dx * dx + dy * dy) ** 0.5) * 0.03
-    return (unit_score, surround_score, health_score, distance_score, chase_score, center_score)
+    return (unit_score, health_score, surround_score, distance_score, chase_score, center_score)
 
 
 def better(a, b):
@@ -345,6 +345,154 @@ def predict_mitch_crw_actions(enemies, friends):
         actions[epos] = (MOVE, d) if d else None
     return actions
 
+
+def is_spawn_t(pos):
+    x, y = pos
+    if x == 1 or x == 17 or y == 1 or y == 17:
+        return True
+    return pos in {(14,2),(13,2),(16,4),(16,5),(16,13),(16,14),(14,16),(13,16),(4,16),(5,16),(2,14),(2,13),(2,4),(4,2)}
+
+
+def build_gloms(units):
+    # Connected components of same-side units with walking distance < 3, as in entropicdrifter__glommer.
+    positions = list(units.keys())
+    gid = {}
+    gloms = []
+    for p in positions:
+        if p in gid:
+            continue
+        idx = len(gloms)
+        stack = [p]
+        gid[p] = idx
+        bots = []
+        hp = 0
+        while stack:
+            q = stack.pop()
+            bots.append(q)
+            hp += units[q]
+            for r in positions:
+                if r not in gid and t_walking(q, r) < 3:
+                    gid[r] = idx
+                    stack.append(r)
+        gloms.append({'bots': bots, 'health': hp})
+    return gid, gloms
+
+
+def glommer_retreat_dir(pos, hp, friends, enemies, claimed, turn):
+    # Predict glommer's retreat rule from its perspective: friends=our units, enemies=their units.
+    occupied = set(friends) | set(enemies)
+    adj = []
+    blanks = []
+    for d in _MDIRS:
+        dst = add(pos, d)
+        if dst in friends:
+            adj.append(dst)
+        elif dst in LEGAL and dst not in occupied and dst not in claimed:
+            cnt = 0
+            for dd in _MDIRS:
+                if add(dst, dd) in friends:
+                    cnt += 1
+            blanks.append((cnt, d, dst))
+    blanks.sort(key=lambda x: x[0])
+    if turn % 10 == 0:
+        blanks = [b for b in blanks if not is_spawn_t(b[2])]
+        if is_spawn_t(pos) and blanks:
+            return blanks[0][1]
+    if not blanks or not adj or len(adj) < blanks[0][0]:
+        return None
+    max_adj_h = max(friends[a] for a in adj) if adj else 0
+    if len(adj) >= hp or max_adj_h > hp:
+        return blanks[0][1]
+    return None
+
+
+def glommer_walk_dir(src, target, occupied, claimed):
+    x = target[0] - src[0]
+    y = target[1] - src[1]
+    xd = Direction.East if x > 0 else Direction.West
+    yd = Direction.South if y > 0 else Direction.North
+    blanks = []
+    for d in _MDIRS:
+        dst = add(src, d)
+        if dst in LEGAL and dst not in occupied and dst not in claimed:
+            blanks.append(d)
+    if abs(x) > abs(y) and xd in blanks:
+        return xd
+    if abs(y) >= abs(x) and yd in blanks:
+        return yd
+    if xd in blanks:
+        return xd
+    if yd in blanks:
+        return yd
+    return blanks[0] if blanks else None
+
+
+def predict_glommer_actions(enemies, friends, turn):
+    # Model entropicdrifter__glommer: cluster ("glom") with nearby allies, retreat from bad adjacent fights,
+    # attack/push when its glom is larger/healthier, otherwise regroup toward other gloms/center.
+    actions = {}
+    if not enemies:
+        return actions
+    egid, egloms = build_gloms(enemies)
+    fgid, fgloms = build_gloms(friends)
+    claimed = set()
+    occupied = set(enemies) | set(friends)
+    for epos in list(enemies.keys()):
+        eh = enemies[epos]
+        if not friends:
+            actions[epos] = None
+            continue
+        own = egloms[egid[epos]]
+        # Target the closest opposing glom, then the closest bot inside that glom.
+        seed_friend = min(friends, key=lambda f: t_walking(epos, f))
+        target_glom = fgloms[fgid[seed_friend]] if fgloms else {'bots': list(friends), 'health': sum(friends.values())}
+        target = min(target_glom['bots'], key=lambda f: t_walking(epos, f))
+        nearest_friend = min(friends, key=lambda f: t_walking(epos, f))
+        attack_dir = t_direction_to(epos, target)
+
+        rd = glommer_retreat_dir(epos, eh, friends, enemies, claimed, turn)
+        if rd:
+            dst = add(epos, rd)
+            claimed.add(dst)
+            actions[epos] = (MOVE, rd)
+            continue
+
+        if t_walking(epos, nearest_friend) == 1 and friends[nearest_friend] < eh:
+            actions[epos] = (ATTACK, t_direction_to(epos, nearest_friend))
+            continue
+
+        if len(target_glom['bots']) < len(own['bots']) or own['health'] > target_glom['health']:
+            w = t_walking(epos, target)
+            if (len(own['bots']) > 1 and w == 1) or (len(own['bots']) == 1 and w == 2):
+                actions[epos] = (ATTACK, attack_dir)
+                continue
+            md = glommer_walk_dir(epos, target, occupied, claimed)
+            if md and not glommer_retreat_dir(add(epos, md), eh, friends, enemies, claimed | {add(epos, md)}, turn):
+                claimed.add(add(epos, md))
+                actions[epos] = (MOVE, md)
+                continue
+
+        other_glom_bots = [q for q in enemies if egid.get(q) != egid[epos]]
+        if other_glom_bots:
+            ally = min(other_glom_bots, key=lambda q: t_walking(epos, q))
+            md = glommer_walk_dir(epos, ally, occupied, claimed)
+            if md and not glommer_retreat_dir(add(epos, md), eh, friends, enemies, claimed | {add(epos, md)}, turn):
+                claimed.add(add(epos, md))
+                actions[epos] = (MOVE, md)
+                continue
+
+        md = glommer_walk_dir(epos, (9, 9), occupied, claimed)
+        if md and not glommer_retreat_dir(add(epos, md), eh, friends, enemies, claimed | {add(epos, md)}, turn):
+            claimed.add(add(epos, md))
+            actions[epos] = (MOVE, md)
+            continue
+        step = add(epos, attack_dir)
+        if step in friends:
+            actions[epos] = (ATTACK, attack_dir)
+        else:
+            actions[epos] = None
+    return actions
+
 def init_turn(state):
     global ACTIONS, TURN
     TURN = state.turn
@@ -369,7 +517,11 @@ def init_turn(state):
     # than the old black-magic mirror model.
     allow_chain_moves = True
 
-    enemy_plan = dict(predict_mitch_crw_actions(enemies, friends))
+    enemy_plan = dict(predict_glommer_actions(enemies, friends, state.turn))
+    predicted_enemy_dests = set()
+    for _ep, _act in enemy_plan.items():
+        if _act and _act[0] == MOVE:
+            predicted_enemy_dests.add(add(_ep, _act[1]))
     best_actions = dict(enemy_plan)
 
     possible = {}
@@ -388,9 +540,11 @@ def init_turn(state):
                 if dst not in spawn_positions and dst not in enemies and dst not in friends:
                     evacuate.append((MOVE, d))
                 continue
-            if dst in enemies:
+            if dst in enemies or dst in predicted_enemy_dests:
+                # Glommer often walks/retreats into adjacent lanes; pre-fire the
+                # square it is expected to enter, not just its current square.
                 acts.append((ATTACK, d))
-            elif allow_chain_moves or dst not in friends:
+            if dst not in enemies and (allow_chain_moves or dst not in friends):
                 acts.append((MOVE, d))
         possible[fpos] = evacuate if evacuate else acts
 
@@ -466,3 +620,14 @@ def robot(state, unit):
         if cand:
             cand.sort(key=lambda x:(x[0],x[1])); return Action.attack(cand[0][2])
     return _old_robot(state, unit)
+
+
+# Final override for the glommer matchup: use the coordinated plan directly.
+def robot(state, unit):
+    action = ACTIONS.get(unit.id)
+    if action is None:
+        return None
+    typ, d = action
+    if typ == ATTACK:
+        return Action.attack(d)
+    return Action.move(d)
