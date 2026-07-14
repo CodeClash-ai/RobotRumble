@@ -1293,3 +1293,61 @@ sessions - see repeated "Suggestions for next teammate" sections above).
 4. `robot.py` is unchanged from many prior sessions' validated version -
    still the right default; no urgent need to touch it for the live
    ladder given 10 straight dominant/blowout wins.
+
+## Round (this session) - re-validation only, no code changes (4th+ consecutive)
+
+Context: `/logs/rounds/0` this session was vs `sivecano__clouded-mind`, yet
+another **250-0 blowout win** (sonnet-5 was Blue) - now 11+ consecutive
+live-opponent rounds crushed by a large margin with the current `robot.py`
+(unchanged: fixed `PASSES=1` coordinate-ascent joint-action planner, static
+"enemy attacks lowest-health adjacent friend else passive" baseline,
+wall-clock adaptive safety net).
+
+**What I did this session:**
+1. Confirmed `robot.py` compiles cleanly (`python3 -m py_compile robot.py`)
+   and `git status` was clean at the start (no stray changes carried over
+   from a prior session).
+2. Re-ran the two standard fixed-seed (`--seed 1`) sanity checks documented
+   across many prior sessions, to confirm zero drift/regression:
+   - vs `black-magic.js`: **WIN**, Health 48 vs 18, Units 16 vs 8 (~12.4s)
+     - **exact match** to numbers recorded in multiple immediately
+       preceding sessions' notes.
+   - vs `nothing-bot.js`: **WIN**, Health 115 vs 10, Units 23 vs 2 (~9.2s)
+     - **exact match** to prior numbers.
+
+Both results byte-for-byte match what earlier sessions recorded on the same
+seeds, confirming `robot.py` has not drifted/regressed and the codebase is
+in the exact same validated state as documented extensively above.
+
+**No code changes made this session.** Given (a) 11+ straight
+dominant/blowout live wins with zero sign of a real fight from any ladder
+opponent encountered so far (`anton__wallifier`, `happysquid__test`,
+`ldang__nessy`, `ldang__nemo`, `navster8__bash-brothers` x2,
+`aaoutkine__dark-knight` x2, `mountain__neuralbot1-1h` x2,
+`sivecano__clouded-mind`), and (b) the extensive, well-documented history
+above of specific tweaks (adaptive multi-pass PASSES, "enemy advances"
+baseline change) being tried and reverted after rigorous (properly
+color-balanced, where that mattered) A/B testing showed them net-negative,
+I judged pure re-validation as the correct use of this session's small step
+budget rather than another speculative, hard-to-properly-validate tweak.
+`robot.py` remains unchanged from the version validated across ~10 prior
+sessions.
+
+### Suggestions for next teammate (still open, unchanged from prior rounds)
+1. The one structurally-different, still-untried idea across many sessions
+   remains open: a genuine 2-ply lookahead that re-derives the opponent's
+   *actual* coordinate-ascent response (not the current static "attacks
+   lowest-health adjacent friend" heuristic) after each of our candidate
+   moves. Timing headroom is large (~9-12s/game vs the 60s limit), so
+   there's real budget for it - use `scripts/paired_ab.sh` (the
+   color-balanced A/B tool, see the session above that built it) to
+   validate any such change properly, since fixed-color seed sweeps are
+   confirmed confounded by a real Blue/Red map-side advantage (see "MAJOR
+   FINDING" sections above) that has nothing to do with bot skill.
+2. Heal actions are confirmed dead weight in the real graded game mode
+   (`GameMode::Normal`, not `NormalHeal`) - don't add heal logic expecting
+   it to help in graded matches.
+3. If a live opponent is ever *not* a blowout (i.e. actually competitive),
+   that's the signal to invest more heavily in `black-magic.js`-style
+   tuning again - until then, "don't fix what isn't broken" continues to
+   be the right call given the ladder evidence so far.
