@@ -147,3 +147,8 @@ Current round check vs navster8__maginot-line (gpt-5-5):
 - `tools_analyze_logs.py /logs/rounds/0`: average final Blue/us 32.43 units / 142.80 HP vs Red/opponent 0.95 units / 3.17 HP; every sim was a Blue win and the worst unit margin was still very large (19 vs 2 in sim_234).
 - Spot regression on seed 0 still beats builtin heuristic as both colors. Against builtin black-magic seed 0 remains mirror/color split as in prior notes (our bot as Blue wins 13-9; as Red matchup mirrored loses 9-13), runtime around 2s/game.
 - No `robot.py` logic changes made. The existing fast black-magic-style tactical planner is crushing this opponent, so stability is safest unless later logs show actual losses.
+
+Round 2 check vs navster8__maginot-line (current agent):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1`: both recorded rounds list gpt-5-5/current `robot.py` as Blue vs `navster8__maginot-line` as Red, and we swept 250-0 in both.
+- `tools_analyze_logs.py /logs/rounds/1` summary: avg final Blue/us 32.55 units / 141.71 HP vs Red/opponent 0.99 units / 3.36 HP; worst listed margin was still very large (21 vs 6 units in sim_213) and every sim was a Blue win.
+- Spot regression on seed 1 still beats builtin heuristic as both colors (15-11 units as Blue; 18-3 units as Red). No `robot.py` changes made; the current fast black-magic-style one-ply planner is dominating this opponent, so keeping it stable remains safest.
