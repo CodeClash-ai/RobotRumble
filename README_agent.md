@@ -1747,3 +1747,38 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   (ab.sh N=6 in BACKGROUND: nohup ./ab.sh robot.py mkap_opp.py 6 > /tmp/out.txt & ; ~5s/game
   so N>=6 exceeds the 30s AGENT shell timeout — poll w/ sleeps). WARNING: if opponent switches
   to a WANDERING NN (mountain neuralbot4) loosen to th>su+2; center-MASSER (school-bot) re-test.
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = essickmango__pickle-up (weak/passive chaser)
+- /logs/rounds/0/results.json: real opponent = **essickmango__pickle-up**, opus-4-8 (us, Red)
+  WON 207-33-10 (competent-opp class — some losses/ties per 250). Extracted opp code
+  (git show origin/human/essickmango/pickle-up:robot.py -> /tmp/pickle.py, saved
+  /workspace/pickle_opp.py).
+- pickle-up is a QUIRKY, PASSIVE chaser: it targets `min(enemies)` = the LOWEST-ID enemy
+  (NOT nearest!), computes move_direction toward it, and MOVES that way. It ONLY attacks
+  when move_direction is BLOCKED (target tile occupied) AND only enemies with HEALTH<=2
+  (picks the lowest-HP among blocked-direction adjacents). So it barely damages HEALTHY
+  units — it rarely attacks at all, just marches toward the lowest-ID enemy. NO real
+  focus-fire, NO retreat, NO cohesion, NO spawn awareness. Whole team converges on one
+  (lowest-ID) target. Our cautious+cohesion+focus+retreat-toward-centroid + spawn-avoidance
+  (STRICT th>su+1) crushes it.
+- TESTED current robot.py (STRICT th>su+1 baseline) DIRECTLY vs pickle_opp.py:
+    * ab.sh 8 games (both colors): 7W-1L. Margins ~3x unit count (13-10, 14-9, 15-8, 19-3).
+    * margin.sh two 12-game runs: +135/12 (min +3, NO losses) and +85/12. Avg ~+9/game.
+  Regression guard: simple-bot 4-0 (shutouts 27-1/22-0/28-0/31-1). ~4-5s/game, syntax OK.
+- EXPERIMENT THIS ROUND: LOOSENED overextension filter to th>su+2 (since pickle rarely
+  attacks). A/B margin.sh two 12-game runs: LOOSE +147/12 (had a -6 LOSS) then +77/12
+  (multiple negative games). WORSE and less consistent than STRICT baseline (+135 then +85,
+  fewer/no losses). DISCARDED — pickle DOES attack when blocked, so overextending gets our
+  units killed. Consistent with the standing rule: CHASER/SWARM => STRICT th>su+1.
+- DECISION: kept proven robot.py UNCHANGED (STRICT th>su+1, == robot_r1_arthur_strict_backup.py
+  == /tmp/robot_baseline_pickle.py). Opponent (passive lowest-ID chaser, only attacks when
+  blocked + enemy health<=2) cannot beat us 7-1 / 207-33-10; only risk is self-inflicted
+  regression (per ALL prior rounds' heuristic experiments being noise-neutral or worse).
+- Next teammate: opponent is a WEAK/PASSIVE CHASER => KEEP STRICT th>su+1. Test vs
+  pickle_opp.py both colors (ab.sh N=8 / margin.sh N=12 in BACKGROUND: nohup ./margin.sh
+  robot.py pickle_opp.py 12 > /tmp/out.txt & ; ~4-5s/game so N>=~6 exceeds the 30s AGENT
+  shell timeout — poll w/ short sleeps). Baseline to beat: ~+9/game, min +3, minimize
+  losses/ties (they score worse than wins). The 33 losses/10 ties per 250 are extreme
+  variance no tweak reliably fixed (loose th>su+2 made it WORSE). WARNING: if opponent
+  switches to a WANDERING NN (mountain neuralbot4) loosen to th>su+2; center-MASSER
+  (school-bot) re-test both colors (cautious/hold logic in /tmp/robot_hold.py).
