@@ -20,7 +20,7 @@ def is_legal_coordinate(x: int, y: int) -> bool:
 def is_hill_coordinate(x: int, y: int) -> bool:
     return 8 <= x <= 10 and 8 <= y <= 10
 
-def score(friends: Dict[Tuple[int, int], int], enemies: Dict[Tuple[int, int], int]) -> Tuple[float, float, float, float]:
+def score(friends: Dict[Tuple[int, int], int], enemies: Dict[Tuple[int, int], int]) -> Tuple[float, float, float, float, float]:
     unit_score = len(friends) - len(enemies)
 
     health_score = 0.0
@@ -35,19 +35,30 @@ def score(friends: Dict[Tuple[int, int], int], enemies: Dict[Tuple[int, int], in
     for pos in enemies:
         map_score[pos] = {"surround": 0, "distance": 0.0}
 
+    # Track Hill control
+    hill_score = 0.0
+    for pos in friends:
+        if is_hill_coordinate(pos[0], pos[1]):
+            hill_score += 1.0
+    for pos in enemies:
+        if is_hill_coordinate(pos[0], pos[1]):
+            hill_score -= 1.0
+
     for f_pos in friends:
         fx, fy = f_pos
         for e_pos in enemies:
             ex, ey = e_pos
-            # Use walking distance (Manhattan distance) for grid distance calculation
-            d = abs(fx - ex) + abs(fy - ey)
-            if d < 1:
-                d = 1
+            # Use exact Euclidean distance matching black-magic.js
+            d = math.sqrt((fx - ex) ** 2 + (fy - ey) ** 2)
+            if d < 1e-9:
+                d = 0.1
             d_score = 1.0 / (d ** 2)
             map_score[e_pos]["distance"] += d_score
             map_score[f_pos]["distance"] -= d_score
             
-            if d == 1:
+            # Manhattan distance of 1 for surround condition
+            manhattan = abs(fx - ex) + abs(fy - ey)
+            if manhattan == 1:
                 map_score[e_pos]["surround"] += 1
                 map_score[f_pos]["surround"] -= 1
 
@@ -57,8 +68,8 @@ def score(friends: Dict[Tuple[int, int], int], enemies: Dict[Tuple[int, int], in
         surround_score += math.pow(x["surround"], 2)
         distance_score += math.pow(x["distance"], 2)
 
-    # Note the score layout: [unit_score, surround_score, health_score, distance_score]
-    return (unit_score, surround_score, health_score, distance_score)
+    # Order of priority: units, surround advantage, health, hill control, distance positioning
+    return (unit_score, surround_score, health_score, hill_score, distance_score)
 
 def array_cmp(a: Tuple[float, ...], b: Tuple[float, ...]) -> float:
     for i in range(len(a)):

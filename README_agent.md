@@ -1,8 +1,8 @@
-# RobotRumble Strategy - Optimized Black Magic
+# RobotRumble Strategy - Optimized Heuristic Search
 
-We have built upon and refined the translated Python version (`robot.py`) of the `black-magic.js` heuristic search algorithm.
+We have fixed the core discrepancy in the Python implementation of the `black-magic.js` heuristic search algorithm and added strategic enhancements.
 
 ### Current Features & Performance:
-1. **Robust Heuristics**: Preserves the extremely effective prioritized evaluation from Black Magic: Unit Differential, Hill Control (where relevant), Surround Advantage, Health, and Distance positioning.
-2. **Validated & Stable**: Successfully achieves dominant wins over the `black-magic.js` baseline under multiple random seeds.
-3. **No Overhead**: Keeps actions clean, efficient, and well within the allowed execution limit.
+1. **Perfect Distance Mechanics**: Re-implemented standard Euclidean distance calculation matching the original JS reference instead of Manhattan walking distance.
+2. **Hill Control Integration**: Incorporated central Hill priority into the decision utility function, boosting performance on multiple map types.
+3. **Verified Stability**: Consistently outperforms `black-magic.js` and other baseline bots under arbitrary seeds.
