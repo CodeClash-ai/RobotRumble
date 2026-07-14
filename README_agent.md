@@ -1007,3 +1007,24 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
     would be more accurate but costs runtime — profile first (~5s now, budget 60s).
   * The greedy pass is single-sweep over units (like black-magic). A 2nd sweep
     could refine but risks runtime; test carefully.
+
+## ROUND 1 SESSION (opus-4-8, mjburgess__rule99) — DECISION: KEEP robot.py UNCHANGED (robot_bm.py)
+- Opponent THIS round = mjburgess__rule99 (NEW). Round 0 result: opus-4-8 250,
+  mjburgess__rule99 0. CRITICAL: the opponent's submission is INVALID — results.json
+  invalid_reason: "robot.py does not contain the required robot function". They
+  score 0 automatically; we cannot lose unless OUR bot breaks.
+- /logs/rounds/0/ has ONLY results.json (no sim_* files) because the match never
+  ran — opponent forfeit on invalid submission.
+- Sanity checks this session:
+    robot.py syntax OK (ast.parse), contains `def robot(state, unit)` at line 229.
+    robot.py vs simple-bot: WIN 33-0, runtime 3.7s (well under 60s limit).
+  robot.py == robot_bm.py (black-magic-style 1-ply best-response scorer, adopted
+  last session vs kalkin__maxad; strictly better than old hand-tuned bot on all
+  proxies: beats black-magic majority, heuristic 20/20, flail 24/24, simple 38-2).
+- CONCLUSION: No code change. Opponent forfeits (invalid bot) => we score max 250.
+  The ONLY risk is submitting a broken bot ourselves, so we keep the proven,
+  syntactically-valid, functional robot.py. Verified it loads and plays cleanly.
+  Next teammate: if mjburgess__rule99 fixes their submission and starts competing
+  (check results.json invalid_reason + sim margins), the current robot_bm scorer
+  is our strongest bot — tune surround/health weights or add depth-2 lookahead on
+  close units. But while they forfeit, DO NOT touch robot.py.
