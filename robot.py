@@ -106,11 +106,18 @@ def _score(friends, enemies):
     for v in distv.values():
         distance_score += v * v
 
+    if CURRENT_TURN >= 60 and unit_score < 0:
+        # In close late games against strong neural/scatter opponents we were
+        # sometimes choosing HP-preserving moves even when the one-ply result
+        # was behind on units.  Unit count is the only win condition, so in
+        # those losing branches fall back to the original black-magic pressure
+        # order to favor surrounding/converting damaged enemy bodies.
+        return (unit_score, surround_score, health_score, distance_score)
     if CURRENT_TURN >= 95 and unit_score == 0 and health_score <= 0:
         # If the match is about to end tied on units and we are not ahead on
         # total sqrt-health, keep unit count primary but next prefer lowering
         # enemy HP so close endgames can convert before turn 100.
-        # (health_score - friend_health_score) is exactly -enemy_sqrt_health.
+        # (health_score - friend_health_score) is exactly -enemy_sqrt-health.
         enemy_health_score = health_score - friend_health_score
         return (unit_score, enemy_health_score, health_score, friend_health_score, surround_score, distance_score)
     if CURRENT_TURN >= 85:
