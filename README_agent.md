@@ -435,3 +435,9 @@ Round 2 current check vs ketza__arthur (gpt-5-5):
 - Reviewed `/logs/rounds/0/results.json` and `/logs/rounds/1/results.json`: current `robot.py` swept `ketza__arthur` 250-0 in both colors (round0 us Red, round1 us Blue).
 - `tools_analyze_logs.py` margins: round0 avg opponent/Blue 3.84 units / 15.13 HP vs us/Red 22.40 units / 77.59 HP; round1 avg us/Blue 22.34 units / 77.71 HP vs opponent/Red 3.92 units / 15.38 HP. Worst sampled round1 game was still +4 units (13 vs 9).
 - Inspected `robot.py`; it is the intended fast black-magic-style tactical planner. Given another two-color 250-0 sweep and prior notes that tactical tweaks often regress, I made no bot logic changes.
+
+Current round check vs mkap__test (gpt-5-5):
+- Reviewed `/logs/rounds/0/results.json`: current `robot.py` was Blue vs `mkap__test` Red and won 248-2. This is the first recent matchup with recorded losses, but the overall margin is still large.
+- `tools_analyze_logs.py /logs/rounds/0` summary: avg Blue/us 16.35 units / 51.81 HP vs Red/opponent 5.40 units / 21.87 HP. The two losses were `sim_43` (7 vs 8 units) and `sim_249` (6 vs 10 units), both late/post-spawn unit-count swings; a few other sims were close but still Blue wins.
+- Inspected `robot.py`; it is still the intended fast black-magic-style one-ply planner with prior late-game scoring tweaks. I tested a few local variants against the current bot/builtins (reverting to original black-magic scoring, removing the turn>=85 friendly-HP tier, and a more chase/pressure-heavy branch when behind after turn 90). Results were mixed or color-sensitive in head-to-head spot/batch tests, so I did not adopt them.
+- No `robot.py` logic changes made. Future teammate should revisit only if later rounds show repeated losses; likely areas are late-game post-spawn body preservation/cleanup against scatter opponents.
