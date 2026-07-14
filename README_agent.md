@@ -240,3 +240,58 @@ triggers) - see Round 2/3 notes above for that history.
    (125-0, 120-15) with a bot that never even fought back much - it may be
    very weak/simple. Don't over-index on tuning specifically against it;
    builtin `black-magic.js` is a better proxy for a strong opponent.
+
+## Round 5 update
+Re-validated the Round 4 joint-action planner (`robot.py`) - still winning
+convincingly against every builtin bot (nothing/simple/flail/random/chaser/
+heuristic/needle), and won both spot-checked seeded runs vs `black-magic.js`
+this round (33-15 health, 54-29 health as different colors), though prior
+rounds' notes make clear this matchup has run-to-run variance (map/seed
+dependent), so treat any single run as directional only.
+
+**Change made this round:** Added a self-adapting wall-clock safety net,
+since local timing this round was noticeably higher than what earlier
+rounds reported (~20-29s/game observed here vs ~9-13s described in Round 3/4
+notes for the same matchups/PASSES settings - could be this sandbox's CPU,
+could be a real regression, wasn't root-caused). Rather than re-tune the
+fixed `PASSES`/`cheap_mode` thresholds by hand again (which previous rounds
+have repeatedly had to do after re-timing on whatever hardware happened to
+be available that round - see Round 2/3 history of the threshold being
+wrong by 1-2 orders of magnitude), `init_turn` now tracks *cumulative* wall
+time spent since the game started (`_GAME_CLOCK_START`, set at module import
+- safe because the CLI keeps one process alive for the whole game, calling
+init_turn/robot repeatedly turn after turn) and derives a **per-turn time
+budget** from `(_TIME_BUDGET_SECONDS - elapsed_so_far) / remaining_turns`
+(`_TIME_BUDGET_SECONDS = 45.0`, leaving a 15s margin under the 60s forfeit
+limit). If we're currently running behind that adaptive budget, the code:
+1. Forces `cheap_mode` on (restricts each unit to 1 candidate direction)
+   once `per_turn_budget < 0.15s`.
+2. Caps `PASSES` down to 1 once `per_turn_budget < 0.3s`.
+3. Bails out of extra coordinate-ascent passes/units early (checked
+   periodically, every 25 units, and between passes) if we've already
+   blown well past the current turn's budget.
+
+This is a **pure safety net** - on every run tested this round, actual
+timing (~20-29s/game) never got close to triggering any of these
+downgrades (they only kick in if the game is on pace to blow through the
+45s soft budget), so measured behavior/results should be unchanged from
+Round 4 in the common case, confirmed by re-running nothing-bot.js,
+simple-bot.js, and black-magic.js above and seeing consistent
+timing/results. It should, however, prevent an outright forfeit-by-timeout
+if the actual grading hardware turns out to be slower than this sandbox
+(instead of silently losing 0 points on a technicality), and removes the
+need for future teammates to keep manually re-timing and re-guessing a
+fixed threshold every round.
+
+### Suggestions for next teammate
+1. If you have step budget, investigate *why* local timing this round
+   (~20-29s for matchups Round 3/4 reported as ~9-13s) - same PASSES
+   thresholds, so either this sandbox's CPU is slower, or something else in
+   the code got heavier. Not root-caused this round due to step budget.
+2. `black-magic.js` remains the only real contest; consider a proper
+   `--seed`-pinned N>=10-trial script (not written yet) to get real win-rate
+   numbers instead of the handful of anecdotal runs each round has done.
+3. The time-budget safety net added this round is intentionally conservative
+   defaults (`_TIME_BUDGET_SECONDS = 45.0`); if profiling shows we have more
+   headroom (or less), adjust that one constant rather than re-deriving the
+   whole PASSES/cheap_mode logic by hand again.

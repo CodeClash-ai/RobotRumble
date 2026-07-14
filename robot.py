@@ -44,6 +44,7 @@ re-run analysis.
 
 from typing import *
 import math
+import time
 
 ALL_DIRECTIONS = [Direction.North, Direction.East, Direction.South, Direction.West]
 
@@ -56,6 +57,19 @@ _PLAN: Dict[str, Optional[Action]] = {}
 # Cache of wall/out-of-bounds lookups; walls never move so this is safe to
 # reuse for the lifetime of a single turn (cleared at the top of init_turn).
 _blocked_cache: Dict[Coords, bool] = {}
+
+# Wall-clock safety net: the bot process persists for the whole game (the
+# CLI keeps calling init_turn/robot on the same process across turns), so we
+# can track *cumulative* real time spent since the game started and use it
+# to adaptively scale back search effort (PASSES / cheap_mode) if we're
+# running behind schedule - this protects against the 60s/game forfeit
+# limit even if the grading hardware turns out to be slower than whatever
+# machine this was last tuned/timed on (see README_agent.md history of
+# retuning PASSES thresholds after re-timing - this makes that tuning
+# self-adjusting instead of a fixed guess).
+_GAME_CLOCK_START = time.monotonic()
+_TIME_BUDGET_SECONDS = 45.0  # stay well under the 60s forfeit limit
+_TOTAL_TURNS_ESTIMATE = 100
 
 
 def _is_blocked(state: State, coords: Coords) -> bool:
@@ -149,6 +163,16 @@ def init_turn(state: State) -> None:
     _PLAN = {}
     _blocked_cache.clear()
 
+    # Per-turn wall-clock budget derived from cumulative time spent so far
+    # this game (see _GAME_CLOCK_START above) - adapts automatically to
+    # slower/faster hardware than whatever machine PASSES/cheap_mode were
+    # last tuned on, instead of trusting a fixed guess forever.
+    turn_start = time.monotonic()
+    elapsed_total = turn_start - _GAME_CLOCK_START
+    remaining_turns = max(1, _TOTAL_TURNS_ESTIMATE - state.turn)
+    remaining_budget = max(0.5, _TIME_BUDGET_SECONDS - elapsed_total)
+    per_turn_budget = remaining_budget / remaining_turns
+
     our_units = state.objs_by_team(state.our_team)
     if not our_units:
         return
@@ -193,6 +217,11 @@ def init_turn(state: State) -> None:
     # guard is now effectively disabled (threshold raised far above anything
     # reachable on this map) and only kept as a pathological-case safety net.
     cheap_mode = len(friends) * len(enemies) > 4000
+    # Extra safety: if we're already running behind the adaptive per-turn
+    # budget (e.g. this game's hardware is much slower than expected), force
+    # cheap_mode regardless of team size so we don't risk the 60s forfeit.
+    if per_turn_budget < 0.15:
+        cheap_mode = True
     possible_actions: Dict[Coords, List[Optional[Tuple[int, "Direction"]]]] = {}
     for fcoord in friends:
         best_actions[fcoord] = None
@@ -235,10 +264,24 @@ def init_turn(state: State) -> None:
         PASSES = 2
     else:
         PASSES = 1
+    # Adaptive downgrade: if the per-turn time budget is tight (slow
+    # hardware / big battle), cap passes further so we still finish well
+    # within the 60s/game forfeit limit.
+    if per_turn_budget < 0.3:
+        PASSES = 1
     friend_coords = list(friends.keys())
     for _pass in range(PASSES):
+        # Bail out of further coordinate-ascent passes if we've already
+        # spent more than the per-turn budget allows (allow some slack
+        # since going a bit over on one turn is fine as long as we don't
+        # do it every turn) - protects against underestimating cost on
+        # slower hardware without needing to re-time/re-tune by hand.
+        if _pass > 0 and (time.monotonic() - turn_start) > per_turn_budget * 4:
+            break
         improved = False
-        for fcoord in friend_coords:
+        for i, fcoord in enumerate(friend_coords):
+            if (i % 25) == 24 and (time.monotonic() - turn_start) > per_turn_budget * 8:
+                break
             current = best_actions.get(fcoord)
             local_best_action = current
             local_best_score = best_score
