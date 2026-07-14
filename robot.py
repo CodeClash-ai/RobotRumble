@@ -237,21 +237,6 @@ def init_turn(state):
                 lowest = h
                 best = (ATTACK, d)
         if best is None:
-            # The current crw_preempt opponent appears to attack empty squares
-            # that our chasers are about to enter.  Model that one-ply trap:
-            # if a friendly is two cells away in a cardinal line, predict an
-            # attack into the intervening cell rather than an idle/macro move.
-            # Then _tick will charge the damage if our candidate move steps in.
-            lowest2 = 999
-            for d in ALL_DIRS:
-                mid = _add(e, d)
-                dx, dy = DIR_DELTAS[d]
-                far = (mid[0] + dx, mid[1] + dy)
-                h = friends.get(far)
-                if h is not None and mid in LEGAL and h <= lowest2:
-                    lowest2 = h
-                    best = (ATTACK, d)
-        if best is None:
             ex, ey = e
             bestd = None
             # Late anti-retreat adjustment: when we are equal/behind on units,
@@ -298,8 +283,19 @@ def init_turn(state):
                 continue
             if t in enemies:
                 acts.append((ATTACK, d))
-            elif not (avoid_spawn and t in SPAWNS):
-                acts.append((MOVE, d))
+            else:
+                # Anti-preempt trap for the current crw_preempt opponent: it
+                # frequently attacks the empty square between two robots in a
+                # cardinal line.  Stepping into that square loses HP before we
+                # get contact, so prefer an empty-square counterattack instead
+                # of walking directly into the trap.
+                dx, dy = DIR_DELTAS[d]
+                far = (t[0] + dx, t[1] + dy)
+                if far in enemies:
+                    acts.append((ATTACK, d))
+                    continue
+                elif not (avoid_spawn and t in SPAWNS):
+                    acts.append((MOVE, d))
         possible[f] = acts
 
     fs = dict(friends)
