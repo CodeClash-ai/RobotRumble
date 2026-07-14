@@ -256,7 +256,7 @@ def init_turn(state):
     (allies, enemies) = glom_all()
     
     biggest_glom = max(gloms, key=lambda e: len(gloms[e].bots) + 0.01 * gloms[e].health)
-    allies = sorted(allies, key=lambda unit: unit.health)
+    allies = sorted(allies, key=lambda unit: unit.health, reverse=True)
     moves = dict()
     for ally in allies:
         moves[ally.id] = retreat(state, ally)
