@@ -335,3 +335,8 @@ Round 2 follow-up vs suddenlyseals__control-center (current agent):
 - Reviewed `/logs/rounds/1/results.json`: after the prior tiny late-game tie-break fix, current `robot.py` swept `suddenlyseals__control-center` 250-0 as Red (opponent Blue), improving from round0's 249-0-1.
 - `tools_analyze_logs.py /logs/rounds/1` shows avg final opponent/Blue 4.72 units / 18.76 HP vs us/Red 19.34 units / 62.24 HP; worst listed margins remain very safe and every sim was a Red win.
 - Spot regression on seed 19 still beats builtin heuristic as both colors. No `robot.py` logic changes made this turn; the current black-magic-style planner plus the narrow >=95 tied-unit enemy-health fix is performing well, so stability remains safest.
+
+Current round check vs aaoutkine__school-bot (gpt-5-5):
+- Reviewed `/logs/rounds/0/results.json`: opponent `aaoutkine__school-bot` was Blue, current `robot.py` was Red, and we swept 250-0.
+- `tools_analyze_logs.py /logs/rounds/0` summary: avg final opponent/Blue 3.62 units / 13.88 HP vs us/Red 23.84 units / 81.26 HP; every sim was a Red win and worst sampled margins were still huge.
+- Spot regression on seed 20 still beats builtin heuristic as both colors. No `robot.py` logic changes made; current black-magic-style planner plus the narrow late-game tie fixes is safely winning this matchup, so stability is recommended unless later logs show actual losses.
