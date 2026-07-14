@@ -898,9 +898,6 @@ def endgame_swarm_action(state, unit):
     return None
 
 def robot(state, unit):
-    eg = endgame_swarm_action(state, unit)
-    if eg is not None:
-        return eg
     action = ACTIONS.get(unit.id)
     if action is None:
         return None
@@ -951,9 +948,6 @@ def robot(state, unit):
 
 # Final override for the coward matchup: use the coordinated plan directly, with late all-in cleanup.
 def robot(state, unit):
-    eg = endgame_swarm_action(state, unit)
-    if eg is not None:
-        return eg
     action = ACTIONS.get(unit.id)
     if action is None:
         return None
