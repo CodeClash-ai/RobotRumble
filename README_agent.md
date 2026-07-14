@@ -1351,3 +1351,116 @@ sessions.
    that's the signal to invest more heavily in `black-magic.js`-style
    tuning again - until then, "don't fix what isn't broken" continues to
    be the right call given the ladder evidence so far.
+
+## Round (this session) - RE-TESTED & APPLIED the "enemy advances if not
+## adjacent" baseline change, using the now-existing color-balanced
+## `scripts/paired_ab.sh` (previous rejection of this exact idea was based
+## on an unbalanced, fixed-color sample - see below)
+
+Context: `/logs/rounds/0` and `/logs/rounds/1` this session were both vs
+`sivecano__clouded-mind`, both **250-0 blowout wins** (once Blue, once
+Red) - 12th+/13th+ consecutive live-opponent round crushed by a large
+margin with the (until now unchanged) `robot.py`.
+
+### What I did
+A much earlier session tried extending the enemy-baseline prediction used
+inside our own coordinate-ascent search - "if an enemy has no adjacent
+friend to attack, assume it advances one step toward its nearest friend
+instead of being passive" - and rejected it after a 6-seed test showed a
+worse win rate (4/6 W current vs 3/6 W tried) vs `black-magic.js`. **That
+test was done entirely with `robot.py` fixed as Blue**, i.e. before the
+later "MAJOR FINDING" sessions (see above) proved fixed-color seed sweeps
+are badly confounded by a strong, deterministic, bot-independent Blue/Red
+map-side advantage. So that rejection's conclusion was never actually
+trustworthy. This session had exactly the tool needed to redo it properly
+(`scripts/paired_ab.sh`, built two sessions ago, tests every seed as BOTH
+colors and compares combined health margin) but which - as far as I could
+tell from the notes - had not yet been used by anyone to re-litigate this
+specific old rejected idea. So I did that first.
+
+### Result: the "enemy advances" idea is actually a net improvement vs black-magic.js when measured properly
+`./scripts/paired_ab.sh /tmp/robot_baseline.py /tmp/robot_candidate.py builtin-bots/black-magic.js 6 100`
+(same 6 seeds, 100-105, used in the original rejected test; candidate =
+baseline + the "advance toward nearest friend if no adjacent target"
+tweak, otherwise byte-identical):
+
+| Seed | A=baseline margin (blue-them + red-them) | B=candidate margin |
+|------|------|------|
+| 100  | +17  | +2   |
+| 101  | -13  | -18  |
+| 102  | -17  | +37  |
+| 103  | -29  | -20  |
+| 104  | -1   | +11  |
+| 105  | -22  | +19  |
+| **Total** | **-65** | **+31** |
+
+Candidate (B) wins the properly color-balanced comparison decisively
+(swings from a combined -65 health margin to +31 across the same 6 seeds x
+2 colors = 12 games each version). This directly reverses the old
+(unbalanced) rejection.
+
+### Regression check vs weaker/passive bots
+Ran the same paired script vs `nothing-bot.js` (3 seeds x 2 colors each):
+baseline totaled +738 combined margin, candidate totaled +657 - candidate
+is a bit *less* dominant (makes sense: `nothing-bot.js` truly never moves
+or attacks, so assuming it "advances toward the nearest friend" is now a
+wrong prediction that mildly misdirects our own planning), but **every
+single game in that sample was still an overwhelming win either way**
+(e.g. blue 115v10/120v15, red 125v10/120v15 - opponent never gets close to
+threatening us). Also spot-checked `simple-bot.js` (seed 1, candidate as
+Blue): still a blowout win, Health 165 vs 11, Units 33 vs 3. And a fresh
+(not used in any of the above tuning) seed vs `black-magic.js` (seed 42,
+candidate as Blue): a close **TIE**, Health 41 vs 44, Units 12 vs 12 -
+consistent with "close, competitive matchup" characterization from many
+past sessions, no red flag.
+
+**Conclusion: applied the change to `robot.py`.** It measurably improves
+the one genuinely competitive matchup we have a good proxy for
+(`black-magic.js`, tested properly this time) while only costing a little
+bit of margin (not the actual win) against opponents so weak the margin
+barely matters anyway. This is the first *substantive* strategy change
+applied in many consecutive sessions (most of which, per the extensive
+history above, correctly declined to touch a working bot without solid
+color-balanced evidence - this session finally had both the tool and the
+seeds to produce that evidence for this specific idea).
+
+### The diff (in `robot.py`'s `init_turn`, right after the existing
+### "enemy attacks lowest-health adjacent friend" loop)
+```python
+        # if no adjacent friend to attack, assume the enemy advances one
+        # step toward its nearest friend instead of being passive.
+        if best_actions[ecoord] is None and friends:
+            nearest = min(friends, key=lambda fc: ecoord.distance_to(fc))
+            adv_dir = ecoord.direction_to(nearest)
+            target = ecoord + adv_dir
+            if not _is_blocked(state, target) and target not in enemies and target not in friends:
+                best_actions[ecoord] = (_MOVE, adv_dir)
+```
+
+### Suggestions for next teammate
+1. Sample size is still only 6 seeds x 2 colors vs `black-magic.js` (12
+   games) + 3 seeds x 2 colors vs `nothing-bot.js` (6 games) + a couple of
+   single spot checks - if you have budget, widen this with
+   `scripts/paired_ab.sh` using a fresh, non-overlapping seed range (e.g.
+   200-215) to build more confidence before trusting this change further,
+   and also re-check `simple-bot.js`/`flail.js`/`chaser.js`/
+   `heuristic-bot.js`/`needle-bot.js` with the paired script (only spot-
+   checked `nothing-bot.js` and `simple-bot.js` with real rigor this
+   session due to step budget).
+2. `/tmp/robot_baseline.py` (the pre-this-session `robot.py`) and
+   `/tmp/robot_candidate.py` (== current `robot.py`) may not persist across
+   sessions (it's `/tmp`) - if you want to re-run this exact A/B again,
+   regenerate baseline via `git show HEAD:robot.py` (this session's start
+   commit) rather than assuming the tmp files are still there.
+3. The other still-open, structurally-different idea (a genuine 2-ply
+   lookahead that re-derives the opponent's *actual* response, not a
+   static heuristic, after each candidate move) remains untried and is
+   probably the next-best lever if this change's improvement isn't enough
+   - see many earlier sessions' notes above for the reasoning/design
+   sketch. Timing headroom is still large (~9-15s/game vs the 60s limit).
+4. `scripts/paired_ab.sh` (color-balanced A/B) is the correct default tool
+   for any future strategy A/B test on this bot - the plain fixed-color
+   `scripts/seed_sweep.sh` should now basically be considered deprecated/
+   unreliable for judging code changes (still fine for just eyeballing
+   raw win/loss against a fixed opponent if color-balance doesn't matter
+   for your question, e.g. "does this crash?").

@@ -200,6 +200,16 @@ def init_turn(state: State) -> None:
                 continue
             lowest_health = h
             best_actions[ecoord] = (_ATTACK, d)
+        # Candidate change: if no adjacent friend to attack, assume the
+        # enemy advances one step toward its nearest friend instead of
+        # being passive. (Only used if `friends` non-empty, which it is
+        # here since init_turn already returned early when friends empty.)
+        if best_actions[ecoord] is None and friends:
+            nearest = min(friends, key=lambda fc: ecoord.distance_to(fc))
+            adv_dir = ecoord.direction_to(nearest)
+            target = ecoord + adv_dir
+            if not _is_blocked(state, target) and target not in enemies and target not in friends:
+                best_actions[ecoord] = (_MOVE, adv_dir)
 
     # --- Enumerate legal actions per friend ---
     # Safety guard: simulate_score() is O(len(friends)*len(enemies)), and we
