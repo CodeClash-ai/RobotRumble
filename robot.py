@@ -1,4 +1,4 @@
-# Matchup bot for mousetail__coward-bot.
+# Matchup bot for entropicdrifter__glommerv2.
 # Fast coordinated one-ply tactical bot, adapted from the strong public
 # black-magic bot. init_turn plans for all units together using an exact-ish
 # enemy model and greedily keeps friendly actions that improve a lexicographic
@@ -493,6 +493,171 @@ def predict_glommer_actions(enemies, friends, turn):
     return actions
 
 
+def glommer2_retreat_dir(pos, hp, friends, enemies, claimed, turn, movement_map):
+    # glommerv2 retreat: move to first Direction square with strictly lower adjacent-threat.
+    threat = 0
+    for d in _MDIRS:
+        q = add(pos, d)
+        if q in friends:
+            threat += friends[q]
+    adj = []
+    blanks = []
+    occupied = set(friends) | set(enemies)
+    for d in _MDIRS:
+        q = add(pos, d)
+        if q in friends:
+            adj.append(q)
+        else:
+            if q not in LEGAL or q in claimed:
+                continue
+            if q in enemies and not movement_map.get(q):
+                continue
+            if turn % 10 >= 7 and is_spawn_t(q):
+                continue
+            new_threat = 0
+            for dd in _MDIRS:
+                r = add(q, dd)
+                if r in friends:
+                    new_threat += friends[r]
+            if new_threat < threat:
+                blanks.append(d)
+    if len(adj) > 1 or (len(adj) == 1 and friends[adj[0]] > hp):
+        return blanks[0] if blanks else None
+    return None
+
+
+def glommer2_walk_dir(src, target, friends, enemies, claimed, turn, movement_map):
+    # Match glommerv2/mitch walk_to with claimed locations and spawn avoidance after tick 7.
+    x = target[0] - src[0]
+    y = target[1] - src[1]
+    xd = Direction.East if x > 0 else Direction.West
+    yd = Direction.South if y > 0 else Direction.North
+    blanks = []
+    for d in _MDIRS:
+        q = add(src, d)
+        if q not in LEGAL:
+            continue
+        if q in friends:
+            continue
+        if q in enemies and not movement_map.get(q):
+            continue
+        if turn % 10 >= 7 and is_spawn_t(q):
+            continue
+        blanks.append(d)
+    if abs(x) > abs(y) and xd in blanks and add(src, xd) not in claimed:
+        return xd
+    if abs(y) >= abs(x) and yd in blanks and add(src, yd) not in claimed:
+        return yd
+    if xd in blanks and add(src, xd) not in claimed:
+        return xd
+    if yd in blanks and add(src, yd) not in claimed:
+        return yd
+    if blanks and add(src, blanks[0]) not in claimed:
+        return blanks[0]
+    return None
+
+
+def predict_glommerv2_actions(enemies, friends, turn):
+    # Exact-ish model of entropicdrifter__glommerv2.  Compared with v1 it lets the
+    # biggest glom attack from range 2, uses total adjacent health as retreat threat,
+    # avoids spawn after turn%10 >= 7, and allows coordinated chain moves into allies
+    # that already have a movement plan.
+    actions = {}
+    if not enemies:
+        return actions
+    egid, egloms = build_gloms(enemies)
+    fgid, fgloms = build_gloms(friends)
+    biggest = max(range(len(egloms)), key=lambda i: len(egloms[i]['bots']) + 0.01 * egloms[i]['health']) if egloms else None
+    claimed = set()
+    movement_map = {p: None for p in enemies}
+
+    for epos in list(enemies.keys()):
+        eh = enemies[epos]
+        if not friends:
+            actions[epos] = None
+            continue
+        own_id = egid[epos]
+        own = egloms[own_id]
+        # target_ids are seeded from nearest(enemies, current)[0] during glom construction;
+        # close enough: target the nearest opposing glom from this unit, then nearest bot in it.
+        seed_friend = min(friends, key=lambda f: t_walking(epos, f) + 0.1 * friends[f])
+        target_glom = fgloms[fgid[seed_friend]] if fgloms else {'bots': list(friends), 'health': sum(friends.values())}
+        target = min(target_glom['bots'], key=lambda f: t_walking(epos, f) + 0.1 * friends[f])
+        nearest_friend = min(friends, key=lambda f: t_walking(epos, f) + 0.1 * friends[f])
+
+        # finishing blow on adjacent weaker enemy, if safe from friendly fire/claim.
+        if t_walking(epos, nearest_friend) == 1 and friends[nearest_friend] < eh:
+            d = t_direction_to(epos, nearest_friend)
+            hit = add(epos, d)
+            if hit not in claimed and hit not in enemies:
+                claimed.add(hit)
+                actions[epos] = (ATTACK, d)
+                continue
+
+        rd = glommer2_retreat_dir(epos, eh, friends, enemies, claimed, turn, movement_map)
+        if rd:
+            dst = add(epos, rd)
+            claimed.add(dst)
+            movement_map[epos] = rd
+            actions[epos] = (MOVE, rd)
+            continue
+
+        we_big = own_id == biggest
+        if len(target_glom['bots']) < len(own['bots']) or own['health'] > target_glom['health']:
+            w = t_walking(epos, target)
+            if (len(own['bots']) > 1 and w == 1) or ((we_big or len(own['bots']) == 1) and w <= 2):
+                d = t_direction_to(epos, target)
+                hit = add(epos, d)
+                if hit not in claimed and hit not in enemies:
+                    claimed.add(hit)
+                    actions[epos] = (ATTACK, d)
+                    continue
+            md = glommer2_walk_dir(epos, (9, 9) if we_big else target, friends, enemies, claimed, turn, movement_map)
+            if md:
+                newp = add(epos, md)
+                fut = 0
+                for dd in _MDIRS:
+                    r = add(newp, dd)
+                    if r in friends:
+                        fut += friends[r]
+                if not glommer2_retreat_dir(newp, eh, friends, enemies, claimed | {newp}, turn, movement_map):
+                    claimed.add(newp)
+                    movement_map[epos] = md
+                    actions[epos] = (MOVE, md)
+                    continue
+
+        if not we_big:
+            allies = [q for q in enemies if q != epos and egid.get(q) != own_id]
+            allies.sort(key=lambda q: t_walking(epos, q) + 0.1 * enemies[q])
+            for ally in allies:
+                md = glommer2_walk_dir(epos, ally, friends, enemies, claimed, turn, movement_map)
+                if md:
+                    newp = add(epos, md)
+                    if not glommer2_retreat_dir(newp, eh, friends, enemies, claimed | {newp}, turn, movement_map):
+                        claimed.add(newp)
+                        movement_map[epos] = md
+                        actions[epos] = (MOVE, md)
+                        break
+            if actions.get(epos):
+                continue
+
+        md = glommer2_walk_dir(epos, (9, 9), friends, enemies, claimed, turn, movement_map)
+        if md:
+            newp = add(epos, md)
+            if not glommer2_retreat_dir(newp, eh, friends, enemies, claimed | {newp}, turn, movement_map):
+                claimed.add(newp)
+                movement_map[epos] = md
+                actions[epos] = (MOVE, md)
+                continue
+        d = t_direction_to(epos, nearest_friend)
+        hit = add(epos, d)
+        if hit not in claimed and hit not in enemies:
+            claimed.add(hit)
+            actions[epos] = (ATTACK, d)
+        else:
+            actions[epos] = None
+    return actions
+
 def terrain_count(pos):
     # Number of adjacent impassable/out-of-board tiles; coward_bot confusingly names this
     # empty_surrounding_tiles and uses it to evacuate wall/spawn-adjacent units.
@@ -637,11 +802,11 @@ def init_turn(state):
         if u.health is not None:
             enemies[k(u.coords)] = u.health
 
-    # Current opponent is mousetail__coward-bot; allow queued/chain moves,
-    # but seed the simulation with its deterministic evade/prefire plan.
+    # Current opponent is entropicdrifter__glommerv2; allow queued/chain moves,
+    # but seed the simulation with its deterministic glom/retreat plan.
     allow_chain_moves = True
 
-    enemy_plan = dict(predict_coward_actions(enemies, friends, state.turn))
+    enemy_plan = dict(predict_glommerv2_actions(enemies, friends, state.turn))
     predicted_enemy_dests = set()
     for _ep, _act in enemy_plan.items():
         if _act and _act[0] == MOVE:
@@ -665,7 +830,7 @@ def init_turn(state):
                     evacuate.append((MOVE, d))
                 continue
             if dst in enemies or dst in predicted_enemy_dests:
-                # Coward-bot often retreats or pre-fires from range 2; pre-fire the
+                # Glommerv2 often retreats/steps as a group; pre-fire the
                 # square it is expected to enter, not just its current square.
                 acts.append((ATTACK, d))
             if dst not in enemies and (allow_chain_moves or dst not in friends):
