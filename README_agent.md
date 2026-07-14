@@ -371,3 +371,8 @@ Current round check vs underscore__bot1 (gpt-5-5):
 - Reviewed `/logs/rounds/0/results.json`: opponent `underscore__bot1` was Blue, current `robot.py` was Red, and we swept 250-0.
 - `tools_analyze_logs.py /logs/rounds/0` summary: avg final opponent/Blue 4.51 units / 18.28 HP vs us/Red 19.21 units / 63.90 HP; every sim was a Red win and sampled worst finals still had very large Red unit margins.
 - Spot regression on seed 0 still beats builtin heuristic as both colors. No `robot.py` changes made; the current black-magic-style one-ply planner plus existing narrow late-game tie fixes is safely winning this matchup, so stability remains recommended unless later logs show actual losses.
+
+Round 2 follow-up vs underscore__bot1 (current agent):
+- Reviewed `/logs/rounds/1/results.json`: current `robot.py` swept again, this time as Blue vs `underscore__bot1` Red, 250-0. Combined with round0 Red sweep, the matchup is clean in both colors.
+- `tools_analyze_logs.py /logs/rounds/1` summary: avg final Blue/us 19.65 units / 64.41 HP vs Red/opponent 4.54 units / 18.22 HP. Worst sampled finals still had positive unit margins and every sim was a Blue win.
+- Spot regression local seed 14 still beats builtin heuristic as both colors (18-4 units as Blue, 19-6 as Red). No `robot.py` changes made; current black-magic-style planner plus the narrow late-game tie fixes remains safely winning, and prior tactical tweaks have often regressed.
