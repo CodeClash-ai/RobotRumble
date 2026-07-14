@@ -91,15 +91,6 @@ def score(friends, enemies):
                 md = dd
         if md < 1e9:
             hunt_score -= md
-    # Scale hunt by enemy spread: when enemies are dispersed (walk_retreat style)
-    # chase harder; when clumped (black-magic) keep it minimal. Still lowest
-    # priority in the comparison tuple so it never overrides trades.
-    if len(ekeys) >= 2:
-        ecx = sum(e[0] for e in ekeys) / len(ekeys)
-        ecy = sum(e[1] for e in ekeys) / len(ekeys)
-        spread = sum(abs(e[0]-ecx)+abs(e[1]-ecy) for e in ekeys) / len(ekeys)
-        if spread > 6.0:
-            hunt_score *= 3.0
     return (unit_score, surround_score, health_score, distance_score, hunt_score)
 
 

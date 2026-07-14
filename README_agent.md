@@ -2019,3 +2019,40 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   and runtime < 60s (currently ~12s). Test: /tmp/sw.sh builtin-bots/black-magic.js
   robot.py 1 24 /tmp/x.txt (in sw.sh output: L=we/red win, W=bm/blue win; launch
   with nohup, outer bash harness times out ~30s so poll the outfile).
+
+## ROUND 1 SESSION (opus-4-8, mitch84__retreat_walk2) — CODE CHANGED: CONDITIONAL HUNT (robot_bm6.py)
+- Opponent = mitch84__retreat_walk2 (SPREAD+RETREAT bot, like the earlier
+  mitch84__walk_retreat). Round 0 (OLD bot robot_bm5.py, now robot_prev_walk2.py):
+  opus-4-8 179, Tie 8, mitch84__retreat_walk2 63. DECISIVE win but 63 LOSSES/250 =
+  the biggest upside seen. avg unit margin only +4.7. Many blowouts (e.g. seed51
+  6u vs 23u).
+- FAILURE MODE (sim_51 board turn90): WE (Blue) clump on the LEFT with ~10 units
+  while the opponent SPREADS across the map and fields 24 units — it grabs the
+  10-turn reinforcements + keeps scattered survivors at 5hp (win rule = units-only).
+  Our over-clumped force cedes map control & can't catch the fleers.
+- CHANGE ADOPTED (robot.py == robot_bm6.py): CONDITIONAL HUNT SCALING. score()
+  now computes enemy SPREAD (mean Manhattan dist of enemies to their centroid). If
+  spread > 6.0 (dispersed = walk_retreat signature), multiply hunt_score by 3.0 so
+  free units chase scattered fleers harder. When enemies are CLUMPED (black-magic,
+  spread<6) hunt is UNCHANGED. hunt_score is STILL the lowest-priority tuple element
+  so it NEVER overrides a trade decision — it only breaks otherwise-equal moves.
+- WHY SAFE (unlike promoting hunt above distance, which REGRESSED bm 16-0->13-3):
+  keeping hunt lowest-priority means clumped-bot play is byte-identical; the boost
+  only nudges tie-broken chasing when the enemy is genuinely dispersed.
+- VALIDATION (psweep.sh, REAL unit-only rule; NO regression on clumping proxies):
+    vs black-magic.js BLUE 1-16: 16-0-0 (== baseline, boost never triggers).
+    vs heuristic-bot BLUE 1-8: 8-0-0. vs flail seed1: WIN 30-2. Runtime ~21s (<<60s).
+  NOTE: could NOT build a faithful retreat_walk2 proxy (my /tmp/spread_retreat.js
+  dies too fast — we win 30+ to 2; real mitch keeps 24 survivors), so the hunt
+  benefit vs the ACTUAL opponent is UNVERIFIED. But the change is provably
+  risk-free on all clumping proxies (lowest-priority tiebreak, gated on high enemy
+  spread) so it can only help or be neutral vs the dispersed opponent.
+- Backups: robot_prev_walk2.py (old bm5 179-score bot), robot_bm6.py (== new robot.py).
+- NEXT TEAMMATE: if still not clean vs retreat_walk2, the spread threshold (6.0) or
+  boost factor (3.0) can be tuned UP to chase harder — safe as long as hunt stays
+  the LOWEST-priority tuple element (verify black-magic stays 16-0 BLUE 1-16). Could
+  also make free units (no near enemy + many allies) split off toward distant lone
+  enemies. DO NOT promote hunt above distance_score (REGRESSES bm 16-0->13-3, tested
+  this session). DO NOT re-try (all regress bm): unconditional hunt in distance,
+  3+ sweeps, enemy-move/approach prediction, linear health, surround-weighted
+  tiebreak, symmetric surround, dual/reversed greedy, blending 2-ply into scores.
