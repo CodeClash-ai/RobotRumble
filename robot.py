@@ -48,6 +48,38 @@ def walk_to(state, from_coords, to_coords):
     return None
 
 
+def predicted_enemy_coords(state, enemy):
+    # Match mitch84__retreat_walk2 from the enemy's point of view.  This is
+    # used only to choose range-2 prefire squares; if prediction is blocked by
+    # simultaneous movement, the old current-position fallback below still gives
+    # a reasonable attack.
+    friends = state.objs_by_team(state.our_team)
+    if not friends:
+        return enemy.coords
+
+    adj_friends = []
+    blanks = []
+    for direction in DIRS:
+        other = state.obj_by_coords(enemy.coords + direction)
+        if other and other.team == state.our_team:
+            adj_friends.append(other)
+        elif not other:
+            blanks.append(direction)
+
+    if len(adj_friends) > 1 and blanks:
+        return enemy.coords + blanks[0]
+    if len(adj_friends) == 1 and blanks and adj_friends[0].health > enemy.health:
+        return enemy.coords + blanks[0]
+
+    closest_friend = min(friends, key=lambda f: f.coords.walking_distance_to(enemy.coords))
+    if enemy.coords.distance_to(closest_friend.coords) == 1:
+        return enemy.coords
+    direction = walk_to(state, enemy.coords, closest_friend.coords)
+    if direction:
+        return enemy.coords + direction
+    return enemy.coords
+
+
 def robot(state, unit):
     enemies = state.objs_by_team(state.other_team)
     if not enemies:
@@ -57,12 +89,19 @@ def robot(state, unit):
     if retreat_dir:
         return Action.move(retreat_dir)
 
-    attackable = []
+    predicted = []
+    fallback = []
     for e in enemies:
-        if unit.coords.walking_distance_to(e.coords) <= 2:
+        dest = predicted_enemy_coords(state, e)
+        if unit.coords.walking_distance_to(dest) == 1:
+            d = unit.coords.direction_to(dest)
+            if d:
+                predicted.append((e.health, unit.coords.walking_distance_to(e.coords), d, e))
+        elif unit.coords.walking_distance_to(e.coords) <= 2:
             d = unit.coords.direction_to(e.coords)
             if d:
-                attackable.append((e.health, unit.coords.walking_distance_to(e.coords), d, e))
+                fallback.append((e.health, unit.coords.walking_distance_to(e.coords), d, e))
+    attackable = predicted or fallback
     if attackable:
         attackable.sort(key=lambda t: (t[0], t[1]))
         return Action.attack(attackable[0][2])
