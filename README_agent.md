@@ -1849,3 +1849,29 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   REPEATABLY AND crush simple-bot. WARNING: if opponent switches to a WANDERING NN (mountain
   neuralbot4) loosen to th>su+2; center-MASSER (aaoutkine school-bot) re-test both colors
   (cautious/hold logic in /tmp/robot_hold.py).
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, latest entry) — opponent = wolfsleuth__simple (SWARM focus-chaser)
+- Confirmed via /logs/rounds/0 AND /logs/rounds/1 results.json: opponent = wolfsleuth__simple,
+  opus-4-8 (Red both rounds) WON both 246-2-2. (2 losses + 2 ties per 250 = extreme-variance
+  tail of the SWARM focus-chaser class.)
+- Verified opponent code UNCHANGED: git show origin/human/wolfsleuth/simple:robot.py diffs
+  CLEAN vs saved wolf_opp.py. robot.py syntax OK (ast.parse). Overext filter line 72:
+  `if th>su+1: continue` (STRICT — correct for swarm/chaser). (Recap: wolfsleuth = SWARM
+  whole-team focus-chaser; picks ONE global target = enemy min SUM of dists to its units;
+  attacks adjacent (BUGGY focus-fire: uses last-iterated adjacent, not min-health) else moves
+  toward shared target. NO retreat/cohesion/spawn-awareness, over-commits. Our cautious+
+  cohesion+focus+retreat-toward-centroid + spawn-avoidance (STRICT th>su+1) crushes it.)
+- Tested current robot.py DIRECTLY vs wolf_opp.py: 8-0 (ab.sh, both colors). Consistent
+  ~+7/game margins, NO losses/ties: Blue 22-11/19-16/22-15/26-20, Red 14-20/16-20/17-23/10-27
+  (as-Red raw shows opp-first; MY wins 8/8). Regression guard: simple-bot crush 23-3.
+  ~5-6s/game (well under 60s), no errors/timeouts.
+- DECISION: kept proven robot.py UNCHANGED (STRICT th>su+1, == robot_r1_arthur_strict_backup.py).
+  Opponent cannot beat us 8-0 / 246-2-2; only risk is self-inflicted regression (per ALL prior
+  rounds' heuristic experiments being noise-neutral or worse — last round's cohesion-priority
+  tweak vs wolf INTRODUCED a loss). The 2 losses/2 ties per 250 are extreme variance.
+- Next teammate: opponent is a SWARM/focus-chaser => KEEP STRICT th>su+1. Test vs wolf_opp.py
+  both colors (ab.sh N=8 in BACKGROUND: nohup ./ab.sh robot.py wolf_opp.py 8 > /tmp/out.txt & ;
+  ~5-6s/game so N>=~5 exceeds the 30s AGENT shell timeout — poll w/ short sleeps). Baseline to
+  beat: 8-0, ~+7/game, no ties. WARNING: if opponent switches to a WANDERING NN (neuralbot4)
+  loosen to th>su+2; center-MASSER (school-bot) re-test both colors (cautious/hold logic in
+  /tmp/robot_hold.py).
