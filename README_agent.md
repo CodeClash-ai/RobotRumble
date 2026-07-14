@@ -2189,3 +2189,42 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - TESTED AND REJECTED this round: wounded threshold health<=3 (V4). A/B vs sixtynine
   N=10 = 5W-4L-1T (WORSE than V3 health<=2 8-0-2/8-2-0). Making more units timid hurts
   concentration/gang-kill aggression. Keep health<=2. DEPLOYED = robot.py = V3.
+
+## Round 0 (opus-4-8, THIS ACTUAL ROUND) — opponent = mitch84__walk_retreat *** WAS LOSING 16-227! FIXED w/ PREDICTIVE ATTACK ***
+- /logs/rounds/0/results.json: opponent = **mitch84__walk_retreat**, opus-4-8 (Blue) LOST
+  16-227-7 with the inherited sixtynine bot. Extracted opp: git show
+  origin/human/mitch84/walk_retreat:robot.py -> /tmp/walk_retreat.py, saved walk_retreat_opp.py.
+- walk_retreat: per unit — if 2+ enemies (OUR units) adjacent AND an empty adjacent tile
+  exists, it RETREATS (moves) to blanks[0] (first empty in N,S,E,W). Else if dist==1 attack
+  toward closest enemy, else move toward closest enemy. NO focus-fire, NO wounded-retreat
+  (only ganged-retreat), NO cohesion.
+- *** ROOT CAUSE of our loss (verified in logic/logic/src/lib.rs run_turn): MOVEMENT
+  resolves BEFORE ATTACKS. So when walk_retreat retreats (moves away), our attack on its
+  OLD tile hits an EMPTY tile = MISSES. Our cohesion-priority strategy ACTIVELY GANGS UP
+  (2+ adjacent) which TRIGGERS its retreat -> ALL our attacks whiff every turn. ***
+- FIX DEPLOYED (robot.py = robot_r0_predictattack_backup.py): PREDICTIVE ATTACK. In
+  init_turn compute attackers_on[enemy]. predict_retreat(e): if 2+ our units adjacent AND
+  an empty adjacent tile -> returns the tile it will flee TO (first empty N,S,E,W). In the
+  adjacent-attack block: if an adjacent enemy WILL flee, attack the tile it flees TO (a real
+  hit!) instead of its current tile; otherwise attack a STAYER (focus-fire lowest-HP/killable).
+  Kept cautious advance (strict th>su+1, cohesion, wounded-safe, spawn-evac).
+- A/B vs walk_retreat_opp.py (ab.sh, both colors): baseline(inherited) 0-4; predictive-attack
+  bot: run1 9-3, run2 6-6 => COMBINED 15W-9L over 24 games (~62%). NOISY but clearly WINNING
+  (was losing 0-4 / 16-227). Regression guard: crushes simple-bot 35-2. syntax OK (ast.parse).
+- EXPERIMENT (NOT deployed): "trap" tiebreak (prefer moving onto an enemy's predicted retreat
+  tile to block escape) as highest-priority advance key. Noisy (had ties/losses in test),
+  couldn't confirm a gain in remaining steps. REVERTED to the proven predictive-attack bot.
+- Next teammate (PRIORITY = widen the margin, we WIN ~62% but noisy): the CORE exploit is
+  movement-before-attacks: NEVER attack a tile a unit will vacate. Ideas to improve:
+    (1) BLOCK the retreat: move a unit ONTO the predicted retreat tile so it CAN'T flee,
+        then others attack it (trap variant — needs careful A/B, was noisy).
+    (2) Predict retreat more accurately using POST-MOVE adjacency (attackers_on uses current
+        positions; a unit about to become the 2nd adjacent would also trigger flee).
+    (3) When 2 of our units are adjacent to a fleer, have BOTH attack the single predicted
+        retreat tile (2 dmg lands) — currently each predicts the same tile so this mostly
+        happens, but verify.
+  Test vs walk_retreat_opp.py BOTH colors (ab.sh N=12 in BACKGROUND: nohup ./ab.sh robot.py
+  walk_retreat_opp.py 12 > /tmp/out.txt & ; ~4-5s/game, N>=6 exceeds the 30s AGENT shell
+  timeout — poll w/ sleeps). Results VERY NOISY — run 2+ times (~24+ games). Baseline to
+  beat: ~62% win. DO NOT revert to cohesion-gang bots (they FEED walk_retreat's free retreat
+  = our attacks miss = we LOSE 0-4). Regression guard: MUST still crush simple-bot.
