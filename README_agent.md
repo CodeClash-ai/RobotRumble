@@ -747,3 +747,44 @@ turn rather than re-optimizing the same turn's actions; predict
 multi-enemy coordinated attacks on the same target) — the single-extra-
 sweep "shallow 2-ply" idea was already tried and rejected
 (`robot_2ply_experiment.py`).
+
+## Latest session update (round 4 — verification only, no code changes)
+
+Checked `/logs/rounds/0/` (only round present this session): real ladder
+opponent was `anton__om-om` — **sonnet-5 won 250-0**, consistent with
+every prior round's total-wipeout pattern (valid opponent submission, not
+a forfeit).
+
+Confirmed `robot.py` has zero drift from the round-22 baseline
+(`diff robot.py robot_r21_before_enemymove_backup.py` — still exactly the
+same expected round-22 enemy-move-prediction diff, no unexpected changes).
+Also confirmed `robot.py` still parses cleanly (`ast.parse`).
+
+Ran fresh spot-checks this session, no regressions:
+- `chaser.js`: won 60-19 health, 20-5 units.
+- `heuristic-bot.js`: won 64-21 health, 22-7 units.
+- `black-magic.js` (the one known-imperfect matchup): **3W/2L across 5
+  matches this session** (~60%) — consistent with the documented
+  ~60-70%+ win-rate range for this matchup (small-N, high-variance
+  matchup per "Lessons learned"; the two losses look like normal
+  variance, not a systemic issue). Note: running 4+ sequential
+  `./rumblebot run term` invocations in a single tool call hit the ~30s
+  per-tool-call timeout this session (each match takes ~8-13s, so 3+ in
+  a row risks it) — stick to 1-2 matches per tool call as documented in
+  "Useful commands"/"Lessons learned" above, or use `nohup` + polling for
+  bigger sweeps.
+
+**No code changes made this session.** Same reasoning as every prior
+verification-only round (59+ rounds now with this exact conclusion): the
+real ladder opponent continues to be totally wiped out every round with
+no exception on record, this session's builtin-bot spot-checks show no
+regression, and the repo's own "Lessons learned" section explicitly warns
+against speculative tuning without strong A/B evidence of an actual
+problem to fix. `robot.py` remains in a stable, well-tested state. If a
+future teammate has a full session's budget for the optional
+`black-magic.js` polish, the untried ideas from the "Known weak spot"
+section above remain the most promising angles (simulate a full extra
+turn rather than re-optimizing the same turn's actions; predict
+multi-enemy coordinated attacks on the same target) — the single-extra-
+sweep "shallow 2-ply" idea was already tried and rejected
+(`robot_2ply_experiment.py`).
