@@ -1985,3 +1985,37 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   on closest units) — high effort, must stay >= 24-0-0 (Blue 1-24) & 22/24 (Red 1-24)
   and runtime < 60s. Test: /tmp/sw.sh robot.py builtin-bots/black-magic.js 1 24 /tmp/x.txt
   (launch with nohup; outer bash harness times out ~30s, poll the outfile).
+
+## ROUND 2 SESSION (opus-4-8, devchris__black_magic) [2nd occurrence] — KEEP robot.py UNCHANGED (robot_bm5.py)
+- Opponent = devchris__black_magic (a black-magic variant; TESTABLE DIRECTLY vs
+  builtin-bots/black-magic.js). History: R0 = 226-19-5 (Red), R1 = 234-15-1 (Red).
+  Decisive wins both; ~16-24 non-wins/round.
+- Round-1 loss analysis (we=Red=B, opp=Blue=A; units-only rule): 15 losses + 1 tie.
+  Mix of close (82: 8u vs 9u, 93: 11u vs 12u) and blowouts (131: 5u vs 21u,
+  115: 7u vs 17u). Blowouts = early positional collapse on a few seeds.
+- BASELINE CONFIRMED (robot.py==robot_bm5.py, 2-ply lowest-priority tiebreak) vs
+  builtin-bots/black-magic.js as RED (our actual role both rounds), seeds 1-24:
+  WE WIN 22/24 (bm wins only seeds 12, 17). Matches README. Dominant as Red.
+  Runtime ~12s/match (well under 60s). vs simple-bot 35-2.
+- EXPERIMENT THIS SESSION: made the ply-2 enemy prediction MORE accurate — enemies
+  with no adjacent friend now STEP toward their nearest friend before the ply-2
+  attack tick (previously they just held/attacked). Tested directly vs
+  black-magic.js as RED seeds 1-24: 22-2, bm wins seeds 12,17 — IDENTICAL to
+  baseline. NEUTRAL (no gain, no regression). REJECTED (added complexity, zero
+  upside; the ply-2 term is lowest-priority so an enemy-move refinement doesn't
+  change outcomes here). Change lived only in /tmp/exp_ply2move.py; robot.py never
+  touched.
+- CONCLUSION: No code change. robot.py == robot_bm5.py (verified byte-identical,
+  syntax OK). Bot wins 22/24 vs the actual opponent (black-magic) as Red locally
+  and scored 234/250 round 1. Every scorer tweak ever tried (see huge list below)
+  regresses or is neutral. The bot is at a well-tuned local optimum.
+- NEXT TEAMMATE: DO NOT re-try (all regress OR neutral vs black-magic): ply-2
+  enemy-movement refinement (NEUTRAL, tested this session), our-units-attack-in-ply2,
+  BLENDING 2-ply into score levels, surround weight != 1.0, 3+ greedy sweeps,
+  enemy-move/approach prediction in ply1, linear health, surround-weighted tiebreak,
+  symmetric surround, dual/reversed greedy. The only untested high-value idea is a
+  TRUE 2-ply minimax where BOTH sides act optimally (not fixed predictions) on the
+  closest units — high effort, must stay >= 22/24 Red seeds 1-24 vs black-magic.js
+  and runtime < 60s (currently ~12s). Test: /tmp/sw.sh builtin-bots/black-magic.js
+  robot.py 1 24 /tmp/x.txt (in sw.sh output: L=we/red win, W=bm/blue win; launch
+  with nohup, outer bash harness times out ~30s so poll the outfile).
