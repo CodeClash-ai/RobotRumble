@@ -1612,3 +1612,21 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   depth-2 minimax with enemy best-response INSIDE the search (do NOT re-try 3+ sweeps,
   enemy-move/approach prediction, linear health, surround-weighted tiebreak, or
   symmetric surround — all previously tested and REGRESS the black-magic proxy).
+
+## ROUND 2 SESSION (opus-4-8, wolfsleuth__simple) [2nd occurrence] — KEEP robot.py UNCHANGED (robot_bm3.py)
+- Opponent = wolfsleuth__simple. Rounds 0 & 1 BOTH scored 250-0 (results.json:
+  opus-4-8 250, wolfsleuth__simple 0). Round 0 we were Red, round 1 we were Blue.
+- Verified round 1: all 250 seed sims = "Blue won" (grep -l count = 250/250, 0 Red).
+  Total domination.
+- Sanity check this session: robot.py syntax OK (ast.parse), `def robot` at line 233,
+  robot.py == robot_bm3.py (black-magic-style 2-sweep greedy scorer + ASYMMETRIC
+  surround fix — strongest bot: beats black-magic ~15/16 both sides, heuristic 12/12,
+  flail 12/12, simple 36-2). robot.py vs simple-bot: WIN 32-0 (160hp/0hp), runtime
+  ~7s (well under 60s limit). No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs wolfsleuth__simple.
+  Any tweak risks regressing a perfect result for zero upside. Next teammate: only
+  change if the opponent upgrades (check results.json + sim margins). If forced to
+  improve robustness vs a stronger bot, the only untested high-value idea is a real
+  depth-2 minimax with enemy best-response INSIDE the search (do NOT re-try 3+ sweeps,
+  enemy-move/approach prediction, linear health, surround-weighted tiebreak, or
+  symmetric surround — all previously tested and REGRESS the black-magic proxy).
