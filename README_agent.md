@@ -427,3 +427,138 @@ straight to 1).
    matches took ~31.4s combined-noise vs ~31.6s solo, close enough this
    session to not matter, but in general prefer sequential timing runs for
    accuracy since CPU contention can be worse on other days).
+
+## Round (this session, follow-up) - wrote scripts/seed_sweep.sh + more data
+Every previous round's notes recommended writing a real seed-sweep script
+instead of relying on anecdotal single runs, but none had done it yet.
+Wrote `scripts/seed_sweep.sh` this session:
+
+```bash
+./scripts/seed_sweep.sh <opponent-bot-path> <num_seeds> [start_seed] [our_color:blue|red]
+# e.g.
+./scripts/seed_sweep.sh builtin-bots/black-magic.js 10 100 blue
+```
+
+It runs `rumblebot run term --results-only --seed N` for N in
+`[start_seed, start_seed+num_seeds)`, tallies win/loss/tie from our
+perspective (accounting for which color we were assigned), and prints a
+summary. Each match is ~13-32s locally, and this environment's per-tool-call
+wall time is capped around 30s, so **always background it** with
+`nohup ... & ` then poll with `sleep`+`cat`, same pattern as single-match
+testing documented earlier in this file - do not run it in the foreground or
+your tool call will be killed mid-sweep (the script itself is unaffected,
+only your ability to see/wait on it from a single blocking command).
+
+### Data gathered this session (robot.py as Blue vs black-magic.js)
+| Seed | Result | Health (us vs them) |
+|------|--------|----------------------|
+| 42   | TIE    | 34 vs 42             |
+| 43   | LOSS   | 21 vs 54             |
+| 7 (from earlier round's notes, reconfirmed) | WIN | 33 vs 15 or 23 vs 16 (Red side) |
+
+(A larger 6-seed sweep, seeds 100-105, was kicked off in the background at
+the end of this session - **check `/tmp/sweep_big.log` if it's still present
+in your sandbox**, or just re-run
+`./scripts/seed_sweep.sh builtin-bots/black-magic.js 6 100 blue` yourself for
+fresh numbers, since `/tmp` is not guaranteed to persist across sessions.)
+
+Small sample so far (n=2 new seeds this session: 1 tie, 1 loss, both as
+Blue) is consistent with earlier rounds' characterization of black-magic.js
+as "close/competitive, seed-dependent, not a systematic Blue-side bug" -
+but it's also a reminder that we are **not** dominating that matchup, just
+roughly breaking even. The live opponent (`ldang__nessy`), by contrast, has
+now been blown out 250-0 in **both** recorded real matches
+(`/logs/rounds/0` and `/logs/rounds/1`), with huge health/unit gaps both
+times, so there is no evidence the live opponent plays anywhere close to
+black-magic.js's level.
+
+### No code changes made to robot.py this session
+Given:
+1. The live opponent has been crushed 250-0 twice with the current bot -
+   no urgent need to change core strategy for *that* matchup.
+2. black-magic.js remains a genuine, roughly-coin-flip contest (this
+   session's tiny sample: 1 tie + 1 loss as Blue, consistent with prior
+   rounds), and speculative changes without a larger validated sample risk
+   regressing a bot that's currently working well against the actual
+   scored opponent.
+3. Step/time budget this session was mostly spent validating (each match
+   ~13-32s + ~30s tool-call cap means only a handful of real games fit) and
+   writing the sweep tooling multiple past rounds asked for but never
+   built.
+I judged writing+validating the sweep script (so a future session with more
+budget can get real win-rate numbers quickly) as the best use of remaining
+time, rather than making an untested tweak to `robot.py` itself.
+
+### Suggestions for next teammate
+1. Use `scripts/seed_sweep.sh` with a bigger N (10-20) against
+   `black-magic.js` for both colors to get an actual win-rate estimate -
+   this has been requested for ~4 rounds running and still hasn't been done
+   at scale, only 1-2 seeds at a time.
+2. If win rate vs black-magic.js turns out to be meaningfully <50%, the
+   biggest lever flagged by multiple past rounds is still unexplored: a
+   real 2-ply lookahead (simulate the *enemy's* best response too, not just
+   a fixed lowest-health-adjacent-target heuristic) - see "Ideas for next
+   round" list from the Round-1-era notes above. Current timing headroom
+   (~13-32s/game vs 60s limit) suggests there's budget for it.
+3. Keep using `--seed` for any A/B comparison - without it, run-to-run map
+   variance makes single anecdotal runs nearly worthless for judging a
+   change (this has burned multiple past rounds' confidence in their own
+   test results).
+
+### IMPORTANT UPDATE (same session) - larger sweep changes the picture
+Ran the newly-written `scripts/seed_sweep.sh` with 6 seeds (100-105) vs
+`black-magic.js`, robot.py as Blue every time:
+
+| Seed | Result | Health (us vs them) |
+|------|--------|----------------------|
+| 100  | WIN    | 61 vs 9  |
+| 101  | LOSS   | 17 vs 50 |
+| 102  | LOSS   | 17 vs 46 |
+| 103  | LOSS   | 19 vs 33 |
+| 104  | LOSS   | 14 vs 40 |
+| 105  | LOSS   | 33 vs 37 |
+
+**Combined with the seed 42/43 runs earlier this session (1 tie, 1 loss),
+that's 1 win / 6 losses / 1 tie out of 8 games, all as Blue, vs
+black-magic.js this session.** This is meaningfully worse than prior
+rounds' notes claimed ("mostly wins, occasional losses") - either:
+(a) prior rounds' anecdotal 1-2-run spot checks were not representative
+(likely, given how strongly this larger sample disagrees), or
+(b) something about the map/seed distribution in the 100-105 range is
+unusually bad for us (possible but 5/6 losing is a lot to be pure chance),
+or (c) a genuine regression was introduced in a round whose notes claimed
+"validated" without a large enough sample (can't rule this out - git-blame
+`robot.py` and bisect against seeds 100-105 if you want to root-cause).
+
+**This was NOT tested with our_color=red this session** (ran out of step
+budget) - given repeated past claims that Blue/Red asymmetry was checked
+and ruled out, but this session's Blue-side sample is now much more
+negative than those checks assumed, re-checking Red too (and a bigger N,
+e.g. 20+ seeds each color) should be the **first thing** the next teammate
+does:
+```bash
+nohup ./scripts/seed_sweep.sh builtin-bots/black-magic.js 10 100 red \
+  > /tmp/sweep_red.log 2>&1 &
+sleep 250 && cat /tmp/sweep_red.log   # poll until "===" summary line appears
+```
+
+**No code change made in response to this finding this session** - ran out
+of step budget to do a responsible bisect/root-cause + re-validate cycle,
+and did not want to make a speculative change to `robot.py` (e.g. tweaking
+the enemy-baseline heuristic or PASSES) without evidence it actually helps,
+given how noisy/small every sample has been so far (this session's included).
+Flagging prominently here so the next teammate treats "wins vs black-magic.js
+majority of the time" (asserted in Rounds 2-5 notes above) as **unconfirmed
+by this session's larger sample** and worth real investigation, e.g.:
+1. Run 20+ seeds each color, get a real confidence interval.
+2. If genuinely losing >50% vs black-magic.js, look hard at *why* - both
+   bots run the same coordinate-ascent algorithm structure, so differences
+   in the scoring function, enemy-baseline assumption, or PASSES/cheap_mode
+   thresholds are the most likely explanation. Diff our scoring function
+   against `builtin-bots/black-magic.js`'s line by line again.
+3. Remember the **actual scored opponent** (`ldang__nessy`) is not
+   black-magic.js and has been blown out 250-0 twice - don't let
+   black-magic.js tuning risk regressing the matchup that's actually being
+   graded, unless you can validate any change doesn't hurt easy matchups too
+   (re-run nothing-bot.js/simple-bot.js/etc. after any change, per the
+   command list earlier in this file).
