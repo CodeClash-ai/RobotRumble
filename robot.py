@@ -1,9 +1,8 @@
-# Hybrid for mitch84__crw_preempt: use strong black-magic planner normally,
-# but prefire when a retreat/walk unit is about to step into range.
+# Matchup bot for mousetail__coward-bot.
 # Fast coordinated one-ply tactical bot, adapted from the strong public
-# black-magic bot. init_turn plans for all units together using an enemy model
-# (adjacent enemies attack the lowest-health adjacent friend) and greedily keeps
-# friendly actions that improve a lexicographic battle score.
+# black-magic bot. init_turn plans for all units together using an exact-ish
+# enemy model and greedily keeps friendly actions that improve a lexicographic
+# battle score. The key counter is pre-firing coward-bot retreat/step destinations.
 
 ATTACK = 'a'
 MOVE = 'm'
@@ -493,6 +492,132 @@ def predict_glommer_actions(enemies, friends, turn):
             actions[epos] = None
     return actions
 
+
+def terrain_count(pos):
+    # Number of adjacent impassable/out-of-board tiles; coward_bot confusingly names this
+    # empty_surrounding_tiles and uses it to evacuate wall/spawn-adjacent units.
+    c = 0
+    for d in _MDIRS:
+        if add(pos, d) not in LEGAL:
+            c += 1
+    return c
+
+
+def coward_clockwise_dir(src, target):
+    # Exact helper from mousetail__coward-bot.
+    if src[0] == target[0]:
+        return Direction.North if src[1] > target[1] else Direction.South
+    if src[1] == target[1]:
+        return Direction.West if src[0] > target[0] else Direction.East
+    if src[1] > target[1] and src[0] > target[0]:
+        return Direction.West
+    if src[1] > target[1] and src[0] < target[0]:
+        return Direction.North
+    if src[1] < target[1] and src[0] < target[0]:
+        return Direction.East
+    if src[1] < target[1] and src[0] > target[0]:
+        return Direction.South
+    return Direction.West
+
+
+def c_adjacent_enemy_count(pos, enemies):
+    return sum(1 for d in _MDIRS if add(pos, d) in enemies)
+
+
+def c_adjacent_friend_count(pos, friends):
+    return sum(1 for d in _MDIRS if add(pos, d) in friends)
+
+
+def c_corner_friend_count(pos, friends):
+    x, y = pos
+    return sum(1 for q in ((x+1,y+1),(x+1,y-1),(x-1,y+1),(x-1,y-1)) if q in friends)
+
+
+def coward_evasion_tile(pos, friends, enemies):
+    # From opponent perspective: friends are coward units, enemies are our units.
+    cand = []
+    occupied = set(friends) | set(enemies)
+    for d in _MDIRS:
+        t = add(pos, d)
+        if t not in LEGAL or t in occupied:
+            continue
+        if c_adjacent_enemy_count(t, enemies) != 0:
+            continue
+        cand.append(t)
+    if not cand:
+        return None
+    return max(cand, key=lambda t: (-terrain_count(t), c_adjacent_friend_count(t, friends), -t_walking(t, (9,9))))
+
+
+def predict_coward_actions(enemies, friends, turn):
+    # Exact-ish model of mousetail__coward-bot from the opponent perspective.
+    # It is a wall-averse / weak-fight-averse bot with range-2 prefire against
+    # unscreened targets.  Modeling its retreats and planned destinations lets
+    # our one-ply planner shoot where it will step instead of chasing old squares.
+    actions = {}
+    enemy_positions = list(enemies.keys())
+    for epos in enemy_positions:
+        eh = enemies[epos]
+        if not friends:
+            actions[epos] = None
+            continue
+        closest_enemy = min(friends, key=lambda f: (t_walking(f, epos), -c_corner_friend_count(f, enemies)-c_adjacent_friend_count(f, enemies), friends[f]))
+        other_allies = [q for q in enemy_positions if q != epos]
+        closest_ally = min(other_allies, key=lambda q: (t_walking(q, epos), enemies[q])) if other_allies else None
+        direction_to_center = coward_clockwise_dir(epos, (9,9))
+        ev = coward_evasion_tile(epos, enemies, friends)
+
+        if (c_adjacent_enemy_count(epos, friends) > 1 and
+            friends[closest_enemy] >= c_adjacent_friend_count(closest_enemy, enemies) and ev is not None):
+            actions[epos] = (MOVE, t_direction_to(epos, ev))
+            continue
+
+        if terrain_count(epos) >= 1 and (ev is not None or turn % 10 == 0):
+            if ev is not None:
+                actions[epos] = (MOVE, t_direction_to(epos, ev))
+            elif add(epos, direction_to_center) in friends:
+                actions[epos] = (ATTACK, direction_to_center)
+            else:
+                actions[epos] = (MOVE, direction_to_center)
+            continue
+
+        if eh >= friends[closest_enemy]:
+            direction = coward_clockwise_dir(epos, closest_enemy)
+            ed = t_walking(epos, closest_enemy)
+            if ed >= 5:
+                if closest_ally is not None and 2 < t_walking(epos, closest_ally) <= 8:
+                    direction = t_direction_to(epos, closest_ally)
+                else:
+                    direction = t_direction_to(epos, (9,9))
+                actions[epos] = (MOVE, direction)
+                continue
+            if (ed <= 2 and (ed == 1 or (c_adjacent_friend_count(closest_enemy, enemies) == 0 and c_corner_friend_count(closest_enemy, enemies) < 3))
+                and add(epos, direction) not in enemies):
+                actions[epos] = (ATTACK, direction)
+                continue
+            elif ed > 1 and terrain_count(closest_enemy) == 0:
+                if add(epos, direction) in enemies:
+                    direction = direction.rotate_ccw
+                actions[epos] = (MOVE, direction)
+                continue
+            else:
+                actions[epos] = (ATTACK, direction)
+                continue
+
+        elif t_walking(epos, closest_enemy) <= 3:
+            direction = t_direction_to(closest_enemy, epos)  # flee away from closest enemy
+            if add(epos, direction) in enemies and t_walking(epos, closest_enemy) == 1:
+                actions[epos] = (ATTACK, t_direction_to(epos, closest_enemy))
+            elif c_adjacent_enemy_count(add(epos, direction), friends) == 0:
+                actions[epos] = (MOVE, direction)
+            else:
+                actions[epos] = (ATTACK, direction.opposite)
+            continue
+        else:
+            target = closest_ally if closest_ally is not None else (9,9)
+            actions[epos] = (MOVE, coward_clockwise_dir(epos, target))
+    return actions
+
 def init_turn(state):
     global ACTIONS, TURN
     TURN = state.turn
@@ -512,12 +637,11 @@ def init_turn(state):
         if u.health is not None:
             enemies[k(u.coords)] = u.health
 
-    # Current opponent is mitch84__crw_preempt; allow queued/chain moves,
-    # but seed the simulation with its deterministic preempt/retreat plan rather
-    # than the old black-magic mirror model.
+    # Current opponent is mousetail__coward-bot; allow queued/chain moves,
+    # but seed the simulation with its deterministic evade/prefire plan.
     allow_chain_moves = True
 
-    enemy_plan = dict(predict_glommer_actions(enemies, friends, state.turn))
+    enemy_plan = dict(predict_coward_actions(enemies, friends, state.turn))
     predicted_enemy_dests = set()
     for _ep, _act in enemy_plan.items():
         if _act and _act[0] == MOVE:
@@ -541,7 +665,7 @@ def init_turn(state):
                     evacuate.append((MOVE, d))
                 continue
             if dst in enemies or dst in predicted_enemy_dests:
-                # Glommer often walks/retreats into adjacent lanes; pre-fire the
+                # Coward-bot often retreats or pre-fires from range 2; pre-fire the
                 # square it is expected to enter, not just its current square.
                 acts.append((ATTACK, d))
             if dst not in enemies and (allow_chain_moves or dst not in friends):
