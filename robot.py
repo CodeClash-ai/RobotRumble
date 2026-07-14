@@ -40,7 +40,12 @@ def _setup():
                 legal.add(key)
                 c = Coords(x, y)
                 coords[key] = c
-                if c.is_spawn():
+                # Avoid Coords.is_spawn() here: the bundled Python stdlib stores
+                # spawn strings in a one-shot map iterator, so repeated calls can
+                # silently miss most spawn tiles.  Spawn points are exactly the
+                # legal cells cardinally adjacent to the octagonal wall ring.
+                if (x == 1 or x == 17 or y == 1 or y == 17 or
+                    y == 6 - x or y == x - 12 or y == x + 12 or y == 30 - x):
                     spawns.add(key)
         LEGAL = legal
         SPAWNS = spawns
