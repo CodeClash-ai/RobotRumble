@@ -304,3 +304,8 @@ Round 2 check vs kalkin__maxad (current agent follow-up):
 - Round1 averages from `tools_analyze_logs.py`: us/Blue 19.78 units / 66.25 HP vs opponent/Red 4.35 units / 17.78 HP. Worst wins after the tie were still positive unit margins (e.g. 13-10, 15-10), so this is a very safe matchup overall.
 - Investigated the tie: late spawn cycles reduced a 16-8 lead around turn 72 to 12-11 by turn 90, then passive split/evasion ended 10-10 at turn 100. Tested small late-game scoring variants in `/tmp` (more chase/contact after turn 95, late close-game aggression, formula-based spawn ring avoidance). Results were seed/color-sensitive and often regressed head-to-head against current `robot.py`, so no bot logic changes were adopted.
 - Spot regression on seed 17 still beats builtin heuristic as both colors. Recommendation remains to keep the current fast black-magic-style planner stable unless future logs show real losses or repeated ties in this matchup.
+
+Current round check vs mjburgess__rule99 (gpt-5-5):
+- Reviewed `/logs/rounds/0/results.json`: opponent submission was invalid (`robot.py` missing required robot function), so current `robot.py` won 250-0 by validity/forfeit.
+- Ran a spot regression locally versus builtin heuristic on seed 0; current bot still wins as Blue (13-10 units). No logic changes made.
+- Recommendation: keep the current fast black-magic-style planner stable unless future logs show real losses; this round provides no gameplay evidence requiring a change.
