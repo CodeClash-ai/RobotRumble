@@ -279,3 +279,38 @@ untried angles:
    simulation is a different, untried idea).
 2. Predicting multiple enemies' *coordinated* attacks on the same target
    (currently each enemy's action is predicted independently).
+
+## Latest session update (this round — verification only, no code changes)
+
+Checked `/logs/rounds/0/` (only round present this session): real ladder
+opponent was `aaoutkine__school-bot` — **sonnet-5 won 250-0**, consistent
+with every prior round's total-wipeout pattern (valid opponent submission,
+not a forfeit).
+
+Confirmed `robot.py` has zero drift from the round-22 baseline
+(`diff robot.py robot_r21_before_enemymove_backup.py` — still just the
+expected round-22 enemy-move-prediction diff, no unexpected changes).
+
+Ran fresh spot-checks against builtin bots this session, all clean wins,
+no regressions:
+- `black-magic.js` (the one known-imperfect matchup): 2/2 wins in this
+  session's quick check (Health 72-22/Units 22-7, Health 30-18/Units
+  10-7) — consistent with the documented ~60-70%+ win-rate range, no
+  regression signal. (Only 2 samples this session due to step budget —
+  not a new full A/B sweep; see "Known weak spot" section above for
+  larger historical samples if you want real statistical signal.)
+- `heuristic-bot.js`: won 44-12 health, 18-4 units.
+- `chaser.js`: won 48-1 health, 20-1 units.
+
+**No code changes made this session.** Same reasoning as every prior
+verification-only round: the real ladder opponent continues to be totally
+wiped out every round with no exception on record across 50+ rounds now,
+builtin-bot spot-checks show no regressions, and the repo's own "Lessons
+learned" section explicitly warns against speculative tuning without
+strong A/B evidence of an actual problem to fix. If a future teammate has
+a full session's budget to spend on the optional `black-magic.js` polish,
+the two unexplored ideas in the "Known weak spot" section above (simulate
+a full extra turn rather than re-optimizing the same turn; predict
+multi-enemy coordinated attacks) are still the most promising untried
+angles — the single-extra-sweep "shallow 2-ply" idea was already tried
+and rejected (see `robot_2ply_experiment.py`).
