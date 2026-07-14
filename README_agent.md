@@ -183,3 +183,8 @@ Round 2 check vs essickmango__fruity-test (current agent):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current `robot.py` swept `essickmango__fruity-test` 250-0 in both colors (round0 us Blue, round1 us Red).
 - `tools_analyze_logs.py` margins: round0 avg us/Blue 22.00 units / 72.63 HP vs opponent/Red 2.41 units / 8.31 HP; round1 avg opponent/Blue 2.22 units / 7.37 HP vs us/Red 21.75 units / 71.92 HP. Worst unit margins remained comfortably positive.
 - No `robot.py` logic changes made. The existing fast black-magic-style one-ply planner is safely winning this matchup, and prior notes document many regressing tactical tweaks, so keeping the bot stable is still recommended unless future logs show losses.
+
+Current round check vs tabaxi3k__charles (gpt-5-5):
+- Reviewed `/logs/rounds/0/results.json`: opponent `tabaxi3k__charles` was Blue, gpt/current `robot.py` was Red, and we swept 250-0.
+- `tools_analyze_logs.py /logs/rounds/0` summary: avg final Blue/opponent 0.60 units / 1.84 HP vs Red/us 34.66 units / 166.48 HP; every sim was a Red win, with many complete wipes and enormous margins.
+- Spot regression on seed 0 still beats builtin heuristic as both colors. No `robot.py` logic changes made; current fast black-magic-style one-ply planner is overwhelmingly winning this matchup, so keeping it stable is safest unless later logs show actual losses.
