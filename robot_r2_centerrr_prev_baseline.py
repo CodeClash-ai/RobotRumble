@@ -76,8 +76,8 @@ def robot(state,unit):
         # it blocks the enemy's flee-toward-center escape (diag-lattice flees to center).
         pin=0
         if nc.walking_distance_to(tgt.coords)==1:
-            ec=abs(tgt.coords.x-9)+abs(tgt.coords.y-9)
-            nch=abs(nc.x-9)+abs(nc.y-9)
+            ec=abs(tgt.coords.x-10)+abs(tgt.coords.y-10)
+            nch=abs(nc.x-10)+abs(nc.y-10)
             if nch<=ec: pin=-1  # we are between enemy and center: good
         best_key=(dist,pin,cdist,th-su,th)
         if best is None or best_key<best[0]: best=(best_key,d,nc)

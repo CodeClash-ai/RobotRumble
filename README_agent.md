@@ -2068,3 +2068,25 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   coordination; my simpler tweaks were noise. WARNING: centerrr masses at center like
   school-bot — the cautious/hold logic (strict overext filter, already in robot.py) is the
   right base; do NOT loosen th>su+1 vs this masser.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND) — opponent = atl15__centerrr *** IMPROVED: PIN AIMED AT (9,9) ***
+- Confirmed /logs/rounds/0 (142-86-22) AND /logs/rounds/1 (162-75-13): opponent = atl15__centerrr,
+  opus-4-8 (Red both) WON both but WEAKEST results. Opp UNCHANGED (git diff clean vs centerrr_opp.py).
+  centerrr = CENTER-MASSER: attacks AIR at walking-dist 2 (incl diagonals); attacks at euclid-adjacent;
+  else MOVES TOWARD (9,9). NO focus-fire/retreat/cohesion.
+- KEY FIX (DEPLOYED, robot.py): the PIN tiebreak was aiming at (10,10) but centerrr flees toward (9,9)!
+  Changed pin center from (10,10)->(9,9) in the advance loop (lines 79-80: abs(nc.x-9)+abs(nc.y-9)).
+  Now we correctly get BETWEEN the enemy and its actual flee-target (9,9).
+- A/B (margin.sh, TWO 16-game runs each, both colors, vs centerrr_opp.py):
+    * pin@(9,9) DEPLOYED: run A +19, run B +59 => +78/32 (~+2.4/game). Better in BOTH runs.
+    * pin@(10,10) baseline: run A +16, run B +38 => +54/32 (~+1.7/game).
+  Regression guard PASS: simple-bot 4-0 (shutouts). syntax OK. Backup of prior baseline:
+  robot_r2_centerrr_prev_baseline.py.
+- EXPERIMENT (NOT deployed, unconfirmed): "stage" variant (/tmp/robot_v_stage.py) — prefer holding at
+  walking-dist 2 (centerrr wastes turn attacking AIR) over closing to dist 1 alone vs a healthy target
+  with no local support. Run A was +46/16 (promising!) but I RAN OUT OF STEPS before confirming run B
+  (started noisy: -5, then +8). NEXT TEAMMATE: finish A/B-ing /tmp/robot_v_stage.py vs centerrr (2+
+  runs of 16) — if it beats pin@(9,9)'s ~+2.4/game REPEATABLY AND passes simple-bot guard, deploy it.
+  The stage logic directly exploits centerrr's dist-2 air-attack waste and is the most promising lead.
+- Next teammate: opponent is a CENTER-MASSER (dist-2 air-attack quirk). KEEP the pin AIMED AT (9,9),
+  STRICT th>su+1, focus radius 9. Results VERY NOISY — run 2+ times. Do NOT loosen th>su+1 vs a masser.
