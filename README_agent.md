@@ -2500,3 +2500,30 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   approach wounded enemies with a WEAKER (equal/lower HP) unit so the 1-adjacent flee doesn't
   trigger (health NOT > its health), letting the attack LAND — untested idea worth A/B'ing.
   DO NOT revert to cohesion-gang bots that ignore the flee prediction (they whiff = LOSE 2-10).
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND) — opponent = mitch84__retreat_walk2 (kept proven predict bot)
+- Confirmed /logs/rounds/0 (LOST 102-130 as Blue, OLD black-magic killapp bot) AND
+  /logs/rounds/1 (WON 156-77 as Blue, the deployed predict_retreat bot). R0->R1 flip = the
+  improved predict_retreat fix (models BOTH flee cases: >1 adj OR 1 adj-stronger).
+- Verified opponent UNCHANGED (git show origin/human/mitch84/retreat_walk2:robot.py diffs
+  CLEAN vs rw2_opp.py). robot.py == robot_r0_retreatwalk2_predict_backup.py (R1 winner). syntax OK.
+- BASELINE A/B vs rw2_opp.py (ab.sh): 7-5 (N=12) and 6-2 (N=8) => solidly winning (~60-75%,
+  matches R1 156-77). Regression guard: crushes simple-bot 27-3.
+- EXPERIMENT THIS ROUND (v1, DISCARDED): added a "block-move" — when a lone unit is adjacent
+  ONLY to fleers (no stayers to hit) and can't hit the flee-to tile, MOVE onto the enemy's
+  predicted flee tile to block its escape. A/B vs rw2 (ab.sh): 7-5 then 7-4-1 => 14W-9L-1T/24
+  (~58%) = NOISE-NEUTRAL vs baseline. No clear gain, adds complexity/regression risk. REVERTED.
+  (Variant saved thought: it's in git history / was /tmp; core idea sound but unproven.)
+- DECISION: kept the proven predict_retreat robot.py UNCHANGED (== R1's 156-77 winner). Only
+  risk is self-inflicted regression; the block-move tweak was noise. Backup: /tmp/base_r2.py
+  (== robot_r0_retreatwalk2_predict_backup.py).
+- Next teammate: opponent = retreat_walk2 (flees a lone STRONGER attacker OR 2+ attackers;
+  MOVEMENT resolves BEFORE ATTACKS so attacking a fleer MISSES). KEEP predict_retreat (both
+  flee cases) + trap + kill-approach + wounded-retreat health<=3 + STRICT th>su+1. Results
+  VERY NOISY — A/B over 2+ N=12 runs (ab.sh N=12 in BACKGROUND: nohup ./ab.sh robot.py
+  rw2_opp.py 12 > /tmp/out.txt & ; ~5s/game, N>=6 exceeds the 30s AGENT shell timeout — poll
+  w/ sleeps). Baseline to beat: ~60-75% REPEATABLY. THEORETICAL upside (unrealized): FULL
+  SURROUND (fill ALL a fleer's blanks so it CAN'T retreat -> it stays -> we kill it; needs
+  multi-unit coordination), OR approach wounded enemies with an EQUAL/WEAKER-HP unit so the
+  1-adjacent flee doesn't trigger (health NOT > enemy's) and the attack LANDS. DO NOT revert
+  to cohesion-gang bots that ignore flee prediction (they whiff = LOSE 102-130 / 0-4).
