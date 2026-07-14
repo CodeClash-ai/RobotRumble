@@ -1,147 +1,211 @@
-# Team gpt-5-5 RobotRumble bot, round 1.
-# Strategy: leave spawn, converge on the most vulnerable enemy, and focus fire.
-# This intentionally avoids the starter quadrant logic, which can stalemate forever
-# when mirrored armies begin in different quadrants.
+# Team gpt-5-5 RobotRumble bot.
+#
+# One-ply tactical planner adapted from the strong builtin black-magic bot, with
+# small spawn-wipe safety.  Each turn, init_turn builds a coordinate-based board,
+# predicts obvious enemy attacks, then greedily chooses each friendly action that
+# gives the best simulated lexicographic score: unit advantage, surround pattern,
+# health, and army closeness.  robot() only returns the precomputed action.
 
+ATTACK = 1
+MOVE = 2
 ALL_DIRS = [Direction.North, Direction.East, Direction.South, Direction.West]
 
-# Per-turn shared state (reset in init_turn).
-turn_cache = {
-    "target_id": None,
-    "reserved": set(),
-    "planned_attack": {},
-}
-
-# Small persistent memory to reduce back-and-forth shuffling.
-robot_memory = {}
+DIR_DELTAS = None
+ACTIONS = {}
+LEGAL = None
+SPAWNS = None
+INV_D2 = {}
 
 
-def _key(c):
-    return (c.x, c.y)
+def _setup():
+    global DIR_DELTAS, LEGAL, SPAWNS, INV_D2
+    if DIR_DELTAS is None:
+        DIR_DELTAS = {d: (d.to_coords.x, d.to_coords.y) for d in ALL_DIRS}
+    if LEGAL is None:
+        legal = set()
+        spawns = set()
+        coords = {}
+        for x in range(1, 18):
+            for y in range(1, 18):
+                # The playable board is a 19x19 octagon with walls around it.
+                if y <= 5 - x:
+                    continue
+                if y <= x - 13:
+                    continue
+                if y >= x + 13:
+                    continue
+                if y >= 31 - x:
+                    continue
+                key = (x, y)
+                legal.add(key)
+                c = Coords(x, y)
+                coords[key] = c
+                if c.is_spawn():
+                    spawns.add(key)
+        LEGAL = legal
+        SPAWNS = spawns
+
+        # Precompute 1/euclidean_distance^2 between legal cells.  The tactical
+        # score calls this many times; table lookup is much faster in RustPython.
+        for a in coords:
+            row = {}
+            ax, ay = a
+            for b in coords:
+                if a != b:
+                    dx = ax - b[0]
+                    dy = ay - b[1]
+                    row[b] = 1.0 / (dx * dx + dy * dy)
+            INV_D2[a] = row
 
 
-def _in_bounds(c):
-    return 0 <= c.x < MAP_SIZE and 0 <= c.y < MAP_SIZE
+def _add(c, d):
+    dx, dy = DIR_DELTAS[d]
+    return (c[0] + dx, c[1] + dy)
 
 
-def _obj_team(obj):
-    # Terrain has no team in the stdlib.
-    return getattr(obj, "team", None)
+def _score(friends, enemies):
+    """Return lexicographic board score from our point of view."""
+    unit_score = len(friends) - len(enemies)
+
+    health_score = 0.0
+    for h in friends.values():
+        health_score += h ** 0.5
+    for h in enemies.values():
+        health_score -= h ** 0.5
+
+    surround = {c: 0 for c in friends}
+    distv = {c: 0.0 for c in friends}
+    for c in enemies:
+        surround[c] = 0
+        distv[c] = 0.0
+
+    for f in friends:
+        invrow = INV_D2[f]
+        fx, fy = f
+        for e in enemies:
+            ds = invrow[e]
+            distv[e] += ds
+            distv[f] -= ds
+            # Squared Euclidean distance 1 is exactly cardinal adjacency.
+            if (fx - e[0]) * (fx - e[0]) + (fy - e[1]) * (fy - e[1]) == 1:
+                surround[e] += 1
+                surround[f] -= 1
+
+    surround_score = 0
+    for v in surround.values():
+        surround_score += v * v
+    distance_score = 0.0
+    for v in distv.values():
+        distance_score += v * v
+
+    return (unit_score, surround_score, health_score, distance_score)
 
 
-def _is_empty_legal(state, c):
-    return _in_bounds(c) and state.obj_by_coords(c) is None
+def _tick(friends, enemies, actions):
+    """Simplified one-turn simulator.  Mutates friends/enemies."""
+    for source, action in actions.items():
+        if action is None or action[0] != MOVE:
+            continue
+        target = _add(source, action[1])
+        if target in LEGAL and target not in friends and target not in enemies:
+            if source in friends:
+                friends[target] = friends[source]
+                del friends[source]
+            elif source in enemies:
+                enemies[target] = enemies[source]
+                del enemies[source]
 
+    for source, action in actions.items():
+        if action is None or action[0] != ATTACK:
+            continue
+        target = _add(source, action[1])
+        if target in enemies:
+            enemies[target] -= 1
+        if target in friends:
+            friends[target] -= 1
 
-def _adjacent_enemies(state, unit):
-    out = []
-    for d in ALL_DIRS:
-        c = unit.coords + d
-        obj = state.obj_by_coords(c)
-        if obj and _obj_team(obj) == state.other_team:
-            out.append((d, obj))
-    return out
-
-
-def _allied_neighbors(state, coords):
-    n = 0
-    for d in ALL_DIRS:
-        obj = state.obj_by_coords(coords + d)
-        if obj and _obj_team(obj) == state.our_team:
-            n += 1
-    return n
+    dead = [c for c, h in enemies.items() if h <= 0]
+    for c in dead:
+        del enemies[c]
+    dead = [c for c, h in friends.items() if h <= 0]
+    for c in dead:
+        del friends[c]
 
 
 def init_turn(state):
-    """Pick one army-wide target each turn and clear per-turn reservations."""
-    global turn_cache
-    turn_cache["reserved"] = set()
-    turn_cache["planned_attack"] = {}
+    global ACTIONS
+    _setup()
 
-    allies = state.objs_by_team(state.our_team)
-    enemies = state.objs_by_team(state.other_team)
-    if not enemies:
-        turn_cache["target_id"] = None
-        return
+    friends = {}
+    id_at = {}
+    for u in state.objs_by_team(state.our_team):
+        k = (u.coords.x, u.coords.y)
+        friends[k] = u.health
+        id_at[k] = u.id
 
-    # Prefer enemies already in contact, low-health enemies, then enemies near our army.
-    def score(enemy):
-        adjacent = _allied_neighbors(state, enemy.coords)
-        total_walk = 0
-        for ally in allies:
-            total_walk += ally.coords.walking_distance_to(enemy.coords)
-        # Lower is better.  A large adjacent bonus prevents target switching mid-fight.
-        return total_walk + enemy.health * 4 - adjacent * 18
+    enemies = {}
+    for u in state.objs_by_team(state.other_team):
+        enemies[(u.coords.x, u.coords.y)] = u.health
 
-    turn_cache["target_id"] = min(enemies, key=score).id
+    best_actions = {}
 
+    # Enemy model: adjacent enemies attack our lowest-health adjacent unit.
+    for e in enemies:
+        best = None
+        lowest = 999
+        for d in ALL_DIRS:
+            h = friends.get(_add(e, d))
+            if h is not None and h <= lowest:
+                lowest = h
+                best = (ATTACK, d)
+        best_actions[e] = best
 
-def _choose_step(state, unit, target):
-    """Return a good movement direction toward target, or None if boxed in."""
-    direct = unit.coords.direction_to(target.coords)
-
-    # Consider all directions.  Sorting by resulting walking distance gives robust
-    # pathing around allies/walls; slight primary-direction bias keeps advances direct.
-    candidates = []
-    for d in ALL_DIRS:
-        dest = unit.coords + d
-        dist = dest.walking_distance_to(target.coords)
-        bias = 0 if d == direct else (1 if d == direct.rotate_cw or d == direct.rotate_ccw else 3)
-        candidates.append((dist, bias, d, dest))
-    candidates.sort(key=lambda x: (x[0], x[1]))
-
-    mem = robot_memory.setdefault(unit.id, {})
-    last = mem.get("last")
-
-    # On turns just before respawn, do not finish the turn on a spawn square: units
-    # on spawn are cleared at the beginning of turns 11,21,... before new spawns.
+    possible = {}
     avoid_spawn = (state.turn % 10 == 0)
+    for f in friends:
+        best_actions[f] = None
+        acts = [None]
+        for d in ALL_DIRS:
+            t = _add(f, d)
+            if t not in LEGAL:
+                continue
+            if t in enemies:
+                acts.append((ATTACK, d))
+            elif not (avoid_spawn and t in SPAWNS):
+                acts.append((MOVE, d))
+        possible[f] = acts
 
-    fallback = None
-    for _, _, d, dest in candidates:
-        if not _is_empty_legal(state, dest):
-            continue
-        if _key(dest) in turn_cache["reserved"]:
-            continue
-        if avoid_spawn and dest.is_spawn():
-            continue
-        if last is not None and _key(dest) == last:
-            fallback = d
-            continue
-        turn_cache["reserved"].add(_key(dest))
-        mem["last"] = _key(unit.coords)
-        return d
+    fs = dict(friends)
+    es = dict(enemies)
+    _tick(fs, es, best_actions)
+    best_score = _score(fs, es)
 
-    # If all good moves merely reverse the last step, take the best such move rather
-    # than freeze.  Freezing on spawn/border is usually worse than oscillation.
-    if fallback is not None:
-        dest = unit.coords + fallback
-        turn_cache["reserved"].add(_key(dest))
-        mem["last"] = _key(unit.coords)
-        return fallback
-    mem["last"] = _key(unit.coords)
-    return None
+    # Greedily improve one friendly action at a time against predicted enemies.
+    for f in list(friends.keys()):
+        chosen = best_actions.get(f)
+        for a in possible[f]:
+            if a == chosen:
+                continue
+            actions = dict(best_actions)
+            actions[f] = a
+            fs = dict(friends)
+            es = dict(enemies)
+            _tick(fs, es, actions)
+            s = _score(fs, es)
+            if s > best_score:
+                best_score = s
+                best_actions = actions
+                chosen = a
+
+    ACTIONS = {}
+    for c, uid in id_at.items():
+        ACTIONS[uid] = best_actions.get(c)
 
 
 def robot(state, unit):
-    enemies = state.objs_by_team(state.other_team)
-    if not enemies:
+    action = ACTIONS.get(unit.id)
+    if action is None:
         return None
-
-    # 1. If adjacent to enemies, focus the lowest-health / most-surrounded one.
-    adjacent = _adjacent_enemies(state, unit)
-    if adjacent:
-        d, enemy = min(adjacent, key=lambda de: (de[1].health, -_allied_neighbors(state, de[1].coords)))
-        return Action.attack(d)
-
-    # 2. Otherwise advance on the army-wide target (fall back to personal nearest).
-    target = state.obj_by_id(turn_cache.get("target_id"))
-    if target is None:
-        target = min(enemies, key=lambda e: unit.coords.walking_distance_to(e.coords) + e.health * 2)
-
-    step = _choose_step(state, unit, target)
-    if step is not None:
-        return Action.move(step)
-
-    # 3. Boxed in by allies: attack toward the target to punish enemies that step in.
-    return Action.attack(unit.coords.direction_to(target.coords))
+    if action[0] == ATTACK:
+        return Action.attack(action[1])
+    return Action.move(action[1])

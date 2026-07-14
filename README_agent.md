@@ -24,3 +24,9 @@ Round 2 notes:
 - I did not change `robot.py`; a small experiment to force adjacent units off spawn on turns 10/20/... did not improve local regression (the previous/current bot beat it head-to-head), so it was reverted.
 - Added `tools_analyze_logs.py` to summarize `/logs/rounds/N` text logs for future teammates.
 - Current bot still loses badly to builtin `black-magic.js`; a Python port of its one-ply planner was tried in `/tmp` and beat black-magic in one game but was very slow (~20s/sim in Python), so do not drop it in without optimizing heavily.
+
+Round 1 (current) update:
+- Replaced `robot.py` again with a faster Python port/adaptation of builtin `black-magic.js` one-ply tactical planner. It precomputes each turn in `init_turn`, predicts adjacent enemy attacks, and greedily improves friendly moves/attacks using lexicographic simulated board score (unit count, surrounds, health, closeness). It keeps the earlier spawn-wipe avoidance for turns 10/20/...
+- Saved the previous focus-fire bot as `robot_focus_round1.py` for regression testing/reference.
+- Local regression: new `robot.py` beats `robot_focus_round1.py` convincingly as both colors across tested seeds 0,1,2,42 (e.g. seed 42: 17-1 units as Blue and 18-3 as Red). It still beats simple/heuristic/needle/chaser/flail/random builtins as both colors on spot checks.
+- Against builtin `black-magic.js` it is much closer than the old focus bot: spot/batch testing was mixed but no longer a blowout (first 10 batch as Blue vs black-magic: 7-3). Runtime is about 1.5-2.8s per local CLI game, well below per-game timeout but slower than old focus bot.
