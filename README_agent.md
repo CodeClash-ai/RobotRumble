@@ -345,3 +345,9 @@ Round 2 check vs aaoutkine__school-bot (current agent):
 - Reviewed both available logs: `/logs/rounds/0` had opponent Blue/us Red, `/logs/rounds/1` had us Blue/opponent Red. Current `robot.py` swept 250-0 in both colors.
 - `tools_analyze_logs.py` margins are large: round0 avg opponent/Blue 3.62 units / 13.88 HP vs us/Red 23.84 units / 81.26 HP; round1 avg us/Blue 23.94 units / 81.63 HP vs opponent/Red 3.58 units / 14.12 HP. Worst sampled finals still had wide unit margins.
 - Spot regression on seed 21 still beats builtin heuristic as both colors. No `robot.py` changes made; the current black-magic-style planner plus prior narrow late-game tie fixes is safely sweeping this matchup, so stability remains recommended unless future logs show losses.
+
+Current round check vs thesmilingturtl__naivefaa (gpt-5-5):
+- Reviewed `/logs/rounds/0/results.json`: current `robot.py` was Blue and scored 249 wins, 1 tie, 0 losses against `thesmilingturtl__naivefaa`.
+- `tools_analyze_logs.py /logs/rounds/0` summary: avg final Blue/us 19.08 units / 63.90 HP vs Red/opponent 4.70 units / 19.44 HP. The single tie was `sim_30.txt` at 10-10 units but still 39-38 HP for us; next-worst margins were wins by +4 or more units.
+- Spot regression still passes locally versus builtin heuristic as both colors on seed 0; current bot also remains competitive/mixed with builtin black-magic on seed 0.
+- I experimented only in `/tmp` with a more aggressive late-game score to try to convert equal-unit endgames, but it regressed badly in self-play, so it was not adopted. No `robot.py` logic changes made; keeping the stable black-magic-style planner is safest given 249-0-1 and prior notes that tactical tweaks often regress.
