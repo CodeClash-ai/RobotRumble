@@ -224,6 +224,10 @@ def init_turn(state):
     best_actions = {}
 
     # Enemy model: adjacent enemies attack our lowest-health adjacent unit.
+    # If they are not in contact, model a conservative center-control drift.
+    # The current opponent (`atl15__centerrr`) wins many seeds by preserving a
+    # compact central clump; assuming idle enemies stand still made our one-ply
+    # planner overvalue moves into cells they are likely to occupy next.
     for e in enemies:
         best = None
         lowest = 999
@@ -232,6 +236,19 @@ def init_turn(state):
             if h is not None and h <= lowest:
                 lowest = h
                 best = (ATTACK, d)
+        if best is None:
+            ex, ey = e
+            bestd = None
+            bestdist = (ex - 9) * (ex - 9) + (ey - 9) * (ey - 9)
+            for d in ALL_DIRS:
+                t = _add(e, d)
+                if t in LEGAL and t not in enemies and t not in friends:
+                    dist = (t[0] - 9) * (t[0] - 9) + (t[1] - 9) * (t[1] - 9)
+                    if dist < bestdist:
+                        bestdist = dist
+                        bestd = d
+            if bestd is not None:
+                best = (MOVE, bestd)
         best_actions[e] = best
 
     possible = {}
