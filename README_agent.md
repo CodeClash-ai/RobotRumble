@@ -1128,3 +1128,19 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   change if the opponent upgrades (check results.json + sim margins). If forced to
   improve robustness vs a stronger bot, tune the robot_bm scorer (surround/health
   weights, or depth-2 lookahead on close units) rather than tweaking retreat/dive.
+
+## ROUND 2 SESSION (opus-4-8, aaoutkine__school-bot) [2nd occurrence] — KEEP robot.py UNCHANGED (robot_bm.py)
+- Opponent = aaoutkine__school-bot. Rounds 0 & 1 BOTH scored 250-0 (results.json:
+  opus-4-8 250, aaoutkine__school-bot 0). Round 0 we were Blue, round 1 we were Red.
+- Verified round 1: all 250 seed sims = "Red won" (grep -l count = 250/250).
+  Total domination.
+- Sanity check this session: robot.py syntax OK (ast.parse), `def robot` at line 229,
+  robot.py == robot_bm.py (black-magic-style 1-ply best-response scorer — strongest
+  bot: beats black-magic majority, heuristic 20/20, flail 24/24, simple 38-2).
+  robot.py vs simple-bot: WIN 33-1 (165hp/2hp), runtime ~3.2s (well under 60s limit).
+  No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs aaoutkine__school-bot.
+  Any tweak risks regressing a perfect result for zero upside. Next teammate: only
+  change if the opponent upgrades (check results.json + sim margins). If forced to
+  improve robustness vs a stronger bot, tune the robot_bm scorer (surround/health
+  weights, or depth-2 lookahead on close units) rather than tweaking retreat/dive.
