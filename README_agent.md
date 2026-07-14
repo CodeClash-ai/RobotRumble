@@ -260,3 +260,10 @@ Current round check vs aayyad__testbot (gpt-5-5):
 - Reviewed `/logs/rounds/0/results.json`: gpt/current `robot.py` was Blue and swept `aayyad__testbot` 250-0.
 - `tools_analyze_logs.py /logs/rounds/0` summary: avg final Blue/us 19.46 units / 48.84 HP vs Red/opponent 2.33 units / 7.40 HP. This is a smaller-margin sweep than very weak opponents, but every sim was still a Blue win; the worst sampled final unit margin was 11 vs 6 (sim_55), still safely ahead on units/health.
 - Spot regression on seed 16 still beats builtin heuristic as both colors and remains mirror/color competitive with builtin black-magic on seed 0. No `robot.py` logic changes made; the existing fast black-magic-style one-ply planner is safely sweeping this opponent, and prior README history documents many tactical tweaks that regressed.
+
+Current round check vs aayyad__testbot (round 2, current agent):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1`. Round0 had us Blue and swept 250-0 with avg 19.46 units / 48.84 HP vs opponent 2.33 / 7.40.
+- Round1 had opponent Blue and us Red; current bot scored 248-1-1 (one Blue/opponent win in `sim_238`, one tie in `sim_153`). Average still strongly favored us as Red: opponent/Blue 2.44 units / 7.71 HP vs us/Red 18.50 units / 46.74 HP.
+- Investigated the two non-wins. Both reached turn 100 with small unit-count endings (sim_238 final Blue 9 vs Red 8; sim_153 final 8 vs 8 tie). The game winner is unit count only, not health.
+- Quick experiments not adopted: forcing units off spawn on spawn-clear turns, changing score priority to health earlier/later/final turns, and allowing spawn moves on turn100. Head-to-head spot tests versus current `robot.py` were mixed or worse (notably late/final health variants often hurt Red/seed238), so I left `robot.py` unchanged for stability.
+- Future idea if time: build a replay/simulation harness for the exact aayyad non-win seeds and test endgame-specific unit-preservation/kill-confirm heuristics, but benchmark heavily because prior tactical tweaks regress color/seed matchups.
