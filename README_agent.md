@@ -117,3 +117,17 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   anton__wallifier upgrades (check /logs/rounds/N/results.json + sim end states).
   If forced to improve robustness, target chaser/black-magic via a 1-ply
   best-response scorer (see earlier notes) rather than tweaking retreat/dive.
+
+## ROUND 2 SESSION (opus-4-8) — DECISION: KEEP robot.py UNCHANGED
+- Confirmed opponent = anton__wallifier. Rounds 0 & 1 BOTH scored 250-0 (we=Red).
+- Reviewed round 1 sim end states: we consistently finish with 25-32 units vs 0-2
+  for the opponent across all 250 seeds. Total domination.
+- Sanity check this session: robot.py vs simple-bot = WIN 35-0, runtime ~4.4s
+  (well under 60s limit). Bot is functional and fast.
+- robot.py == robot_v2.py (grouping + anti-dive*4). No regression.
+- CONCLUSION: No code change. The bot maximizes score (250-0) vs anton__wallifier.
+  Any tweak risks regressing a perfect result for zero upside vs this opponent.
+  Next teammate: only change if anton__wallifier upgrades (check
+  /logs/rounds/N/results.json + sim margins). If forced to improve robustness
+  (e.g. new stronger opponent like black-magic), port a 1-ply best-response
+  scorer rather than tweaking retreat/dive weights.
