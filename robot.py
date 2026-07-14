@@ -100,7 +100,7 @@ def score(friends, enemies):
     # the goal is to convert close 100-turn unit-count ties into wins by catching
     # isolated stragglers without disturbing proven battle micro.
     chase_score = 0.0
-    if False and TURN >= 45 and friends and enemies:
+    if TURN >= 35 and friends and enemies:
         # Stronger cleanup pressure for evasive/runaway opponents: reduce the
         # total distance from every surviving enemy to its nearest pursuer,
         # especially when we are behind/even on unit count late.  This remains
@@ -272,6 +272,79 @@ def predict_blackmagic_actions(opp_friends, opp_enemies):
 
     return {p: actions.get(p) for p in opp_friends}
 
+
+
+def t_direction_to(a, b):
+    # Match Coords.direction_to without object allocation.
+    import math
+    angle = math.atan2(a[1] - b[1], a[0] - b[0])
+    if abs(angle) <= math.pi / 4:
+        return Direction.West
+    elif abs(angle + math.pi / 2) <= math.pi / 4:
+        return Direction.South
+    elif abs(angle - math.pi / 2) <= math.pi / 4:
+        return Direction.North
+    else:
+        return Direction.East
+
+
+def t_walking(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+
+def mitch_walk_tuple(src, target, occupied):
+    x = target[0] - src[0]
+    y = target[1] - src[1]
+    xd = Direction.East if x > 0 else Direction.West
+    yd = Direction.South if y > 0 else Direction.North
+    blanks = []
+    for d in _MDIRS:
+        dst = add(src, d)
+        if dst in LEGAL and dst not in occupied:
+            blanks.append(d)
+    if abs(x) > abs(y) and xd in blanks:
+        return xd
+    if abs(y) >= abs(x) and yd in blanks:
+        return yd
+    if xd in blanks:
+        return xd
+    if yd in blanks:
+        return yd
+    return blanks[0] if blanks else None
+
+
+def predict_mitch_crw_actions(enemies, friends):
+    # Exact-ish model of mitch84__crw_preempt from the opponent perspective.
+    # Their units pick the closest of our units by (Manhattan distance, health),
+    # retreat if outnumbered/overpowered adjacent, prefire at range <=2 when not
+    # blocked by their own unit, otherwise greedily walk by Direction enum order.
+    actions = {}
+    occupied = set(enemies) | set(friends)
+    for epos, eh in enemies.items():
+        if not friends:
+            actions[epos] = None
+            continue
+        closest = min(friends, key=lambda f: (t_walking(f, epos), friends[f]))
+        blanks = []
+        adj = []
+        for d in _MDIRS:
+            dst = add(epos, d)
+            if dst in friends:
+                adj.append(dst)
+            elif dst in LEGAL and dst not in occupied:
+                blanks.append(d)
+        if blanks and (len(adj) > 1 or (len(adj) == 1 and friends[adj[0]] > eh)):
+            actions[epos] = (MOVE, blanks[0])
+            continue
+        edir = t_direction_to(epos, closest)
+        step = add(epos, edir)
+        if t_walking(epos, closest) <= 2 and step not in enemies:
+            actions[epos] = (ATTACK, edir)
+            continue
+        d = mitch_walk_tuple(epos, closest, occupied)
+        actions[epos] = (MOVE, d) if d else None
+    return actions
+
 def init_turn(state):
     global ACTIONS, TURN
     TURN = state.turn
@@ -291,12 +364,12 @@ def init_turn(state):
         if u.health is not None:
             enemies[k(u.coords)] = u.health
 
-    # Current opponent is public black-magic; allow queued/chain moves like it
-    # does, but model its full one-ply plan from the enemy perspective rather
-    # than assuming only stationary adjacent attacks.
+    # Current opponent is mitch84__crw_preempt; allow queued/chain moves,
+    # but seed the simulation with its deterministic preempt/retreat plan rather
+    # than the old black-magic mirror model.
     allow_chain_moves = True
 
-    enemy_plan = dict(predict_blackmagic_actions(enemies, friends))
+    enemy_plan = dict(predict_mitch_crw_actions(enemies, friends))
     best_actions = dict(enemy_plan)
 
     possible = {}
