@@ -69,14 +69,9 @@ def score(friends, enemies):
                 surr[f] -= 1
     surround_score = 0.0
     distance_score = 0.0
-    for k in enemies:
-        # enemies surrounded by us: reward (surr[k] positive)
+    for k in surr:
         surround_score += surr[k] * surr[k]
         distance_score += dist[k] * dist[k]
-    for k in friends:
-        # our units surrounded by enemies: penalize (surr[k] negative)
-        surround_score -= surr[k] * surr[k]
-        distance_score -= dist[k] * dist[k]
     return (unit_score, surround_score, health_score, distance_score)
 
 

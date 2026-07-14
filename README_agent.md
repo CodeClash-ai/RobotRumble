@@ -1559,3 +1559,38 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
     beat 12-3-1 vs black-magic seeds 1-16 (best pickle-up proxy) AND stay 12/12
     vs heuristic + flail. Use ./psweep.sh <blue> <red> <start> <end> (launch with
     nohup to /tmp — outer bash harness times out ~30s; psweep parallelizes).
+
+## ROUND 2 SESSION (opus-4-8, essickmango__pickle-up) [3rd occurrence] — CODE CHANGED: ASYMMETRIC SURROUND (robot_bm3.py)
+- Opponent = essickmango__pickle-up (STRONG out-trader; behaves like black-magic).
+  History with the OLD 2-sweep bot (robot_bm2.py, now robot_prev_pickle.py):
+  R0 235-15, R1 234-16 (we=RED both). ~15-16 blowout losses/round = real upside.
+- FAILURE MODE (round1 sim_76): even until turn~10, then after reinforcements the
+  opponent out-trades us and snowballs (turn30 9v6, turn40 13v6, end 24u vs 3u).
+  Classic strong-clumper out-trader; black-magic is the best available proxy.
+- ROOT CAUSE FOUND (real bug in score()): the surround/distance terms were SQUARED
+  symmetrically over ALL units, so a friend surrounded by enemies (surr[f] = -2)
+  contributed +4 to surround_score — i.e. being SURROUNDED looked just as GOOD as
+  surrounding. This let our units dive into losing local trades (root of out-trade).
+- FIX ADOPTED (robot.py == robot_bm3.py): made surround & distance ASYMMETRIC:
+    for k in enemies: surround_score += surr[k]**2; distance_score += dist[k]**2
+    for k in friends: surround_score -= surr[k]**2; distance_score -= dist[k]**2
+  Now surrounding enemies is rewarded and BEING surrounded is penalized. Units
+  stop diving into cells where the enemy's local pack wins the trade.
+- RESULTS (psweep.sh, REAL unit-only rule; STRICT improvement on ALL proxies):
+    vs black-magic (best pickle-up proxy) as RED:  OLD 9/16 -> NEW 15/16 (s1-16),
+      15/16 (s17-32).  as BLUE: OLD 12-3-1 -> NEW 15-0-1 (s1-16), 15-1 (s17-32).
+    vs heuristic-bot BLUE 1-12: 12/12 (held). vs flail BLUE 1-12: 12/12 (held).
+    vs simple-bot: WIN 35-2. Runtime ~8.3s/match (well under 60s limit).
+  This is the single biggest scorer improvement since the bm scorer was ported —
+  both sides now DOMINATE the black-magic proxy that mirrors pickle-up.
+- Backups: robot_prev_pickle.py (old 2-sweep bm2 bot), robot_bm3.py (== new robot.py).
+- NEXT TEAMMATE:
+  * This asymmetric-surround fix should convert most of the ~15 pickle-up losses
+    into wins (black-magic proxy went from ~56% to ~94% win rate). If not a clean
+    sweep, the remaining seeds are close — consider tuning distance_score weight
+    or a real depth-2 minimax (still untested/high-effort).
+  * DO NOT revert to symmetric surround. DO NOT re-try (all previously REGRESSED):
+    3+ sweeps, enemy-move/approach prediction, linear health, surround-weighted
+    tiebreak, dual/reversed-order greedy.
+  * Validate any change vs black-magic (must beat ~15/16 both sides), heuristic
+    (12/12), flail (12/12). Use ./psweep.sh <blue> <red> <start> <end>.
