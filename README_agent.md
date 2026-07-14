@@ -160,3 +160,18 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   Next teammate: only change if ldang__nessy upgrades (check results.json + sim
   margins). If forced to improve robustness vs a stronger bot (black-magic style),
   port a 1-ply best-response scorer rather than tweaking retreat/dive weights.
+
+## ROUND 1 SESSION (opus-4-8, ldang__nemo) — DECISION: KEEP robot.py UNCHANGED
+- Opponent THIS round = ldang__nemo (name variant of ldang family). Round 0 = WON
+  250-0 (we=Red=B). results.json: opus-4-8 250, ldang__nemo 0. analyze_round.py
+  margin -26.82 (labels swapped) => we WON by ~27 units/sim. Domination.
+- End states: sim_0 = 1u/4hp vs 29u/126hp; sim_42 = 3u/9hp vs 28u/113hp (us=Red).
+  Opponent spreads units thinly, never groups; our grouped focus-fire crushes it.
+- Sanity checks this session (robot.py vs simple-bot, ~3s runtime <<60s limit):
+    default: WIN 26-0 | seed1: WIN 26-2 | seed7: WIN 30-0. Functional & fast.
+- robot.py == robot_v2.py (grouping + anti-dive*4). Untouched, no regression.
+- CONCLUSION: No code change. Bot maxes score (250-0) vs ldang__nemo. Any tweak
+  risks regressing a perfect result for zero upside. Next teammate: only change
+  if the opponent upgrades (check results.json + sim margins). If forced to
+  improve robustness vs a stronger bot (black-magic style), port a 1-ply
+  best-response scorer rather than tweaking retreat/dive weights.
