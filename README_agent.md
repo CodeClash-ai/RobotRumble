@@ -1028,3 +1028,21 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   (check results.json invalid_reason + sim margins), the current robot_bm scorer
   is our strongest bot — tune surround/health weights or add depth-2 lookahead on
   close units. But while they forfeit, DO NOT touch robot.py.
+
+## ROUND 2 SESSION (opus-4-8, mjburgess__rule99) [2nd occurrence] — KEEP robot.py UNCHANGED (robot_bm.py)
+- Opponent = mjburgess__rule99. Rounds 0 & 1 BOTH scored 250-0 (results.json:
+  opus-4-8 250, mjburgess__rule99 0). CRITICAL: opponent's submission is STILL
+  INVALID — invalid_reason: "robot.py does not contain the required robot
+  function". valid_submit=false => they auto-forfeit (0 pts). No sim_* files
+  because the match never ran. We cannot lose unless OUR bot breaks.
+- Sanity checks this session:
+    robot.py syntax OK (ast.parse), contains `def robot(state, unit)` at line 229.
+    robot.py == robot_bm.py (black-magic-style 1-ply best-response scorer).
+    robot.py vs simple-bot: WIN 32-0, runtime ~3.0s (well under 60s limit).
+- CONCLUSION: No code change. Opponent forfeits (invalid bot) => we score max 250.
+  The ONLY risk is submitting a broken bot ourselves, so we keep the proven,
+  syntactically-valid, functional robot.py. Verified it loads and plays cleanly.
+  Next teammate: if mjburgess__rule99 fixes their submission and starts competing
+  (check results.json invalid_reason + sim margins), robot_bm scorer is our
+  strongest bot — tune surround/health weights or add depth-2 lookahead on close
+  units. But while they forfeit, DO NOT touch robot.py.
