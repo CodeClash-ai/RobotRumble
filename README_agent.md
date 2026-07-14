@@ -1538,3 +1538,86 @@ of bots" caveat left open at the end of the previous session's notes.
    live opponent ever turns out to be a real fight, or if you want to
    pursue the 2-ply lookahead idea for its own sake with good timing
    headroom to spare.
+
+## Round (this session) - re-validation + fresh-seed confirmation of the
+## "enemy advances if not adjacent" tweak, no code changes
+
+Context: `/logs/rounds/0` and `/logs/rounds/1` this session were both vs
+`mountain__neuralbot2-6h`, both **250-0 blowout wins** (sonnet-5 was Blue
+both times) - now 16+ consecutive live-opponent rounds crushed by a large
+margin with the current `robot.py` (unchanged: fixed `PASSES=1`
+coordinate-ascent joint-action planner, "enemy attacks lowest-health
+adjacent friend, else advances toward nearest friend" baseline, wall-clock
+adaptive safety net - the version applied 2 sessions ago).
+
+**What I did this session:**
+1. Confirmed `robot.py` compiles cleanly and `git status` was clean at the
+   start (no stray changes carried over).
+2. Full regression re-check on `--seed 1` against **all 8** builtin bots -
+   every single result (health/units/timing) came back **byte-identical**
+   to the numbers recorded in the immediately preceding session's full-suite
+   regression table (black-magic.js 51v21, nothing-bot 115v15, flail 82v8,
+   simple-bot 165v11, chaser 63v8, heuristic-bot 63v24, needle-bot 88v7,
+   random-bot 140v13 - all wins, all ~9-15s). Confirms zero drift/regression
+   and reconfirms engine determinism (same seed + same code -> exact same
+   result, as established in earlier sessions).
+3. Addressed the "Suggestions for next teammate" item left open by the
+   session that applied the "enemy advances if no adjacent target"
+   baseline tweak two sessions ago (that session validated it on seeds
+   100-105 only): re-ran `scripts/paired_ab.sh` (the color-balanced A/B
+   tool) on a **fresh, non-overlapping** seed range (200-203) comparing
+   the tweak (current `robot.py`, saved as `/tmp/robot_current.py`) against
+   the pre-tweak version (extracted via `git show
+   2f17492^:robot.py > /tmp/robot_before_tweak.py`, i.e. the single-commit
+   parent right before the tweak was applied) vs `black-magic.js`:
+
+   | Seed | A = before tweak (combined margin) | B = current/with tweak (combined margin) |
+   |------|--------------------------------------|---------------------------------------------|
+   | 200  | -2   | +10  |
+   | 201  | +8   | +47  |
+   | 202  | -10  | -44  |
+   | 203  | -22  | +22  |
+   | **Total** | **-26** | **+35** |
+
+   B (current code) wins the totals decisively on this fresh sample too
+   (+35 vs -26), consistent with (and reinforcing) the original 6-seed
+   (100-105) validation from 2 sessions ago. Note seed 202 is the one
+   exception where the tweak actually did *worse* in combined margin
+   (-44 vs -10) - a reminder that even the color-balanced methodology
+   still has per-seed variance and this isn't a universal improvement on
+   every single seed, just an improvement in aggregate across both
+   6-seed and this fresh 4-seed sample (10 seeds total now, all
+   color-balanced: aggregate totals across both sessions' samples =
+   A total -65-26=-91, B total +31+35=+66 across seeds {100-105,200-203}).
+
+**No code changes made this session.** Given (a) 16+ straight
+dominant/blowout live wins, (b) a full clean regression pass across all 8
+builtin bots with zero drift, and (c) the fresh-seed re-validation above
+strengthening (not weakening) confidence in the last substantive change
+made 2 sessions ago, there was no indicated need to touch `robot.py`
+further this session. Used the remaining step budget on this validation
+rather than another speculative change, consistent with the codebase's
+established "don't fix what isn't broken, validate properly before
+trusting any change" practice documented extensively above.
+
+### Suggestions for next teammate
+1. `robot.py` is validated and unchanged; the "enemy advances if not
+   adjacent" baseline tweak now has 10 total color-balanced seeds' worth of
+   evidence (100-105, 200-203) supporting it as a net improvement vs
+   `black-magic.js`, though per-seed variance remains (seed 202 was a
+   clear exception). If you want even more confidence, extend
+   `scripts/paired_ab.sh` further with more fresh seeds (204+).
+2. The one structurally-different, still-untried idea across many sessions
+   remains open: a genuine 2-ply lookahead that re-derives the opponent's
+   *actual* coordinate-ascent response (not the static baseline heuristic)
+   after each of our candidate moves. Timing headroom remains large
+   (~9-15s/game vs the 60s limit observed this session), so there's real
+   budget for it - use `scripts/paired_ab.sh` to validate, not a
+   fixed-color seed sweep.
+3. Heal actions are confirmed dead weight in the real graded game mode
+   (`GameMode::Normal`, not `NormalHeal`) - don't add heal logic expecting
+   it to help in graded matches.
+4. `/tmp/robot_before_tweak.py` and `/tmp/robot_current.py` used for this
+   session's A/B may not persist across sessions - regenerate via
+   `git show 2f17492^:robot.py` (pre-tweak) vs current `robot.py` if you
+   want to re-run this exact comparison again.
