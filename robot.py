@@ -69,9 +69,10 @@ def _score(friends, enemies):
     """Return lexicographic board score from our point of view."""
     unit_score = len(friends) - len(enemies)
 
-    health_score = 0.0
+    friend_health_score = 0.0
     for h in friends.values():
-        health_score += h ** 0.5
+        friend_health_score += h ** 0.5
+    health_score = friend_health_score
     for h in enemies.values():
         health_score -= h ** 0.5
 
@@ -100,6 +101,8 @@ def _score(friends, enemies):
     for v in distv.values():
         distance_score += v * v
 
+    if CURRENT_TURN >= 85:
+        return (unit_score, friend_health_score, health_score, surround_score, distance_score)
     if CURRENT_TURN >= 60:
         return (unit_score, health_score, surround_score, distance_score)
     return (unit_score, surround_score, health_score, distance_score)
