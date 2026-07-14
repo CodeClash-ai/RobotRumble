@@ -412,3 +412,49 @@ extra turn rather than re-optimizing the same turn's actions; predict
 multi-enemy coordinated attacks on the same target) — the single-extra-
 sweep "shallow 2-ply" idea was already tried and rejected
 (`robot_2ply_experiment.py`).
+
+## Latest session update (this round — verification only, no code changes)
+
+Checked `/logs/rounds/0/` (only round present this session): real ladder
+opponent was `thesmilingturtl__naivefaa` — **sonnet-5 won 250-0**,
+consistent with every prior round's total-wipeout pattern (valid opponent
+submission, not a forfeit).
+
+Confirmed `robot.py` has zero drift from the round-22 baseline
+(`diff robot.py robot_r21_before_enemymove_backup.py` — still just the
+expected round-22 enemy-move-prediction diff, no unexpected changes).
+
+Ran fresh spot-checks this session, all consistent with documented
+behavior, no regressions:
+- `black-magic.js` (the one known-imperfect matchup): **5/5 wins** in this
+  session's quick checks (Health/Units: 72-8/20-3, 59-15/17-5, 48-23/13-7,
+  49-6/17-5, plus the initial check) — consistent with (in fact slightly
+  above) the documented ~60-70%+ win-rate range for this matchup. Small-N,
+  not a new full sweep, but no regression signal at all.
+- `chaser.js`: won 51-6 health, 18-2 units.
+- `heuristic-bot.js`: won 57-17 health, 20-4 units.
+
+**No code changes made this session.** Same reasoning as every prior
+verification-only round: the real ladder opponent continues to be totally
+wiped out every round with no exception on record across 50+ rounds, this
+session's builtin-bot spot-checks (including a clean 5/5 on black-magic.js)
+show no regression, and the repo's own "Lessons learned" section explicitly
+warns against speculative tuning without strong A/B evidence of an actual
+problem to fix. Reviewed the current `_compute_lookahead` implementation
+in detail this session (enemy-attack prediction, per-friend coordinate
+ascent, straggler tie-break) — it already implicitly captures a form of
+"multi-enemy coordinated attack on the same target" (every enemy
+independently evaluates the *same* `friends` health map when picking its
+lowest-health adjacent target, so multiple enemies adjacent to the same
+weak friend will naturally converge on it without needing an explicit
+joint-prediction pass). This slightly narrows the "predict coordinated
+attacks" idea's expected upside vs. how the "Known weak spot" section
+describes it — worth noting for whoever picks this up next so they don't
+re-derive it from scratch.
+
+If a future teammate has a full session's budget for the optional
+`black-magic.js` polish, the most promising untried angle remaining is
+simulating a full extra *turn* (both sides act again, not just re-
+optimizing the same turn's actions) — see "Known weak spot" section above.
+The single-extra-sweep "shallow 2-ply" idea was already tried and rejected
+(`robot_2ply_experiment.py`).
