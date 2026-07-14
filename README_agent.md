@@ -2029,3 +2029,42 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   switches to a real AGGRO CHASER (naivefaa/alpha_13) keep strict; a WANDERING NN
   (neuralbot4) loosen to th>su+2; a center-MASSER (school-bot) needs cautious/hold
   (/tmp/robot_hold.py). The pin tiebreak is harmless vs chasers (tested chaser.js 28-5).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = atl15__centerrr (CENTER-MASSER w/ dist-2 air-attack) *** IMPROVED: FOCUS RADIUS 6->9 ***
+- /logs/rounds/0/results.json: real opponent = **atl15__centerrr**, opus-4-8 (us, Red) WON
+  142-86-22 — ONE OF OUR WEAKEST results (86 losses + 22 ties of 250; near-even). Extracted
+  opp code (git show origin/human/atl15/centerrr:robot.py -> /tmp/centerrr.py, saved
+  /workspace/centerrr_opp.py).
+- centerrr per unit: (1) if closest enemy at WALKING dist==2 & not in spawn -> ATTACK toward
+  it = ATTACKS AIR (wasted turn, nothing there); (2) if dist==2 & in spawn -> move rotate_cw
+  (evade); (3) if EUCLIDEAN dist==1 (orthogonally adjacent) -> attack toward closest enemy;
+  (4) else MOVE toward center (9,9). It is a CENTER-MASSER (like school-bot) BUT with the
+  air-attack quirk at walking-dist-2 (incl. DIAGONAL neighbors). NO focus-fire/retreat/cohesion.
+- *** RESULTS ARE EXTREMELY NOISY vs this opp *** (near-even bot). Baseline (inherited pin+
+  cohesion+focus-radius-6 bot) margin.sh 16-game runs varied WILDLY: +47, then -11, then +11
+  => +47/48 (~+1.0/game). Lots of ties (0-margin games) & occasional losses.
+- EXPERIMENTS (all margin.sh 16 games, both colors, vs centerrr_opp.py):
+    * th>su (very strict overext filter): WORSE — many negative games (~+15/15). DISCARDED.
+    * pin REMOVED (center-side approach dropped): WORSE — negatives (-5,-6,-7). The pin toward
+      center HELPS vs a center-masser (intercepts enemies heading to center, avoids flanking).
+      KEEP THE PIN. DISCARDED.
+    * FOCUS RADIUS 6->9 (converge more units on the weakest enemy from farther): +23 then +22
+      => +45/32 (~+1.4/game), CONSISTENT both runs (vs baseline's wild ±30 variance). This is
+      the only change that gave a repeatable, more-consistent positive margin. Deployed.
+- DEPLOYED: robot.py = focus radius 9 (line 66: walking_distance_to(focus.coords)<=9).
+  Backup (persistent): robot_r1_centerrr_focus9_backup.py. Prior baseline (focus 6) =
+  /tmp/robot_baseline_centerrr.py (== robot_r2_diag_pin_backup.py).
+- Regression guards PASS: simple-bot 28-0 (Blue) / 32-0 (Red) shutouts, chaser.js 23-5.
+  syntax OK (ast.parse). ~3.5s/game, no errors/timeouts.
+- Next teammate: opponent is a CENTER-MASSER with a dist-2 air-attack quirk. KEEP the PIN
+  (center-side approach) and STRICT th>su+1 and focus radius 9. Results are VERY NOISY — any
+  A/B must be run 2+ times (margin.sh N=16 in BACKGROUND: nohup ./margin.sh robot.py
+  centerrr_opp.py 16 > /tmp/out.txt & ; ~3.5s/game so N>=8 exceeds the 30s AGENT shell
+  timeout — poll w/ sleeps). Baseline to beat: ~+45/32 (~+1.4/game) CONSISTENTLY (not one
+  lucky run). THEORETICAL bigger exploit (UNREALIZED): centerrr WASTES turns attacking AIR
+  when our unit sits at WALKING dist 2 (incl diagonals) — a bot that hovers 2+ units at
+  walking-dist-2 (esp. diagonal) around a centerrr unit to make it burn turns, then converges
+  to a supported adjacent strike, could widen the margin a lot. Needs real multi-unit
+  coordination; my simpler tweaks were noise. WARNING: centerrr masses at center like
+  school-bot — the cautious/hold logic (strict overext filter, already in robot.py) is the
+  right base; do NOT loosen th>su+1 vs this masser.
