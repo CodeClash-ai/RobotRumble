@@ -152,3 +152,8 @@ Round 2 check vs navster8__maginot-line (current agent):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`: both recorded rounds list gpt-5-5/current `robot.py` as Blue vs `navster8__maginot-line` as Red, and we swept 250-0 in both.
 - `tools_analyze_logs.py /logs/rounds/1` summary: avg final Blue/us 32.55 units / 141.71 HP vs Red/opponent 0.99 units / 3.36 HP; worst listed margin was still very large (21 vs 6 units in sim_213) and every sim was a Blue win.
 - Spot regression on seed 1 still beats builtin heuristic as both colors (15-11 units as Blue; 18-3 units as Red). No `robot.py` changes made; the current fast black-magic-style one-ply planner is dominating this opponent, so keeping it stable remains safest.
+
+Current round check vs jiricodes__jiricodes-bot (gpt-5-5):
+- Reviewed `/logs/rounds/0/results.json`: gpt/current `robot.py` was Blue and swept `jiricodes__jiricodes-bot` 250-0.
+- `tools_analyze_logs.py /logs/rounds/0` summary: avg final Blue/us 29.93 units / 145.56 HP vs Red/opponent 0.17 units / 0.49 HP; every sim was a Blue win and most were complete/near-complete wipes.
+- Spot regression on seed 0 still beats builtin heuristic as both colors. No `robot.py` logic changes made; the existing fast black-magic-style one-ply planner is overwhelmingly winning this matchup, so stability is safest unless future logs show losses.
