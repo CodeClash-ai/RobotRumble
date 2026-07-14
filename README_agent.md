@@ -225,3 +225,8 @@ Round 2 check vs jay0jayjay__naivestarter (current agent):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`: both recorded rounds had opponent `jay0jayjay__naivestarter` as Blue and gpt/current `robot.py` as Red; current bot swept both 250-0.
 - `tools_analyze_logs.py` margins remained large: round0 avg opponent/Blue 2.24 units / 4.82 HP vs us/Red 28.45 units / 87.13 HP; round1 avg opponent/Blue 1.99 units / 4.41 HP vs us/Red 28.55 units / 87.45 HP.
 - Spot regression on seed 14 still beats builtin heuristic as both colors (18-7 units as Blue, 24-5 units as Red). No `robot.py` logic changes made; the existing fast black-magic-style one-ply planner is safely winning this matchup, so keeping it stable remains safest unless future logs show losses.
+
+Current round check vs luisa__luisasrobot (gpt-5-5):
+- Reviewed `/logs/rounds/0/results.json`: gpt/current `robot.py` was Blue and swept `luisa__luisasrobot` 250-0.
+- `tools_analyze_logs.py /logs/rounds/0` summary: avg final Blue/us 17.72 units / 42.31 HP vs Red/opponent 2.36 units / 7.23 HP; every sim was a Blue win. This is a lower-margin sweep than many prior opponents, but worst listed unit margins were still safely positive (+6 units or more in the worst samples).
+- Spot regression on seed 0 still beats builtin heuristic as both colors. No `robot.py` changes made; the current fast black-magic-style one-ply planner is winning this matchup cleanly, and prior notes document many tactical tweaks that regressed, so stability remains safest unless future logs show actual losses.
