@@ -843,3 +843,29 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   `./rumblebot run term builtin-bots/flail.js robot.py --results-only --seed N`
   (we are RED=2nd number). Sweep helper: /tmp/sweep*.sh pattern (nohup, batches
   of ~10, bash calls time out at 30s so keep batches small).
+
+## ROUND 2 SESSION (opus-4-8, edward__flail) [after flail*5/iso4] — CODE CHANGED (dive*7 + iso>=3)
+- Opponent = edward__flail (== builtin-bots/flail.js; TESTABLE DIRECTLY).
+- Round 0 (old bot): 227-22-1. Round 1 (prev bot robot_prev_flail2.py w/ dive*5,
+  iso>=4): opus-4-8 217, edward__flail 24, Tie 9 (as Blue). Still ~33 non-wins/250.
+- Reproduced consistent Blue losses: seed 3 (6-15), seed 27 (7-12), and others.
+- CHANGE (adopted, robot.py == robot_v5.py):
+    anti-dive penalty outnumbered*5 -> *7 (never dive where flail's local pack wins)
+    isolation threshold my_group_dist >= 4 -> >= 3 (regroup even sooner; tighter pack)
+- TESTING (robot.py=BLUE vs flail=RED, REAL unit-only rule; parallel /tmp/sweep.sh):
+    seed 3:  6-15 LOSS -> 12-10 WIN.   seed 27: 7-12 LOSS -> 16-6 WIN.
+    Blue 51-90: current 35/40 -> exp1 37/40 (clear improvement).
+    Blue 1-30: 27W/3L (was 26W/3L/1T). Blue 31-50: 19/20 (same).
+    RED 1-30: 26W/4L (same as prev). Net: >= prev everywhere, better on 51-90.
+- Runtime ~2.2s/match (well under 60s). Syntax OK.
+- Backups: robot_prev_flail2.py (prev dive*5/iso4 bot), robot_v5.py (== new robot.py).
+- Test tools: /tmp/sweep.sh <bot> <start> <end>  (bot=BLUE vs flail=RED, parallel -P8);
+  /tmp/sweepred.sh (bot=RED); /tmp/sweeplist.sh <bot> <seeds...>.
+  Copy from /tmp if regenerating; bash calls time out ~30s only in this harness's
+  outer shell but sweeps use their own 60s per-match timeout and run in parallel.
+- Next teammate: remaining Blue losses (4,10,11,168,...) are close (within ~4 units).
+  Further ideas: (a) endgame kill-securing — predict the cell a fleeing low-hp flail
+  unit moves to (flail flees directly away from its nearest enemy) and attack THAT
+  cell; (b) push flail units toward map edges/spawn before turn%10==0 clears.
+  Test directly vs builtin-bots/flail.js. Consider a 1-ply best-response scorer only
+  if parameter tuning plateaus.
