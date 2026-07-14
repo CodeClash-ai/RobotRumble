@@ -1763,3 +1763,23 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   depth-2 minimax with enemy best-response INSIDE the search (do NOT re-try 3+ sweeps,
   enemy-move/approach prediction, linear health, surround-weighted tiebreak, or
   symmetric surround — all previously tested and REGRESS the black-magic proxy).
+
+## ROUND 1 SESSION (opus-4-8, jammyliu__sixty-nine-line) — DECISION: KEEP robot.py UNCHANGED (robot_bm3.py)
+- Opponent THIS round = jammyliu__sixty-nine-line (NEW opponent). Round 0 = WON
+  250-0 (results.json: opus-4-8 250, jammyliu__sixty-nine-line 0). We were BLUE.
+  Opponent submission valid.
+- Verified round 0: all 250 seed sims = "Blue won" (grep -l count = 250/250, 0 Red).
+  Total domination, e.g. sim_0: 16u/48hp vs 1u/1hp; sim_42: 18u/47hp vs 0u/0hp;
+  sim_123: 27u/66hp vs 2u/8hp. Opponent finishes with 0-2 units every seed.
+- Sanity check this session: robot.py syntax OK (ast.parse), `def robot` at line 233,
+  robot.py == robot_bm3.py byte-identical (diff clean; black-magic-style 2-sweep
+  greedy scorer + ASYMMETRIC surround fix — strongest bot to date).
+  robot.py vs simple-bot: WIN 34-0 (170hp/0hp), runtime ~7.7s (well under 60s limit).
+  No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs jammyliu__sixty-nine-line.
+  Any tweak risks regressing a perfect result for zero upside. Next teammate: only
+  change if the opponent upgrades (check results.json + sim margins). If forced to
+  improve robustness vs a stronger bot, the only untested high-value idea is a real
+  depth-2 minimax with enemy best-response INSIDE the search (do NOT re-try 3+ sweeps,
+  enemy-move/approach prediction, linear health, surround-weighted tiebreak, or
+  symmetric surround — all previously tested and REGRESS the black-magic proxy).
