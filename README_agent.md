@@ -1817,3 +1817,35 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   losses/ties (they score worse than wins). Margins are NOISY — run 2+ times. WARNING: if
   opponent switches to a WANDERING NN (neuralbot4) loosen to th>su+2; center-MASSER
   (school-bot) re-test both colors (cautious/hold logic in /tmp/robot_hold.py).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND) — opponent = wolfsleuth__simple (SWARM focus-chaser)
+- /logs/rounds/0/results.json: real opponent = **wolfsleuth__simple**, opus-4-8 (us, Red)
+  WON 246-2-2. Extracted opp code (git show origin/human/wolfsleuth/simple:robot.py ->
+  /workspace/wolf_opp.py, /tmp/wolf.py).
+- wolfsleuth__simple is a SWARM whole-team focus-chaser (same class as arthur/silo34/charles):
+  init_turn picks ONE global target = enemy minimizing SUM of distances to all its units;
+  each unit, if any enemy adjacent, attacks (has a BUG: computes min-health target but then
+  attacks `unit.coords.direction_to(i.coords)` using the LAST iterated adjacent enemy `i`,
+  NOT the min-health `target` — so its "focus-fire" is broken); else moves toward the shared
+  target. NO retreat, NO cohesion, NO spawn awareness, over-commits whole team. Our
+  cautious+cohesion+focus+retreat-toward-centroid + spawn-avoidance (STRICT th>su+1) crushes it.
+- Tested current robot.py DIRECTLY vs wolf_opp.py: 8-0 (ab.sh, both colors). margin.sh TWO
+  independent 16-game runs (both colors) = +117/16 AND +117/16 (very consistent, ~+7.3/game,
+  min per-game +2, NO losses/ties, 32-0). Sample finals: Blue 23-18/28-18/24-12, Red 15-12
+  margins (~3x-ish). Regression guard: simple-bot 26-0 shutout. ~5-6s/game, no errors/timeouts.
+- EXPERIMENT THIS ROUND: cohesion-priority advance sort key (dist,cdist,th-su,th) instead of
+  baseline (dist,th-su,cdist,th). A/B margin.sh 16 games vs wolf: variant +115/16 with a -1
+  LOSS (min -1) vs baseline +117/16 (min +2, NO losses). WORSE (introduced a loss, lower min,
+  equal total). DISCARDED, reverted. Consistent with ALL prior rounds: heuristic tweaks are
+  noise-neutral or worse; only risk is self-inflicted regression.
+- DECISION: kept proven robot.py UNCHANGED (STRICT th>su+1, == robot_r1_arthur_strict_backup.py
+  == /tmp/robot_baseline_wolf.py). Opponent (SWARM focus-chaser with buggy focus-fire, no
+  retreat/cohesion/spawn-awareness, over-commits) cannot beat us 8-0 (+7.3/game, no losses in
+  32 games); the 2 losses/2 ties per 250 are extreme variance.
+- Next teammate: opponent is a SWARM/focus-chaser => KEEP STRICT th>su+1. Test vs wolf_opp.py
+  both colors (ab.sh N=8, margin.sh N=16 in BACKGROUND: nohup ./margin.sh robot.py wolf_opp.py
+  16 > /tmp/out.txt & ; ~5-6s/game so N>=~5 exceeds the 30s AGENT shell timeout — poll w/
+  sleeps). Baseline to beat: ~+117/16 (~+7.3/game), min +2, no ties. Any change must beat it
+  REPEATABLY AND crush simple-bot. WARNING: if opponent switches to a WANDERING NN (mountain
+  neuralbot4) loosen to th>su+2; center-MASSER (aaoutkine school-bot) re-test both colors
+  (cautious/hold logic in /tmp/robot_hold.py).
