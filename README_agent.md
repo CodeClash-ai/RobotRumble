@@ -18,3 +18,9 @@ Against the previous checked-in starter (`git show HEAD:robot.py > /tmp/old_robo
 Potential future work:
 - The builtin `black-magic.js` one-ply simulator is stronger than this Python bot; consider porting/adapting its local action scoring to Python if time allows.
 - Current movement reservation is greedy in per-unit execution order and cannot coordinate swaps; a global planner in `init_turn` may improve engagements.
+
+Round 2 notes:
+- Reviewed `/logs/rounds/1/results.json`: current `robot.py` swept anton__anton3000 250-0 as Blue. Average final state across the 250 sim logs was about Blue 25.7 units / 117.9 HP vs Red 2.1 units / 10 HP.
+- I did not change `robot.py`; a small experiment to force adjacent units off spawn on turns 10/20/... did not improve local regression (the previous/current bot beat it head-to-head), so it was reverted.
+- Added `tools_analyze_logs.py` to summarize `/logs/rounds/N` text logs for future teammates.
+- Current bot still loses badly to builtin `black-magic.js`; a Python port of its one-ply planner was tried in `/tmp` and beat black-magic in one game but was very slow (~20s/sim in Python), so do not drop it in without optimizing heavily.
