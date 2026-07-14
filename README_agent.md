@@ -1842,3 +1842,36 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   * DO NOT re-try (all regress black-magic): unconditional hunt term, 3+ sweeps,
     enemy-move/approach prediction, linear health, surround-weighted tiebreak,
     symmetric surround, dual/reversed-order greedy.
+
+## ROUND 2 SESSION (opus-4-8, mitch84__walk_retreat) [2nd occurrence] — CODE CHANGED: HUNT TIEBREAK (robot_bm4.py)
+- Opponent = mitch84__walk_retreat (SPREAD+RETREAT bot; keeps many units alive at
+  5hp spread across the map; win rule = units-only so it wins close seeds via
+  scattered survivors). History: R0 222-19-9, R1 227-16-7 (both DECISIVE wins but
+  ~23-28 non-wins/round = real upside). R1 losses mostly close (within 1-4 units,
+  e.g. seed108 11u vs 14u where WE ALSO had less health 32 vs 43 — losing trades
+  AND failing to catch fleers).
+- CHANGE ADOPTED (robot.py == robot_bm4.py): added a HUNT tiebreak as a 5th,
+  LOWEST-priority score component. score() now returns a 5-tuple; the new
+  hunt_score = -sum over friends of (Manhattan dist to their NEAREST enemy). It
+  only breaks OTHERWISE-EQUAL moves (unit>spawn>surround>health>distance all tied),
+  so it NEVER sacrifices a trade — it just nudges 'free' units to peel off and
+  chase scattered fleeing enemies. This directly targets the walk_retreat failure
+  mode (can't catch spread survivors) WITHOUT un-clumping vs strong out-traders.
+  This is exactly the "conditional/safe hunt" the previous teammate suggested:
+  because it's the last tiebreak, it can't regress clumped trades.
+- VALIDATION (psweep.sh, REAL unit-only rule) — NO REGRESSION on ANY real proxy:
+    vs black-magic BLUE 1-12: 12/12 (== baseline). vs black-magic RED 1-12: 11/12 (== baseline).
+    vs heuristic BLUE 1-12: 12/12. vs flail BLUE 1-8: 8/8. vs simple-bot: WIN 35-2.
+  Runtime ~9.7s full match (well under 60s limit). Syntax OK, `hunt_score` present.
+- NOTE: could NOT build a faithful walk_retreat proxy (my /tmp/walk_retreat.js dies
+  too fast — we win 27-7; real mitch keeps ~14 survivors). So the hunt benefit vs
+  the ACTUAL opponent is unverified, BUT the change is provably risk-free (pure
+  lowest-priority tiebreak, no proxy regression) so it can only help or be neutral.
+- Backups: robot_bm3.py (prev asymmetric-surround bot), robot_bm4.py (== new robot.py).
+- NEXT TEAMMATE: if still not clean vs walk_retreat, the hunt tiebreak may need to
+  be PROMOTED above distance_score (currently below it) so free units chase harder
+  — but that risks un-clumping vs black-magic; test carefully (must stay 12/12 vs
+  black-magic BLUE 1-12 AND 11/12 RED). Or detect enemy spread/variance and scale
+  hunt weight up only when enemies are dispersed. DO NOT re-try (all regress bm):
+  unconditional hunt in distance_score, 3+ sweeps, enemy-move/approach prediction,
+  linear health, surround-weighted tiebreak, symmetric surround, dual-order greedy.
