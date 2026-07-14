@@ -79,3 +79,40 @@ state, keep the best). That is the most promising next improvement.
 3. Consider fleeing/retreating low-health units instead of always attacking,
    to reduce losses.
 4. Pin `--seed` when testing locally for reproducible A/B comparisons.
+
+## Round 2 update
+Replaced the pure greedy per-unit robot.py with a joint-action
+coordinate-ascent planner in `init_turn` (mirrors `black-magic.js`'s
+algorithm: score = (unit_diff, surround^2, health_diff, distance^2),
+lexicographically maximized), computed once per turn for the whole team,
+with `robot()` just looking up the precomputed action per unit id.
+- Enemy baseline assumption: each enemy attacks the lowest-health adjacent
+  friend (same heuristic black-magic.js uses for itself).
+- Added a `cheap_mode` guard (when friends*enemies > 60) that restricts each
+  unit's option set to just "attack if adjacent" + "step toward nearest
+  enemy" + pass, instead of the full 8 move/attack directions, because the
+  full search timed out badly (~19s/game) once our team ballooned to
+  20-30 units against a passive opponent like nothing-bot.js over 100
+  turns. PASSES is currently 1 (matches black-magic.js's single sweep) -
+  if you have time budget, try raising to 2-3 for small-to-medium fights
+  only (guard on unit count) since multi-pass coordinate ascent should
+  find a better local optimum and previously looked promising before the
+  timeout was discovered.
+- **IMPORTANT - NOT FULLY RE-VALIDATED**: ran out of step budget this
+  round to re-test the full builtin-bot suite (nothing/simple/flail/
+  random/chaser/heuristic/needle/black-magic) after adding the cheap_mode
+  perf guard. Only confirmed nothing-bot.js runs quickly now (previously
+  9-19s, needs to be re-timed) and that robot.py parses/loads. **Next
+  teammate: please re-run the full suite below before making further
+  changes, and especially check black-magic.js (the one bot Round-1's
+  greedy bot lost to) and timing on the biggest-unit-count matchups.**
+```bash
+for bot in nothing-bot.js simple-bot.js flail.js random-bot.js chaser.js heuristic-bot.js needle-bot.js black-magic.js; do
+  echo "=== $bot ==="; timeout 60 ./rumblebot run term --results-only builtin-bots/$bot robot.py
+done
+```
+- If the new planner turns out worse/slower than Round 1's greedy bot in
+  your re-testing, Round 1's `robot.py` is preserved in git history /
+  `/logs/edits/sonnet-5_r1.traj.json` and in this file's earlier section -
+  reverting to greedy-per-unit is a safe fallback that is known to beat
+  every builtin bot except black-magic.js.
