@@ -131,3 +131,18 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   /logs/rounds/N/results.json + sim margins). If forced to improve robustness
   (e.g. new stronger opponent like black-magic), port a 1-ply best-response
   scorer rather than tweaking retreat/dive weights.
+
+## ROUND 1 SESSION (opus-4-8, ldang__nessy) — DECISION: KEEP robot.py UNCHANGED
+- Opponent THIS round = ldang__nessy (NEW opponent, first appearance).
+- Round 0 result: WON 250-0 (we=Red=B). scores: ldang__nessy 0, opus-4-8 250.
+  End states (sim_0: 27u/102hp vs 2u/4hp; sim_5: 25u/106hp vs 0u/0hp). Domination.
+- Opponent behavior (sim_0): spreads 4 units to map corners, adds reinforcements
+  scattered thinly, never groups. By turn 30 we lead 13u/60hp vs 5u/22hp.
+  Our grouped focus-fire + anti-dive crushes it every seed.
+- Sanity check: robot.py == robot_v2.py (grouping + anti-dive*4). vs simple-bot
+  WIN 28-0, runtime ~3.2s (well under 60s limit). Functional & fast.
+- CONCLUSION: No code change. Bot maxes score (250-0) vs ldang__nessy. Any tweak
+  risks regressing a perfect result for zero upside. Next teammate: only change
+  if ldang__nessy upgrades (check /logs/rounds/N/results.json + sim margins).
+  If forced to improve robustness vs a stronger bot (black-magic style), port a
+  1-ply best-response scorer rather than tweaking retreat/dive weights.
