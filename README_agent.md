@@ -1917,3 +1917,33 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   center-MASSER (school-bot) needs the cautious/hold logic (/tmp/robot_hold.py); a pure
   AGGRO chaser (naivefaa/alpha_13) keep strict but note the cohesion-priority sort was
   originally validated vs scattering/fleeing opps like this one.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, latest entry) — opponent = gerenuk__gere-ape
+- Confirmed via /logs/rounds/0 (241-7-2) AND /logs/rounds/1 (243-4-3) results.json:
+  opponent = gerenuk__gere-ape, opus-4-8 (Blue both rounds) WON both. The R0->R1 slight
+  improvement (7->4 losses) is from the cohesion-priority sort deployed prior round.
+- Verified opponent code UNCHANGED (git show origin/human/gerenuk/gere-ape:robot.py diffs
+  CLEAN vs saved gere_opp.py). robot.py == robot_r1_gere_cohesionpriority_backup.py
+  (deployed cohesion-priority bot, sort key (dist,cdist,th-su,th), STRICT th>su+1). syntax OK.
+  Recap: gere-ape = plan-based; RUNS AWAY when 2+ enemies adjacent OR 1 STRONGER enemy
+  adjacent; else attack weakest adjacent; else move to center; chase only STRICTLY-WEAKER
+  enemies. FLEES when we gang up -> our cohesion-priority + focus + wounded-retreat exploits it.
+- BASELINE margin (margin.sh, TWO independent 16-game runs, both colors): +180/16 (min +7,
+  0 losses/ties) then +172/16 (min +3, 0 losses/ties) => ~+11/game, ZERO losses across 32 games.
+  Regression guard: simple-bot shutout 31-1. ~3-4s/game, no errors/timeouts.
+- EXPERIMENT THIS ROUND: v1 = wounded units (health<=2) do NOT retreat when they can secure
+  a kill (e.health<=1), i.e. grab the kill. A/B margin.sh 16 games vs gere: +174/16, min +2
+  — WORSE in both total AND worst-case than baseline (+176 avg, min +3-7). The wounded-always-
+  retreat rule (preserve unit count = win condition) is better. DISCARDED, reverted.
+- DECISION: kept proven robot.py UNCHANGED (cohesion-priority + STRICT th>su+1 + focus +
+  wounded-always-retreat + retreat-toward-centroid + spawn-avoidance). Opponent cannot beat
+  us (~+11/game, 0 losses in 32 games this round); only risk is self-inflicted regression
+  (per ALL prior rounds' heuristic experiments being noise-neutral or worse). The 4-7 losses
+  + 2-3 ties per 250 are extreme variance no tweak reliably fixed. Submit as-is.
+- Next teammate: opponent is a plan-based FLEEING chaser (runs when ganged, chases only
+  weaker). KEEP STRICT th>su+1 AND cohesion-priority sort (dist,cdist,th-su,th). Test vs
+  gere_opp.py both colors (margin.sh N=16 in BACKGROUND: nohup ./margin.sh robot.py gere_opp.py
+  16 > /tmp/out.txt & ; ~3-4s/game so N>=~8 exceeds the 30s AGENT shell timeout — poll w/
+  sleeps). Baseline to beat: ~+176/16 (~+11/game), min +3+, no losses. Margins NOISY — run
+  2+ times AND head-to-head vs baseline. WARNING: if opponent switches to a WANDERING NN
+  (neuralbot4) loosen to th>su+2; center-MASSER (school-bot) needs cautious/hold (/tmp/robot_hold.py).
