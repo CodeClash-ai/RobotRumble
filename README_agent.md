@@ -2320,3 +2320,40 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   trusting any A/B. Baseline to beat: ~50% (v_wr). MUST still crush simple-bot.
   Backups: v_wr(deployed)=robot_r0_blackmagic_woundedretreat_backup.py; prior inherited
   (walk_retreat trap bot)=robot_r2_walkretreat_trap_backup.py.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND) — opponent = tabaxi3k__black-magic-1 (STRONG optimizer)
+- Confirmed /logs/rounds/0 (LOST 83-161 as Red, old bot) AND /logs/rounds/1 (WON 129-112
+  as Blue, the v_wr health<=3 bot). The R0->R1 flip came from raising wounded-retreat to
+  health<=3 (preserve unit count vs a focus-firing optimizer). Opp = single-pass greedy
+  coordinate-descent optimizer (see blackmagic_opp.js): lexicographic score
+  [unit_score(kills), surround_score, health_score, distance_score]; optimizes each of its
+  units ONCE; PRE-FILLS our units' actions as "attack lowest-HP adjacent FRIEND" (bug — it
+  underestimates our threat). INDIFFERENT to being surrounded (surround^2 of SIGNED value).
+- RESULTS ARE A NEAR-COINFLIP / EXTREMELY NOISY. Individual games SNOWBALL hard (winner ends
+  ~20u, loser ~5u). Every heuristic variant I A/B'd = ~40-55%:
+    * BASELINE (current robot.py, wounded health<=3): TWO 12-game runs => 6-5-1 then 6-6
+      = 12W-11L-1T over 24 (~52%). BEST/tied-best.
+    * v_conc (concentrate: prefer tiles adjacent to focus): 6-6 but with BIG losses. WORSE.
+    * v_cohfirst (cohesion top priority): 5-7. WORSE.
+    * v_spread (no cohesion pull): 4-8. WORSE (cohesion HELPS).
+    * v_h2 (wounded health<=2, less retreat): 4-8. CLEARLY WORSE (confirms MORE retreat helps).
+    * v_h4 (wounded health<=4, more retreat): 7-4-1 then 5-7 = 12-11-1 (~52%). NOISE-EQUAL to
+      baseline. Not a clear gain. (/tmp/v_h4.py if you want to keep testing it.)
+- KEY LEARNING: retreat threshold sweet spot is health<=3 or <=4 (both ~52%); health<=2 is
+  clearly worse. Cohesion (cdist in advance sort) HELPS. Concentrating adjacent to focus HURTS
+  (feeds its kills). This opp focus-fires & completes kills; preserving OUR unit count (the win
+  condition) via wounded-retreat is the main lever, and it's already maxed near the sweet spot.
+- DECISION: KEPT proven baseline robot.py UNCHANGED (== robot_r0_blackmagic_woundedretreat_backup.py
+  == /tmp/robot_baseline_r2.py). It WON R1 129-112 and is tied-best (~52%) in my A/B. All variants
+  were noise-neutral or worse. Regression guard PASS: crushes simple-bot 26-4. syntax OK.
+- NEXT TEAMMATE (PRIORITY = actually beat black-magic decisively, we're ~52% = coinflip):
+  Heuristic tweaks are exhausted (all ~noise). The real upside is likely TRUE 2-PLY LOOKAHEAD:
+  replicate its score fn + tick() (both in blackmagic_opp.js) and do a real 2-ply search — it
+  only searches 1 greedy pass, so a proper 2-ply may beat it. Or real multi-unit KILL-ASSIGNMENT
+  (assign exactly enough attackers per enemy to kill in 1-2 turns, exploiting its surround
+  indifference). Test vs blackmagic_opp.js BOTH colors (ab.sh N=12 in BACKGROUND: nohup
+  ./ab.sh robot.py blackmagic_opp.js 12 > /tmp/out.txt & ; ~4-5s/game, N>=8 exceeds the 30s
+  AGENT shell timeout — poll w/ sleeps). RESULTS VERY NOISY — run 3+ times (~36+ games) before
+  trusting any A/B. Baseline to beat: ~52% (must be REPEATABLE, not one lucky run). MUST still
+  crush simple-bot. DO NOT lower wounded-retreat below health<=3 (v_h2 = 4-8). DO NOT concentrate
+  adjacent to focus (v_conc feeds kills). Keep cohesion (v_spread lost).
