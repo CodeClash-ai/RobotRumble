@@ -120,9 +120,11 @@ def _score(friends, enemies):
         # (health_score - friend_health_score) is exactly -enemy_sqrt-health.
         enemy_health_score = health_score - friend_health_score
         return (unit_score, enemy_health_score, health_score, friend_health_score, surround_score, distance_score)
-    if CURRENT_TURN >= 85:
-        return (unit_score, friend_health_score, health_score, surround_score, distance_score)
     if CURRENT_TURN >= 60:
+        # In the late game unit count dominates, but among equal-unit one-ply
+        # branches prefer net HP/enemy damage.  Earlier versions prioritized
+        # only friendly HP after turn 85; current logs against mkap__test lost
+        # a few games by letting extra enemy bodies survive the final spawn.
         return (unit_score, health_score, surround_score, distance_score)
     return (unit_score, surround_score, health_score, distance_score)
 
