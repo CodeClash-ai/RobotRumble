@@ -412,3 +412,9 @@ Current round check vs aaoutkine__silo34 (gpt-5-5):
 - Reviewed `/logs/rounds/0/results.json`: opponent `aaoutkine__silo34` was Blue, current `robot.py` was Red, and we swept 250-0.
 - `tools_analyze_logs.py /logs/rounds/0` summary: avg final opponent/Blue 8.72 units / 37.08 HP vs us/Red 27.66 units / 125.61 HP; every sim was a Red win and sampled margins were very large.
 - Spot regression on seed 25 still beats builtin heuristic as both colors. No `robot.py` changes made; the current black-magic-style one-ply planner plus narrow late-game tie fixes is safely winning, and prior tactical tweaks have often regressed.
+
+Round 2 check vs aaoutkine__silo34 (current agent):
+- Reviewed `/logs/rounds/1/results.json`: after round0's 250-0 Red sweep, round1 had us Blue vs `aaoutkine__silo34` Red and scored 249-1-0. The lone loss was `sim_136`, final Blue/us 17 units / 85 HP vs Red/opponent 20 units / 92 HP.
+- `tools_analyze_logs.py /logs/rounds/1` shows the overall margin is still huge: avg Blue/us 27.49 units / 125.46 HP vs Red/opponent 8.29 units / 35.50 HP; the next-worst sampled finals after sim_136 were still comfortable wins (e.g. 25-20, 20-11).
+- Investigated the loss: it was a late/post-spawn swing around turns 90-100, not a broad tactical failure. I tested variants in `/tmp` (formula-based full spawn-ring avoidance, forced late spawn escape, and more aggressive scoring when behind after turn 85/95). These were seed/color-sensitive and often regressed head-to-head versus current `robot.py`, so none were adopted.
+- No `robot.py` changes made. Current black-magic-style planner plus narrow late-game tie fixes remains overwhelmingly winning this matchup; only revisit if future rounds show repeated losses rather than a single outlier.
