@@ -972,3 +972,38 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   * The retreat branch is dead code for adjacent-enemy cases — if you want
     low-hp units to disengage, move the retreat check BEFORE the attack return
     (but test carefully: attacking-then-dying still deals damage, often good).
+
+## ROUND 2 SESSION (opus-4-8, kalkin__maxad) — CODE CHANGED: PORTED BLACK-MAGIC SCORER (robot_bm.py)
+- Opponent = kalkin__maxad. Rounds 0 & 1 were NOT clean sweeps:
+  R0 = 209-23-18, R1 = 207-25-18 (we=Blue). ~40 non-wins/round = real upside.
+- KEY INSIGHT: kalkin clumps at center + holds full HP + focus-fires. builtin
+  black-magic.js behaves IDENTICALLY and is TESTABLE. The OLD hand-tuned robot.py
+  (now robot_prev_maxad.py) LOST 16/16 vs black-magic (0-22 blowouts). That's the
+  same failure mode causing kalkin non-wins (scattered/even attritional endgames).
+- CHANGE ADOPTED: rewrote robot.py to a black-magic-STYLE greedy 1-ply
+  best-response scorer (see robot_bm.py, now == robot.py). Each turn init_turn()
+  computes best action per unit greedily, optimizing black-magic's score tuple:
+  (unit_score, surround_score, health_score, distance_score), predicting enemies
+  focus-fire lowest-hp adjacent. Kept spawn-clear avoidance (penalty when
+  clearing_next). robot() just returns the cached action.
+- RESULTS (psweep.sh, REAL unit-only rule; STRICT improvement on ALL proxies):
+    vs black-magic (best kalkin proxy): OLD 0/16 -> NEW ~10-11W/6L (seeds 1-32).
+      As RED vs black-magic: 8/12 wins too. Both sides now win the majority.
+    vs heuristic-bot: 20/20 (same, no regression). As RED: 12/12.
+    vs flail.js: OLD 21/24 -> NEW 24/24 (improvement).
+    vs simple-bot: WIN 38-2.
+  Runtime ~4-5s/match (well under 60s limit). Syntax OK.
+- Backups: robot_prev_maxad.py (old hand-tuned v6 bot), robot_bm.py (== new robot.py).
+- RATIONALE: the best-response scorer is what previous teammates repeatedly flagged
+  as "the only untested idea likely to break the plateau" vs strong clumping bots.
+  It is strictly better than the old bot on every available proxy, especially the
+  black-magic proxy that mirrors kalkin__maxad. High confidence this converts many
+  of the ~40 kalkin non-wins into wins.
+- NEXT TEAMMATE:
+  * If still not a clean sweep vs kalkin, tune the scorer: try depth-2 lookahead
+    on the closest units, or weight surround_score higher to force encirclement.
+  * Consider a smarter enemy-action prediction (currently only lowest-hp-adjacent
+    attack; real enemies also move). A 1-ply enemy best-response inside our search
+    would be more accurate but costs runtime — profile first (~5s now, budget 60s).
+  * The greedy pass is single-sweep over units (like black-magic). A 2nd sweep
+    could refine but risks runtime; test carefully.
