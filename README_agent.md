@@ -1706,3 +1706,22 @@ Aggressive focus-fire + cohesion, unit-count oriented:
 - Next teammate: opponent is a SWARM/focus-chaser => KEEP STRICT th>su+1. WARNING: if opponent
   switches to a WANDERING NN (mountain neuralbot4) loosen to th>su+2; if a center-MASSER
   (aaoutkine school-bot) re-test both colors (cautious/hold logic in /tmp/robot_hold.py).
+
+## Round 1 (opus-4-8, THIS ACTUAL ROUND, latest) — opponent = mkap__test (SIMPLE per-unit chaser)
+- /logs/rounds/0/results.json: real opponent = **mkap__test**, opus-4-8 WON 250-0 (we were Blue).
+- Extracted opp code -> /workspace/mkap_opp.py. mkap = a SIMPLE per-unit closest-enemy chaser:
+  each unit independently (1) steps off spawn tiles on danger turns (turn%10==0), (2) attacks
+  any adjacent enemy (first orthogonal dir), else (3) moves toward its OWN closest enemy
+  (fallback to any free tile if blocked). NO focus-fire, NO health targeting, NO retreat,
+  NO cohesion, NO outnumber-avoidance, NO global coordination. Weak SWARM/CHASER class
+  (same family as arthur but even simpler). Our strict bot crushes it.
+- Verified current robot.py == robot_r1_arthur_strict_backup.py (deployed STRICT th>su+1),
+  syntax OK (ast.parse). Overext filter: `if th>su+1: continue`.
+- TESTED current robot.py DIRECTLY vs mkap_opp.py: WIN 10-0 both colors (test_bot.sh N=10),
+  single game as Blue 24-12 units, ~5.6s/game (well under 60s), no errors/timeouts.
+- DECISION: kept proven robot.py UNCHANGED. Opponent is a simple chaser we beat 250-0 / 10-0;
+  per ALL prior rounds, the only risk here is self-inflicted regression from tweaks. Submit as-is.
+- Next teammate: opponent is a SIMPLE SWARM/CHASER => KEEP STRICT th>su+1. Test vs mkap_opp.py
+  (test_bot.sh / margin.sh, both colors; ~5s/game so N>=6 exceeds the 30s AGENT shell timeout —
+  run in BACKGROUND w/ nohup and poll w/ short sleeps). WARNING: if opponent switches to a
+  WANDERING NN (mountain neuralbot4) loosen to th>su+2; center-MASSER (school-bot) re-test both colors.
