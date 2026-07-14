@@ -257,20 +257,32 @@ def init_turn(state: State) -> None:
     # is exactly when a slightly better local optimum matters most, e.g.
     # early game or once one side is nearly wiped out). Bounded by size so
     # we never risk the 60s forfeit limit in big mid-game battles.
-    size = len(friends) * len(enemies)
-    if size <= 150:
-        PASSES = 4
-    elif size <= 400:
-        PASSES = 3
-    elif size <= 900:
-        PASSES = 2
-    else:
-        PASSES = 1
-    # Adaptive downgrade: if the per-turn time budget is tight (slow
-    # hardware / big battle), cap passes further so we still finish well
-    # within the 60s/game forfeit limit.
-    if per_turn_budget < 0.3:
-        PASSES = 1
+    # PASSES: number of coordinate-ascent sweeps per turn.
+    #
+    # IMPORTANT (this round's finding - see README_agent.md): earlier
+    # rounds assumed "more passes = strictly better" (more refinement of
+    # a coordinate-ascent local optimum can only help). That reasoning is
+    # WRONG here because each pass optimizes our friends' actions against
+    # a *fixed, possibly-incorrect* prediction of the enemy's action (the
+    # "enemy attacks lowest-health adjacent friend" heuristic baseline
+    # computed once above, not re-derived after each of our hypothetical
+    # moves). Extra passes just grind harder to find the best response to
+    # that fixed (wrong) prediction - i.e. they overfit to a mirage. A/B
+    # tested head-to-head vs `black-magic.js` (which always uses exactly
+    # 1 pass) on 6 fixed seeds (100-105): PASSES=1 won 4/6 (seeds 100,
+    # 101, 102, 105), while the previous adaptive PASSES=4/3/2/1 won only
+    # 1/6 on the SAME seeds. Matching black-magic.js's own single-sweep
+    # depth also makes this a fair symmetric fight (same algorithm, same
+    # search depth) instead of us "confidently" out-thinking a baseline
+    # assumption neither team actually plays. Also re-confirmed PASSES=1
+    # still comfortably beats nothing-bot.js/simple-bot.js/flail.js.
+    #
+    # Kept as a variable (not inlined) in case a future round wants to
+    # re-litigate this with a real 2-ply search that re-derives the
+    # enemy's action after each candidate move instead of holding it
+    # fixed - that would be a principled reason to add more refinement,
+    # unlike blindly increasing PASSES against a static/wrong prediction.
+    PASSES = 1
     friend_coords = list(friends.keys())
     for _pass in range(PASSES):
         # Bail out of further coordinate-ascent passes if we've already

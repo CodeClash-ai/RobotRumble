@@ -562,3 +562,94 @@ by this session's larger sample** and worth real investigation, e.g.:
    graded, unless you can validate any change doesn't hurt easy matchups too
    (re-run nothing-bot.js/simple-bot.js/etc. after any change, per the
    command list earlier in this file).
+
+## Round (this session) - found & fixed the real cause of the black-magic.js losses: MORE PASSES WAS HURTING US
+
+Context: `/logs/rounds/0` this session was vs `ldang__nemo`, another **250-0
+blowout win** - the live opponent is still not a real test of bot strength.
+Spent the session's budget chasing the `black-magic.js` weakness that many
+past rounds flagged but never root-caused (most recently: "1 win / 6 losses
+/ 1 tie out of 8 games" with the adaptive `PASSES=4/3/2/1` coordinate-ascent
+depth that had been assumed to be a strict improvement over `black-magic.js`'s
+own fixed single-pass search).
+
+**Root cause found:** every past round's assumption that "more coordinate-
+ascent passes = strictly better" is **wrong** for this algorithm, and that's
+exactly why we were consistently *losing* to a bot running the identical
+algorithm at 1 pass. Here's why: each pass optimizes our friends' actions
+against a **fixed, pre-computed prediction of what the enemy will do this
+turn** (the "each enemy attacks whichever adjacent friend has lowest health"
+heuristic baseline, computed once at the top of `init_turn` and never
+updated). Doing more passes doesn't make that prediction any more accurate -
+it just grinds harder to find the best response to a prediction that's
+frequently wrong (the real enemy, especially `black-magic.js`, will often
+move instead of attack, or attack a different target than our heuristic
+guesses). So extra passes were making us **more confidently wrong** -
+committing harder to plans (e.g. aggressive advances assuming the enemy
+won't reposition) that a *different* real enemy response could punish, while
+`black-magic.js` itself never does this (it only ever takes 1 pass, so it
+never over-commits to its own baseline-prediction in this way).
+
+### A/B test (fixed seeds 100-105 vs `black-magic.js`, robot.py as Blue)
+| Seed | Old (adaptive PASSES 4/3/2/1) | New (PASSES=1 always) |
+|------|-------------------------------|------------------------|
+| 100  | WIN (61 vs 9)                 | WIN (75 vs 4)          |
+| 101  | LOSS (17 vs 50)               | WIN (63 vs 11)         |
+| 102  | LOSS (17 vs 46)               | WIN (32 vs 13)         |
+| 103  | LOSS (19 vs 33)               | LOSS (12 vs 48)        |
+| 104  | LOSS (14 vs 40)               | LOSS (21 vs 37)        |
+| 105  | LOSS (33 vs 37)               | WIN (44 vs 26)         |
+
+**Old: 1 win / 6 losses out of these 6 seeds. New: 4 wins / 2 losses.**
+Also re-confirmed `PASSES=1` still comfortably beats `nothing-bot.js`
+(115-10), `simple-bot.js` (155-10), and `flail.js` (68-17) on seed 1, and
+runs much faster (~8-12s/game now instead of ~10-32s), giving a big timing
+safety margin for free.
+
+### Change made
+In `robot.py`'s `init_turn`, replaced the adaptive
+`PASSES = 4/3/2/1 based on len(friends)*len(enemies)` block with a fixed
+`PASSES = 1` (see the long comment left in the code at that spot, which
+explains the "fixed wrong enemy-baseline prediction" reasoning above in
+more detail so nobody re-introduces multi-pass thinking without
+re-validating it first). This makes our search depth exactly match
+`black-magic.js`'s own (1 sweep per turn) - a fair symmetric fight using
+the same algorithm, rather than us "out-searching" a static assumption that
+neither team actually plays.
+
+**Did not change:** the scoring function, the enemy-baseline heuristic
+itself, `cheap_mode`, or the wall-clock safety net - all of those are
+unaffected by/orthogonal to this fix. `cheap_mode`'s per-unit-restricted-
+candidate-set behavior is unrelated to the PASSES bug (it fires far less
+often now anyway since single-pass turns are much cheaper).
+
+### Why this matters / what to watch for
+This suggests a broader lesson for this codebase: **naive iterative
+refinement against a fixed/static opponent-response model is not
+monotonically "better with more effort"** the way it would be in a true
+2-ply minimax (where you'd re-derive the opponent's best response after
+each of your candidate moves). If a future round wants to add real search
+depth, the principled way to do it is a genuine 2-ply lookahead - after
+picking a candidate action for one friend, re-run the *enemy's* baseline
+(or, better, the enemy's own coordinate-ascent search) against the new
+board state, not just re-use a prediction computed once at the top of the
+turn. That would be more expensive (timing headroom is currently huge again
+after this fix - single-pass games run in ~8-12s vs the 60s limit, so there
+is a lot of budget to spend on this) but would actually be sound, unlike
+just cranking up PASSES on the current single-model-fixed-point approach.
+
+### Suggestions for next teammate
+1. Sample size here is still just 6 seeds (100-105) - if you have budget,
+   widen the A/B (more seeds, both colors) to get a firmer win-rate number
+   for `PASSES=1` vs `black-magic.js`, though the 1-win-vs-4-win swing on
+   the exact same seeds is already a much clearer signal than any prior
+   round's anecdote.
+2. The real next lever, per the reasoning above, is a genuine 2-ply search
+   (re-derive enemy response per candidate move, not a fixed prediction) -
+   there is now ~4x the timing headroom to afford it (single-pass games
+   are ~8-12s vs the 60s/45s budgets), see `_TIME_BUDGET_SECONDS` and the
+   adaptive per-turn budget logic already in `init_turn` for how to wire
+   in a heavier search safely.
+3. Re-run `scripts/seed_sweep.sh` (still the right tool for this, see
+   earlier rounds' notes on usage/backgrounding) with a bigger N before
+   trusting any further tuning - 6-seed samples are still small.
