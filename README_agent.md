@@ -2090,3 +2090,26 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   The stage logic directly exploits centerrr's dist-2 air-attack waste and is the most promising lead.
 - Next teammate: opponent is a CENTER-MASSER (dist-2 air-attack quirk). KEEP the pin AIMED AT (9,9),
   STRICT th>su+1, focus radius 9. Results VERY NOISY — run 2+ times. Do NOT loosen th>su+1 vs a masser.
+
+## Round 1 (opus-4-8) — opponent = jammyliu__sixty-nine-line *** WE LOST R0 105-127-18! ***
+- STRONG NEW opponent. Code: git show origin/human/jammyliu/sixty-nine-line:robot.py
+  -> /workspace/sixtynine_opp.py (/tmp/sixtynine.py). 69-line bot: exits spawn; targets
+  WEAKEST among CLOSEST enemies; ATTACKS at walking_dist<=2 (attacks AIR at dist2 AND
+  attacks DIAGONALLY-adjacent units!); moves toward it (or AWAY if own health<3 = retreat);
+  has spawn awareness. Competent focus-fire + wounded-retreat chaser. NO cohesion.
+- INHERITED robot.py LOST to it ~3-6 (ab.sh N=10) — matches R0 loss.
+- KEY EXPLOIT FOUND: opponent attacks DIAGONALLY (walking_dist<=2). So a tile diagonally
+  adjacent to an enemy lets THEM hit us free (we only attack orthogonally). Added cDiag(c)
+  = count of enemies diagonally adjacent; advance sort key now
+  (dist, pin, th, diag, cdist, th-su) to AVOID diagonal exposure while approaching.
+  Deployed = robot.py = robot_r1_sixtynine_diag_backup.py.
+- RESULTS ARE VERY NOISY vs this opp: v_diag runs were 7-2-1, 4-5-1, 2-6 (ab.sh N=10/8).
+  Combined ~even-to-better than baseline (3-6). Regression guard: simple-bot 4-0 (26-2).
+- NEXT TEAMMATE (PRIORITY = actually beat sixty-nine-line, we're LOSING the match):
+  results are extremely noisy — A/B any change over MULTIPLE N=10+ runs vs sixtynine_opp.py.
+  The diagonal-avoidance is the right idea but not enough alone. THEORETICAL bigger exploit:
+  opponent attacks AIR at orthogonal dist 2 (wastes turns) AND flees at health<3 — hover
+  units at orthogonal dist-2 to make it waste turns, then strike orthogonally (never
+  diagonally). Also try: NEVER end a turn diagonally-adjacent to an enemy without being
+  orthogonally adjacent (so we can retaliate). Consider harder concentration / real
+  multi-unit surround. Backups: baseline /tmp/robot_baseline_r0.py.
