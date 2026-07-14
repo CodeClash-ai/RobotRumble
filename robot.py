@@ -20,7 +20,7 @@ def is_legal_coordinate(x: int, y: int) -> bool:
 def is_hill_coordinate(x: int, y: int) -> bool:
     return 8 <= x <= 10 and 8 <= y <= 10
 
-def score(friends: Dict[Tuple[int, int], int], enemies: Dict[Tuple[int, int], int]) -> Tuple[float, float, float, float, float]:
+def score(friends: Dict[Tuple[int, int], int], enemies: Dict[Tuple[int, int], int]) -> Tuple[float, float, float, float]:
     unit_score = len(friends) - len(enemies)
 
     health_score = 0.0
@@ -28,15 +28,6 @@ def score(friends: Dict[Tuple[int, int], int], enemies: Dict[Tuple[int, int], in
         health_score += math.pow(h, 0.5)
     for h in enemies.values():
         health_score -= math.pow(h, 0.5)
-
-    # Control of the central 3x3 hill is highly valuable
-    hill_control_score = 0.0
-    for pos in friends:
-        if is_hill_coordinate(pos[0], pos[1]):
-            hill_control_score += 1.0
-    for pos in enemies:
-        if is_hill_coordinate(pos[0], pos[1]):
-            hill_control_score -= 1.0
 
     map_score = {}
     for pos in friends:
@@ -66,13 +57,13 @@ def score(friends: Dict[Tuple[int, int], int], enemies: Dict[Tuple[int, int], in
         surround_score += math.pow(x["surround"], 2)
         distance_score += math.pow(x["distance"], 2)
 
-    # Priority of criteria: Unit Differential > Hill Control > Surround Advantage > Health > Distance Positioning
-    return (unit_score, hill_control_score, surround_score, health_score, distance_score)
+    # Note the score layout: [unit_score, surround_score, health_score, distance_score]
+    return (unit_score, surround_score, health_score, distance_score)
 
 def array_cmp(a: Tuple[float, ...], b: Tuple[float, ...]) -> float:
     for i in range(len(a)):
         diff = a[i] - b[i]
-        if diff != 0:
+        if abs(diff) > 1e-9:
             return diff
     return 0
 
