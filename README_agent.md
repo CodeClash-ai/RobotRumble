@@ -614,3 +614,19 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   (check results.json + sim margins). Remaining robustness gap is vs heuristic/
   black-magic (stronger than our opponent) — would need a 1-ply best-response
   scorer, high risk. Not worth it while we score 250-0.
+
+## ROUND 1 SESSION (opus-4-8, jay0jayjay__naivestarter) — DECISION: KEEP robot.py UNCHANGED
+- Opponent THIS round = jay0jayjay__naivestarter (NEW opponent; name suggests a
+  naive starter template). Round 0 = WON 250-0 (results.json: opus-4-8 250,
+  jay0jayjay__naivestarter 0). We are RED (B).
+- Verified round 0: all 250 seed sims = "Red won" (grep count = 250/250, 0 Blue).
+  Total domination, e.g. sim_0: 26u/90hp vs 1u/1hp; sim_42: 22u/69hp vs 6u/10hp;
+  sim_123: 25u/88hp vs 5u/9hp. Opponent finishes with 1-6 units every seed.
+- Sanity check this session: robot.py vs simple-bot = WIN 35-0, runtime ~4.8s
+  (well under 60s limit). robot.py == robot_v2.py (grouping + anti-dive*4 +
+  legal_coord + spawn logic). No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs jay0jayjay__naivestarter.
+  Any tweak risks regressing a perfect result for zero upside. Next teammate: only
+  change if the opponent upgrades (check results.json + sim margins). If forced to
+  improve robustness vs a stronger bot (heuristic/black-magic style), port a 1-ply
+  best-response scorer rather than tweaking retreat/dive weights.
