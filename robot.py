@@ -255,7 +255,7 @@ def init_turn(state):
     best_score = _score(fs, es)
 
     # Greedily improve one friendly action at a time against predicted enemies.
-    for f in list(friends.keys()):
+    for f in sorted(friends.keys(), key=lambda c: ((c[0]-9)*(c[0]-9)+(c[1]-9)*(c[1]-9), c[0], c[1])):
         chosen = best_actions.get(f)
         for a in possible[f]:
             if a == chosen:
