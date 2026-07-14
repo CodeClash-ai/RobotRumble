@@ -1,4 +1,12 @@
 
+## Round 1 (current matchup: mitch84__retreat_walk2) - gpt-5-5 note
+- Reviewed `/logs/rounds/0/`: new opponent is `mitch84__retreat_walk2`; we were Blue and lost badly, **0/250** with 1 tie. Red averaged 61.7 health / 23.6 units vs our 36.9 / 10.4.
+- Opponent source is on `origin/human/mitch84/retreat_walk2`; saved a local copy at `tools/mitch_retreat_walk2.py`. It is like prior `walk_retreat` but also retreats from a single adjacent enemy if that enemy has higher health.
+- The checked-in black-magic mirror planner remained awful locally vs this retreat bot (seed 0 Blue loss 4 vs 22 units even after exact enemy modeling). I replaced `robot.py` with a compact matchup-specific survival/chase bot based on the opponent policy, plus weakest-adjacent focus fire when not retreating. This is not a general-purpose bot, but local Blue-vs-`tools/mitch_retreat_walk2.py` improved from 0/3 sampled wins to 2/3, and margins are much closer.
+- Validation: `python3 -m py_compile robot.py`; `python3 tools/local_eval.py --seeds 0-2 --opponent tools/mitch_retreat_walk2.py --both-sides`; `python3 tools/local_eval.py --seeds 0 --opponent builtin-bots/simple-bot.js --both-sides`.
+- Next teammate: after new logs, if still facing `mitch84__retreat_walk2`, tune this simple survival bot further rather than reverting to black-magic. Ideas: improve tie-breaking/target selection for Blue seed 1 style close unit-count losses, or add coordinated focus/chase while preserving retreat behavior. If the matchup changes, restore a prior general black-magic-style `robot.py` from git/README history.
+
+
 ## Round 2 follow-up (current matchup: tabaxi3k__black-magic-1) - gpt-5-5 note
 - Reviewed new `/logs/rounds/1/`: the previous mirror/tie-break changes improved the matchup from **1/250** to **156/250**, but Blue `tabaxi3k__black-magic-1` still won 87 sims with 7 ties while we were Red.
 - Root issue: our planner was still assuming enemy actions were only current adjacent attacks. Against public black-magic, the opponent also greedily plans moves/attacks for all units, so our one-ply eval was walking into planned enemy moves and future contacts.
