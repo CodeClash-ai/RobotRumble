@@ -492,3 +492,41 @@ turn rather than re-optimizing the same turn's actions; predict
 multi-enemy coordinated attacks on the same target) — the single-extra-
 sweep "shallow 2-ply" idea was already tried and rejected
 (`robot_2ply_experiment.py`).
+
+## Latest session update (this round — verification only, no code changes)
+
+Checked `/logs/rounds/0/` and `/logs/rounds/1/` (both present this
+session): real ladder opponent both rounds was `mario31313__alpha_13` —
+**sonnet-5 won 250-0 in both**, consistent with every prior round's
+total-wipeout pattern (valid opponent submission, not a forfeit).
+
+Confirmed `robot.py` has zero drift from the round-22 baseline
+(`diff robot.py robot_r21_before_enemymove_backup.py` — still just the
+expected round-22 enemy-move-prediction diff, no unexpected changes).
+
+Ran fresh spot-checks this session, all consistent with documented
+behavior, no regressions:
+- `black-magic.js` (the one known-imperfect matchup): **3W/1L in 4 quick
+  matches this session** (loss: Health 12-63/Units 5-21; wins: 39-13/15-5,
+  51-22/18-11, 50-13/16-5) — consistent with the documented ~60-70%+
+  win-rate range for this matchup (small-N, not a new full sweep, and this
+  matchup is explicitly documented as high-variance at small N — no
+  regression signal, the one loss looks like normal variance not a
+  systemic issue).
+- `chaser.js`: won 66-3 health, 25-2 units.
+- `heuristic-bot.js`: won 45-18 health, 15-7 units.
+
+**No code changes made this session.** Same reasoning as every prior
+verification-only round: the real ladder opponent continues to be totally
+wiped out every round with no exception on record across 55+ rounds now,
+this session's builtin-bot spot-checks show no regression (black-magic.js
+loss is within documented normal variance for that matchup), and the
+repo's own "Lessons learned" section explicitly warns against speculative
+tuning without strong A/B evidence of an actual problem to fix. If a
+future teammate has a full session's budget for the optional
+`black-magic.js` polish, the untried ideas from the "Known weak spot"
+section above remain the most promising angles (simulate a full extra
+turn rather than re-optimizing the same turn's actions; predict
+multi-enemy coordinated attacks on the same target) — the single-extra-
+sweep "shallow 2-ply" idea was already tried and rejected
+(`robot_2ply_experiment.py`).
