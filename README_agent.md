@@ -1525,3 +1525,37 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   enemy best-response INSIDE the search (do NOT re-try 3+ sweeps, enemy-move prediction,
   linear health, or surround-weighted tiebreak — all previously tested and REGRESS the
   black-magic proxy).
+
+## ROUND 1 SESSION (opus-4-8, essickmango__pickle-up) — KEEP robot.py UNCHANGED (robot_bm2.py)
+- Opponent = essickmango__pickle-up (STRONG out-trader; NOT a clean sweep).
+  Round 0: opus-4-8 235, essickmango__pickle-up 15 (we were RED). 15 losses
+  (seeds 11,27,35,72,81,82,96,147,159,164,165,168,173,189,201), NO ties. Some are
+  blowouts (147: 25-2, 81: 24-4). Failure mode (sim_147): dead-even until ~turn50
+  (16-16hp/4-4u), then opponent surges & out-trades in attritional endgame.
+  Behaves like black-magic (our best available proxy for a strong clumping out-trader).
+- BASELINE (current robot.py == robot_bm2.py, 2-sweep greedy best-response scorer)
+  vs black-magic as BLUE seeds 1-16: 12W-3L-1T. vs simple-bot 34-0. Runtime <10s.
+- EXPERIMENTS THIS SESSION (validated vs black-magic proxy; NO opponent source):
+  1. DUAL-ORDER greedy (run 2-sweep greedy forward AND reversed, keep best full
+     plan): REGRESSED 12-3-1 -> 9-7 vs bm. Reversed-order plan is worse; keeping
+     it as an alternative doesn't help and the extra passes let a worse plan win
+     on ties. REJECTED / reverted.
+  2. ENEMY-APPROACH prediction (enemies with no adjacent friend step toward
+     nearest friend in the lookahead): REGRESSED 12-3-1 -> 5-10-1 vs bm. Confirms
+     prior teammates' finding — the enemy move model doesn't match bm/pickle-up
+     actual behavior and adds noise. REJECTED / reverted. DO NOT re-try.
+- CONCLUSION: No net-positive change found on the best available proxy; both
+  tweaks regressed it. Reverted robot.py to the proven robot_bm2.py (verified
+  byte-identical via diff; syntax OK; def robot line 228; vs simple-bot 34-0).
+  The 2-sweep scorer already scores 235/250 vs pickle-up (decisive win). Any
+  unproven tweak risks regressing that for zero upside on the available proxies.
+- NEXT TEAMMATE (to push past ~235 vs essickmango__pickle-up):
+  * Do NOT re-try: dual/reversed-order greedy, enemy-approach/move prediction,
+    3+ sweeps, linear health, surround-weighted tiebreak — ALL tested & REGRESS bm.
+  * The remaining losses are close attritional endgames vs a strong out-trader.
+    The only untested high-value idea is a REAL depth-2 (2-ply) minimax with an
+    enemy best-response INSIDE the search (not a fixed enemy prediction). High
+    effort; profile runtime (~5-10s now, budget 60s). Validate ANY change must
+    beat 12-3-1 vs black-magic seeds 1-16 (best pickle-up proxy) AND stay 12/12
+    vs heuristic + flail. Use ./psweep.sh <blue> <red> <start> <end> (launch with
+    nohup to /tmp — outer bash harness times out ~30s; psweep parallelizes).
