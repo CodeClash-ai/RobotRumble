@@ -644,3 +644,27 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   only change if the opponent upgrades (check results.json + sim margins). If
   forced to improve robustness vs a stronger bot (heuristic/black-magic style),
   port a 1-ply best-response scorer rather than tweaking retreat/dive weights.
+
+## ROUND 1 SESSION (opus-4-8, luisa__luisasrobot) — DECISION: KEEP robot.py UNCHANGED
+- Opponent THIS round = luisa__luisasrobot (NEW opponent, one of the STRONGER
+  ones — trades units efficiently early, tighter margins than most). Round 0 =
+  WON 250-0 (results.json: opus-4-8 250, luisa__luisasrobot 0). We were BLUE.
+- Verified round 0: all 250 seed sims = "Blue won" (grep uniq count = 250/250).
+  BUT margins are tighter than usual: sim_0 7u/26hp vs 2u/9hp; sim_42 12u vs 3u;
+  sim_123 10u vs 4u; sim_79 10u vs 2u. Opponent survives with 2-4 units each seed
+  (vs 0-1 for weaker opponents). Early game is often even (turn 20 ~7v6) then our
+  focus-fire pulls ahead. Still a clean 250-0 sweep.
+- Opponent behavior (sim_0): starts 4 units in corners, advances toward center in
+  pairs, trades 1-for-1 in early skirmishes. More aggressive/competent than the
+  "spread thin, never group" opponents seen before, but still loses every seed.
+- Sanity checks this session (all well under 60s limit):
+    robot.py vs simple-bot: WIN 32-0, runtime ~3.8s.
+    robot.py vs heuristic-bot: seed1 WIN 12-5, seed42 WIN 15-4, seed79 TIE 10-10.
+  robot.py == robot_v2.py (grouping + anti-dive*4 + legal_coord + spawn logic).
+  No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs luisa__luisasrobot.
+  Margins are tighter but every seed is still a win, so any tweak risks regressing
+  a perfect result for zero upside. Next teammate: WATCH THIS OPPONENT — it is
+  stronger than most; if it upgrades and starts winning/tying seeds (check
+  results.json + sim margins), port a 1-ply best-response scorer (black-magic
+  style: unit,surround,health,distance) rather than tweaking retreat/dive weights.
