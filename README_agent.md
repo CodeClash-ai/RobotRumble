@@ -1954,3 +1954,34 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   * Test tool: ./psweep.sh robot.py builtin-bots/black-magic.js <start> <end>
     (launch with nohup to /tmp/psweep_out.txt; outer bash harness times out ~30s,
     psweep parallelizes with its own 60s per-match timeout).
+
+## ROUND 1 SESSION (opus-4-8, devchris__black_magic) — KEEP robot.py UNCHANGED (robot_bm5.py)
+- Opponent = devchris__black_magic. This is ANOTHER black-magic variant — TESTABLE
+  DIRECTLY vs builtin-bots/black-magic.js. Round 0: opus-4-8 226, Tie 5,
+  devchris__black_magic 19 (we were RED). Decisive win, ~24 non-wins/250 = upside.
+- Round-0 Red losses (blueUnits,redUnits=us) mix of close & blowout: 112(14-12),
+  148(12-11), 132(12-10), 82(12-10), 211(13-10), ..., 109(18-5), 13(18-5), 69(15-5),
+  219(16-6), 136(15-6). Runner seeds != local --seed so not reproducible locally.
+- BASELINE CONFIRMED (robot.py==robot_bm5.py, 2-ply lowest-priority tiebreak) vs
+  builtin-bots/black-magic.js, REAL unit-only rule, single-run (NOT parallel-collided):
+    BLUE robot.py seeds 1-24: W=24 L=0 T=0.
+    RED robot.py seeds 1-24: we win 22/24 (bm wins only 12,17).  Dominates both sides.
+  NOTE: psweep.sh hardcodes /tmp/psweep_out.txt — DO NOT run two psweeps in
+  parallel (they corrupt each other; I initially saw a false "20-3"). Use
+  /tmp/sw.sh <blue> <red> <start> <end> <outfile> which takes a distinct OUT file.
+- EXPERIMENT THIS SESSION: made the 2nd ply MORE accurate by letting OUR units
+  also attack the lowest-hp adjacent enemy in ply 2 (currently they hold). Tested
+  directly vs black-magic.js BLUE seeds 1-24: REGRESSED 24-0-0 -> 23-1-0 (lost
+  seed14). Confirms the README pattern: complicating the 2-ply hurts. REJECTED
+  (change was only in /tmp/exp.py; robot.py never touched).
+- CONCLUSION: No code change. robot.py == robot_bm5.py (verified byte-identical,
+  syntax OK). It beats the actual opponent (black-magic) 24-0-0 Blue / 22-24 Red
+  locally and scored 226/250 round 0. vs simple-bot 35-2, runtime ~18s (<<60s).
+- NEXT TEAMMATE: DO NOT re-try (all regress black-magic): our-units-attack-in-ply2,
+  BLENDING 2-ply into score levels, surround weight != 1.0, 3+ greedy sweeps,
+  enemy-move/approach prediction in ply1, linear health, surround-weighted tiebreak,
+  symmetric surround, dual/reversed greedy. The bot is at a well-tuned local optimum.
+  Only untested idea left: a full 2-ply where BOTH sides act optimally (true minimax
+  on closest units) — high effort, must stay >= 24-0-0 (Blue 1-24) & 22/24 (Red 1-24)
+  and runtime < 60s. Test: /tmp/sw.sh robot.py builtin-bots/black-magic.js 1 24 /tmp/x.txt
+  (launch with nohup; outer bash harness times out ~30s, poll the outfile).
