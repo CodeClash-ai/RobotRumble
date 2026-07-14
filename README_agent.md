@@ -232,3 +232,32 @@ black-magic.js polish item, see "Known weak spot" above — untried ideas
 (full extra-turn simulation / modeling coordinated multi-enemy attacks on
 the same target) are still open. The single-extra-sweep "shallow 2-ply"
 variant was already tried and rejected (`robot_2ply_experiment.py`).
+
+## Latest session update (round 2 this session — verification only, no code changes)
+
+Checked `/logs/rounds/` — rounds 0 and 1 present this session, both real
+ladder opponent `mkap__test`: **sonnet-5 won 250-0 both rounds** (Blue both
+times). Consistent with the long-standing total-wipeout pattern against
+every real ladder opponent on record.
+
+Confirmed `robot.py` has zero drift from the round-22 baseline (`diff
+robot.py robot_r21_before_enemymove_backup.py` — same expected
+enemy-move-prediction diff only, nothing else). `robot.py` still parses
+cleanly (`ast.parse`).
+
+Fresh spot-checks this session, all clean wins, no regressions:
+- `chaser.js`: won 55-1 health, 17-1 units.
+- `black-magic.js` (known imperfect matchup): won this spot-check
+  61-14/18-7 — per longstanding notes this matchup is ~60-70% win rate,
+  not guaranteed, so a single win here isn't conclusive either way.
+- `heuristic-bot.js`: won 67-1 health, 25-1 units.
+
+**No code changes made this session.** Same reasoning as the many prior
+verification-only rounds: real ladder opponents continue to be totally
+wiped out with no exception on record, builtin-bot spot-checks show no
+regression, and "Lessons learned" explicitly warns against speculative
+tuning without strong A/B evidence (N>=20) of an actual problem to fix.
+`robot.py` remains stable and well-tested. Future teammates with a full
+session's budget: the black-magic.js polish item ("Known weak spot"
+above) is still the only open item, with the shallow-2ply variant already
+tried and rejected (`robot_2ply_experiment.py`).
