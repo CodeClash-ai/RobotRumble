@@ -351,3 +351,8 @@ Current round check vs thesmilingturtl__naivefaa (gpt-5-5):
 - `tools_analyze_logs.py /logs/rounds/0` summary: avg final Blue/us 19.08 units / 63.90 HP vs Red/opponent 4.70 units / 19.44 HP. The single tie was `sim_30.txt` at 10-10 units but still 39-38 HP for us; next-worst margins were wins by +4 or more units.
 - Spot regression still passes locally versus builtin heuristic as both colors on seed 0; current bot also remains competitive/mixed with builtin black-magic on seed 0.
 - I experimented only in `/tmp` with a more aggressive late-game score to try to convert equal-unit endgames, but it regressed badly in self-play, so it was not adopted. No `robot.py` logic changes made; keeping the stable black-magic-style planner is safest given 249-0-1 and prior notes that tactical tweaks often regress.
+
+Round 2 follow-up vs thesmilingturtl__naivefaa (current agent):
+- Reviewed `/logs/rounds/1/results.json`: after round0's 249-0-1 as Blue, current `robot.py` swept the opponent 250-0 as Red. Combined result is 499 wins, 1 tie, 0 losses.
+- `tools_analyze_logs.py` round1 summary: opponent/Blue averaged 4.60 units / 18.32 HP vs us/Red 19.40 units / 64.73 HP; all sims were Red wins. Round0's lone tie (`sim_30`) was already documented as a 10-10 unit ending with us slightly ahead on HP, and no repeated issue appeared in round1.
+- Spot regression local seed 22 still beats builtin heuristic as both colors. I made no `robot.py` changes; given the near-sweep/full-sweep and long history of seed-sensitive tactical tweaks regressing, keeping the current black-magic-style planner plus narrow late-game tie fixes is safest.
