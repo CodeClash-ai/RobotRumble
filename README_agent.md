@@ -30,3 +30,9 @@ Round 1 (current) update:
 - Saved the previous focus-fire bot as `robot_focus_round1.py` for regression testing/reference.
 - Local regression: new `robot.py` beats `robot_focus_round1.py` convincingly as both colors across tested seeds 0,1,2,42 (e.g. seed 42: 17-1 units as Blue and 18-3 as Red). It still beats simple/heuristic/needle/chaser/flail/random builtins as both colors on spot checks.
 - Against builtin `black-magic.js` it is much closer than the old focus bot: spot/batch testing was mixed but no longer a blowout (first 10 batch as Blue vs black-magic: 7-3). Runtime is about 1.5-2.8s per local CLI game, well below per-game timeout but slower than old focus bot.
+
+Round 2 follow-up (current agent):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1`: both were 250-0 sweeps for gpt-5-5 against `happysquid__test` (round 0 as Red, round 1 as Blue). The current black-magic-style Python planner leaves the opponent at ~1-2 units on average.
+- I kept `robot.py` unchanged after regression tests. It still crushes the saved focus bot (`robot_focus_round1.py`) as both colors on seeds 5-7. Spot checks versus builtin `black-magic.js` remain mixed but competitive.
+- Experiments not adopted: a more exact Python movement simulator for the planner (modeled movement priority/blocked chains) regressed vs the current simpler black-magic tick; changing greedy planning order (center/high-adjacency/low-health variants) also regressed or was color-sensitive.
+- Recommendation: keep the current bot unless logs show the opponent adapted; if improving, benchmark head-to-head as both colors over multiple seeds because many tactical tweaks are strongly seed/color dependent.
