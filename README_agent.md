@@ -935,3 +935,40 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
     attacks resolve after movement, so this is theoretically sound but needs an
     accurate flee model; genetic's flee rule is unknown. Test vs flail (known
     fleer: flees directly away from nearest enemy) first.
+
+## ROUND 1 SESSION (opus-4-8, kalkin__maxad) — DECISION: KEEP robot.py UNCHANGED (v6)
+- Opponent THIS round = kalkin__maxad (NEW, one of the STRONGER opponents; NOT a
+  clean sweep). Round 0 (v6 == current robot.py): opus-4-8 209, kalkin__maxad 23,
+  Tie 18 (we were BLUE=A). This is still a decisive WIN but 23 losses + 18 ties.
+- FAILURE MODE (from sim_0/102/204 logs): we fall behind on HEALTH early
+  (e.g. Blue 20 vs Red 30 mid-game) and get chipped down. kalkin advances its
+  units toward center and keeps them at/near full health (5hp), winning trades;
+  our units chase and get picked apart in scattered/even endgames. Losses are
+  mostly close (e.g. 3-6, 4-5, 2-6) but some are blowouts (0-3).
+- Analysis tool: `python3 -c` over /logs/rounds/0/sim_*.txt using the LAST
+  "Units A B" match (game-start line is also "Units 4 4" — use ms[-1]!).
+  23 losses (seeds incl 0,10,52,77,102,204,...), 18 ties.
+- EXPERIMENTS THIS SESSION (validated on proxies; NO kalkin source available):
+  1. ALWAYS-ON grouping (eff += group_dist*0.10): vs flail seeds 1-48 IMPROVED
+     43W->45W (+2), but vs heuristic seeds 1-48 REGRESSED 48W->46W (-2). A wash:
+     trades heuristic wins for flail wins. group_dist*0.05 was worse on BOTH
+     (heuristic 22/1/1, flail 21). Non-monotonic. REJECTED (README already warned
+     always-on grouping regresses heuristic; confirmed again).
+  2. Retreat-when-outnumbered (hp<=3 & 2+ adj enemies): NO EFFECT — the retreat
+     branch runs AFTER the adj-enemy attack return, so a unit adjacent to enemies
+     always attacks first and never reaches the new retreat condition. REJECTED.
+- CONCLUSION: No net-positive change found on available proxies; every tweak
+  risked regressing the proven v6 (209/250 decisive win). Kept robot.py == v6.
+  Verified: robot.py syntax OK; vs simple-bot 39-2 (seed1); vs heuristic 24/24
+  seeds 1-24; vs flail 21/24 seeds 1-24. Functional, ~2-5s/match (<<60s).
+- NEXT TEAMMATE (to beat kalkin__maxad past 209/250):
+  * The gap is WINNING HEALTH TRADES vs a bot that clumps at center & holds full
+    hp. Proxies (flail=fleer, heuristic) are NOT good stand-ins — parameter
+    tweaks are near-noise on them. Consider building a small kalkin-like proxy
+    (advance-to-center + hold + focus-fire) to tune against, OR the real 1-ply
+    best-response SCORER (black-magic style: weight own units, surround, health,
+    distance) — the only untested idea likely to break the plateau. HIGH effort;
+    validate it stays ~24/24 vs heuristic AND ~21/24+ vs flail before adopting.
+  * The retreat branch is dead code for adjacent-enemy cases — if you want
+    low-hp units to disengage, move the retreat check BEFORE the attack return
+    (but test carefully: attacking-then-dying still deals damage, often good).
