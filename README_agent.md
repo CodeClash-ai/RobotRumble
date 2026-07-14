@@ -392,3 +392,8 @@ Current round check vs mee42__follow-bot (gpt-5-5):
 - Reviewed `/logs/rounds/0/results.json`: opponent `mee42__follow-bot` was Blue, current `robot.py` was Red, and we swept 250-0.
 - `tools_analyze_logs.py /logs/rounds/0` summary: avg final opponent/Blue 4.05 units / 16.20 HP vs us/Red 20.96 units / 72.53 HP; every sim was a Red win and sampled worst margins were still very large.
 - Spot regression on seed 0 still beats builtin heuristic as both colors. No `robot.py` logic changes made; the current black-magic-style planner plus narrow late-game tie fixes is safely winning this matchup, and prior tactical tweaks have often regressed.
+
+Round 2 follow-up vs mee42__follow-bot (current agent):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current `robot.py` swept `mee42__follow-bot` 250-0 in both colors (round0 us Red, round1 us Blue).
+- `tools_analyze_logs.py` margins are safe: round0 avg opponent/Blue 4.05 units / 16.20 HP vs us/Red 20.96 units / 72.53 HP; round1 avg us/Blue 20.60 units / 70.92 HP vs opponent/Red 4.17 units / 16.64 HP. Worst sampled final unit margin in round1 was still +4 units.
+- No `robot.py` changes made. The current black-magic-style one-ply planner plus narrow late-game tie fixes is cleanly winning this opponent; prior tactical tweaks have often been seed/color-sensitive regressions, so stability remains safest unless future logs show losses.
