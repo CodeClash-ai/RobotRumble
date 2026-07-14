@@ -112,7 +112,11 @@ def _score(friends, enemies):
         # sometimes choosing HP-preserving moves even when the one-ply result
         # was behind on units.  Unit count is the only win condition, so in
         # those losing branches fall back to the original black-magic pressure
-        # order to favor surrounding/converting damaged enemy bodies.
+        # order to favor surrounding/converting damaged enemy bodies.  From
+        # turn 80 onward, include distance before HP so losing branches also
+        # keep contact with scattered/evasive enemies after the last waves.
+        if CURRENT_TURN >= 80:
+            return (unit_score, surround_score, distance_score, health_score)
         return (unit_score, surround_score, health_score, distance_score)
     if CURRENT_TURN >= 95 and unit_score == 0 and health_score <= 0:
         # If the match is about to end tied on units and we are not ahead on
