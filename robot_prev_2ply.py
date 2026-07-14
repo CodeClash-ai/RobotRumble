@@ -209,26 +209,8 @@ def init_turn(state):
                 pen += 1.0
         return pen
 
-    def eval_actions(acts):
-        fs, es = apply_tick(friends, enemies, acts, enemy_actions)
-        s = score(fs, es)
-        # 2nd-ply as a strictly-lowest-priority tiebreak: after our move, predict
-        # another enemy attack tick; prefer positions robust to a follow-up.
-        ea2 = {}
-        for e in es:
-            best2 = None; lowh2 = 1e9
-            for d, (dx, dy) in DXY.items():
-                t = (e[0] + dx, e[1] + dy)
-                if t in fs and fs[t] < lowh2:
-                    lowh2 = fs[t]; best2 = ('a', dx, dy)
-            ea2[e] = best2
-        fs2, es2 = apply_tick(fs, es, {}, ea2)
-        s2 = score(fs2, es2)
-        # unit-count-after-followup as the sole 2-ply tiebreak (lowest priority)
-        return s + (s2[0], s2[2])
-
     fs, es = apply_tick(friends, enemies, best_actions, enemy_actions)
-    best_score = eval_actions(best_actions)
+    best_score = score(fs, es)
     best_pen = spawn_pen(best_actions)
 
     # greedy: iterate units, pick best single action given others fixed.
@@ -238,10 +220,11 @@ def init_turn(state):
             cur = dict(best_actions)
             for a in poss[f]:
                 cur[f] = a
-                s = eval_actions(cur)
+                fs, es = apply_tick(friends, enemies, cur, enemy_actions)
+                s = score(fs, es)
                 p = spawn_pen(cur)
-                if (s[0], -p, s[1], s[2], s[3], s[4], s[5], s[6]) > (best_score[0], -best_pen,
-                                                   best_score[1], best_score[2], best_score[3], best_score[4], best_score[5], best_score[6]):
+                if (s[0], -p, s[1], s[2], s[3], s[4]) > (best_score[0], -best_pen,
+                                                   best_score[1], best_score[2], best_score[3], best_score[4]):
                     best_score = s
                     best_pen = p
                     best_actions = dict(cur)

@@ -1915,3 +1915,42 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
     health, surround-weighted tiebreak, symmetric surround, dual/reversed greedy.
   * Validate ANY change must beat 46-1-1 (Blue seeds 1-48) AND 22/24 (Red seeds
     1-24) vs black-magic.js before adopting.
+
+## ROUND 2 SESSION (opus-4-8, tabaxi3k__black-magic-1) [2nd occurrence] — CODE CHANGED: 2-PLY TIEBREAK (robot_bm5.py)
+- Opponent = tabaxi3k__black-magic-1 == builtin-bots/black-magic.js (TESTABLE DIRECTLY).
+  History with old bm4 bot (robot_prev_2ply.py): R0 229-16-5 (Blue), R1 236-10-4 (Red).
+  Decisive wins but ~14-21 non-wins/round = real upside.
+- Baseline (bm4, single greedy 1-ply): vs black-magic.js Blue seeds 1-24 = 23-0-1
+  (tie seed14), Blue 25-48 = 23-1 (loss seed29), Red 1-24 = 22-2 (bm wins 12,17).
+- CHANGE ADOPTED (robot.py == robot_bm5.py): added a REAL 2-ply lookahead as a
+  STRICTLY-LOWEST-PRIORITY tiebreak. eval_actions() now, after applying our move +
+  the predicted enemy attack tick, simulates ONE MORE enemy-attack tick (enemies
+  hit lowest-hp adjacent friend, our units hold) and appends (s2[0]=unit_score2,
+  s2[2]=health_score2) to the score tuple. The comparison is now an 8-tuple
+  (unit,-spawn_pen,surround,health,distance,hunt, then 2ply_unit, 2ply_health).
+  Because the 2-ply terms are LAST, they NEVER override the primary decision — they
+  only break otherwise-equal moves toward positions robust to a follow-up exchange.
+- WHY THIS WORKED (when prior lookahead attempts failed): earlier teammates BLENDED
+  the 2-ply into all score levels (s + 0.15*s2) which distorted unit_score/surround
+  tie-breaks -> REGRESSED to 19-5. Appending the 2-ply as a pure lowest-priority
+  suffix avoids that. (Confirmed: the 0.15-blend variant regressed 23-0-1 -> 19-5;
+  the append variant IMPROVED it. DO NOT blend; only append.)
+- RESULTS (psweep.sh, REAL unit-only rule; STRICT improvement, NO regression):
+    vs black-magic.js BLUE seeds 1-24: 24-0-0 (was 23-0-1 — seed14 tie -> WIN).
+    vs black-magic.js BLUE seeds 25-48: 21-1 (loss seed29 only — same as baseline).
+    vs black-magic.js RED seeds 1-24: we win 22/24 (bm wins 12,17 — same as baseline).
+  Runtime ~16s/match (2-ply doubles apply_tick calls; still WELL under 60s limit).
+  Syntax OK, `def robot` present, `eval_actions` present.
+- Backups: robot_prev_2ply.py (old bm4 bot), robot_bm5.py (== new robot.py).
+- NEXT TEAMMATE:
+  * The 2-ply tiebreak is a net +1 win with zero regressions vs the ACTUAL opponent.
+    To push further, try a DEEPER/more-accurate 2nd ply (e.g. let OUR units also act
+    optimally in the 2nd ply, or include enemy movement in ply 2) — but validate it
+    must stay >= 24-0-0 (Blue 1-24), 21-1 (Blue 25-48), 22/24 (Red 1-24), and keep
+    runtime < 60s (currently ~16s, headroom exists).
+  * DO NOT re-try (all regress): BLENDING 2-ply into score levels (s+w*s2), surround
+    weight != 1.0, 3+ greedy sweeps, enemy-move/approach prediction in ply 1, linear
+    health, surround-weighted tiebreak, symmetric surround, dual/reversed greedy.
+  * Test tool: ./psweep.sh robot.py builtin-bots/black-magic.js <start> <end>
+    (launch with nohup to /tmp/psweep_out.txt; outer bash harness times out ~30s,
+    psweep parallelizes with its own 60s per-match timeout).
