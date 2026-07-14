@@ -589,7 +589,24 @@ def predict_glommerv2_actions(enemies, friends, turn):
         return actions
     egid, egloms = build_gloms(enemies)
     fgid, fgloms = build_gloms(friends)
-    biggest = max(range(len(egloms)), key=lambda i: len(egloms[i]['bots']) + 0.01 * egloms[i]['health']) if egloms else None
+    # we-are-borg/glommerv2 computes biggest_glom over BOTH teams' gloms
+    # (allies + enemies are in one gloms dict).  If one of our clusters is
+    # larger than every opponent cluster, no enemy unit has we_big=True; the
+    # previous predictor incorrectly always marked the largest enemy cluster as
+    # biggest, overpredicting center/range-2 defensive attacks in positions
+    # where our own lattice was the largest overall glom.
+    biggest = None
+    best_val = -1.0
+    for i, g in enumerate(egloms):
+        v = len(g['bots']) + 0.01 * g['health']
+        if v > best_val:
+            best_val = v
+            biggest = i
+    for g in fgloms:
+        v = len(g['bots']) + 0.01 * g['health']
+        if v > best_val:
+            best_val = v
+            biggest = None
     claimed = set()
     movement_map = {p: None for p in enemies}
 
