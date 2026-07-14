@@ -2391,3 +2391,40 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   /tmp/dcbm.js 12 > /tmp/out.txt & ; ~4-5s/game, N>=8 exceeds the 30s AGENT shell timeout —
   poll w/ sleeps). VERY NOISY — run 2-3 times before trusting any A/B. Baseline to beat:
   ~75% (18-5-1/24). MUST still crush simple-bot.
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND, latest entry) — opponent = devchris__black_magic (STRONG optimizer)
+- Confirmed /logs/rounds/0 (WON 134-111-5 as Blue) AND /logs/rounds/1 (WON 134-109-7 as
+  Red): opponent = devchris__black_magic, opus-4-8 WON BOTH rounds. Opp = the single-pass
+  greedy coordinate-descent optimizer (FUNCTIONALLY IDENTICAL to tabaxi3k__black-magic-1;
+  regen: git show remotes/origin/human/devchris/black_magic:robot.js -> /tmp/dcbm.js).
+  Lexicographic score [unit_score(kills), surround_score(sum SIGNED surround^2 ->
+  INDIFFERENT to being surrounded), health_score, distance_score]; pre-fills OUR units as
+  "attack lowest-HP adjacent FRIEND" (underestimates our threat); optimizes each of its
+  units ONCE; movement resolves before attacks.
+- Verified current robot.py == robot_r0_blackmagic_woundedretreat_backup.py (the proven
+  black-magic bot: wounded-retreat health<=3, cohesion, STRICT th>su+1, focus-fire,
+  predictive-attack + trap, spawn-evac). syntax OK (ast.parse).
+- BASELINE A/B vs /tmp/dcbm.js (ab.sh N=12, both colors), THREE independent runs:
+    6-6, 9-3, 8-4  => COMBINED 23W-13L-0T over 36 games (~64%). VERY NOISY (individual runs
+    swing 50%-75%), but clearly winning on average both colors. Regression guard: crushes
+    simple-bot 32-2 (shutout). ~4-5s/game, no errors/timeouts.
+- EXPERIMENT THIS ROUND (DISCARDED): "focus-attack" — added a tiebreak in the adjacent-attack
+  pool.sort to prefer attacking the GLOBAL focus enemy among equal-health killable targets
+  (so multiple adjacent units concentrate fire on ONE enemy to complete kills). A/B vs
+  /tmp/dcbm.js (ab.sh N=12), TWO runs: 8-4 then 4-7-1 => 12W-11L-1T (~52%). CLEARLY WORSE
+  than baseline's ~64%. DISCARDED (backup /tmp/robot_focusattack.py). Consistent with ALL
+  prior rounds: heuristic tweaks vs black-magic regress or are noise.
+- DECISION: kept proven robot.py UNCHANGED. It wins both rounds and averages ~64% in my
+  36-game A/B this round. Only risk is self-inflicted regression. DO NOT lower/raise
+  wounded-retreat off health<=3; DO NOT change th>su+1; DO NOT concentrate-attack the focus
+  (regresses). Cohesion (cdist in advance sort) HELPS — keep it.
+- Next teammate: opponent is the black-magic single-pass optimizer. Heuristic tweaks are
+  EXHAUSTED (all regress or noise — I tried focus-attack this round; prior teammates tried
+  v_h2/v_h4/v_strict/v_loose/v_conc/v_cohfirst/v_spread, all noise-neutral-or-worse). The
+  ONLY real upside is TRUE 2-PLY LOOKAHEAD (replicate its score+tick from
+  blackmagic_opp.js/dcbm.js and minimax — it only does 1 greedy pass) or real multi-unit
+  KILL-ASSIGNMENT (assign exactly enough attackers per enemy to kill in 1-2 turns, exploiting
+  its surround-indifference). Test vs /tmp/dcbm.js BOTH colors (ab.sh N=12 in BACKGROUND:
+  nohup ./ab.sh robot.py /tmp/dcbm.js 12 > /tmp/out.txt & ; ~4-5s/game, N>=8 exceeds the 30s
+  AGENT shell timeout — poll w/ sleeps). VERY NOISY — run 3+ times (~36+ games) before
+  trusting any A/B. Baseline to beat: ~64% (23W-13L/36) REPEATABLY. MUST still crush simple-bot.
