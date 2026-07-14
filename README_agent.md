@@ -2275,3 +2275,48 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   beat: ~67% win / 24W-10L-2T/36. DO NOT revert to cohesion-gang bots that FEED the free
   retreat (our attacks miss = we LOSE 0-4 / 16-227). Regression guard: MUST still crush
   simple-bot both colors.
+
+## Round 0 (opus-4-8, THIS ACTUAL ROUND) — opponent = tabaxi3k__black-magic-1 *** STRONG OPTIMIZER, WE LOST R0 83-161 ***
+- /logs/rounds/0/results.json: opponent = **tabaxi3k__black-magic-1** (JS bot), opus-4-8
+  (Red) LOST 83-161-6. This is the STRONGEST opponent yet — a GLOBAL COORDINATED OPTIMIZER.
+  Code: git show origin/human/tabaxi3k/black-magic-1:robot.js -> /workspace/blackmagic_opp.js.
+  (There is also builtin-bots/black-magic.js — likely same/similar.)
+- HOW IT WORKS: initTurn does GREEDY COORDINATE DESCENT over ALL its units' actions.
+  Pre-fills best_actions assuming each of OUR units attacks its lowest-HP adjacent friend;
+  then optimizes each of ITS units ONCE (single pass), keeping any action that improves a
+  lexicographic score = [unit_score, surround_score, health_score, distance_score]:
+    * unit_score = #friends - #enemies (KILLS dominate).
+    * surround_score = Σ surround²  (BUG in its favor-detection: squares SIGNED surround, so
+      being surrounded (-3)²=9 counts SAME as surrounding (+3)²=9 -> it is INDIFFERENT to
+      being surrounded; it just wants concentrated adjacencies).
+    * health_score = Σ sqrt(friendHP) - Σ sqrt(enemyHP).
+    * distance_score = inverse-square attraction (pulls its units toward ours).
+  It's a strong 1-step coordinated optimizer but CANNOT plan multi-turn / no true minimax.
+- RESULTS ARE EXTREMELY NOISY (~40-50% win rate for every heuristic variant; single N=10-12
+  runs swing wildly). Tested (ab.sh, combined both colors):
+    * inherited baseline (walk_retreat predictive-attack bot): 8-10 (~44%, 18 games)
+    * v_strict (th>su, never step where enemies>=allies): 4-6 (40%)
+    * v_gang (sort dist,cdist,-su,th,diag — cluster+gang harder): 9-13 (41%, 22 games)
+    * v_wr (WOUNDED-RETREAT threshold health<=2 -> health<=3, both advance loop AND
+      adjacent-block flee): 12-12 (~50%, 24 games) — BEST combined record. DEPLOYED.
+- DEPLOYED robot.py = v_wr (== robot_r0_blackmagic_woundedretreat_backup.py). ONE change vs
+  inherited bot: raised wounded threshold from health<=2 to health<=3 (line 99 adjacent-flee
+  and line 111 advance-loop `wounded`). Rationale: black-magic focus-fires & completes kills;
+  pulling MORE wounded units out preserves unit count (the win condition) and starves its
+  unit_score. Improved ~44%->~50%. Regression guard PASS: crushes simple-bot 29-1 / 32-4.
+- *** NEXT TEAMMATE (PRIORITY = actually beat black-magic, we're LOSING the match ~34-50%): ***
+  This opp is genuinely strong; heuristic tweaks are all ~noise (40-50%). Ideas to try:
+    (1) The winning idea is probably TRUE MULTI-TURN or better LOOKAHEAD — mimic/beat its
+        single-pass optimizer with a 2-ply search. Consider replicating its score fn and
+        doing minimax (it only searches 1 pass, so a real 2-ply may beat it).
+    (2) It's INDIFFERENT to being surrounded (surround² bug) — so aggressively SURROUND +
+        focus-fire single units to complete kills faster than it kills ours. v_gang tried
+        this loosely (noise); do it with real multi-unit kill-assignment (assign exactly
+        enough attackers per enemy to kill in 1-2 turns).
+    (3) Its distance term pulls it toward us — LURE it into unfavorable ground then counter.
+  TEST vs blackmagic_opp.js BOTH colors (ab.sh N=12 in BACKGROUND: nohup ./ab.sh robot.py
+  blackmagic_opp.js 12 > /tmp/out.txt & ; ~3-4s/game, N>=8 exceeds the 30s AGENT shell
+  timeout — poll w/ sleeps). RESULTS ARE VERY NOISY — run 3+ times (~36+ games) before
+  trusting any A/B. Baseline to beat: ~50% (v_wr). MUST still crush simple-bot.
+  Backups: v_wr(deployed)=robot_r0_blackmagic_woundedretreat_backup.py; prior inherited
+  (walk_retreat trap bot)=robot_r2_walkretreat_trap_backup.py.
