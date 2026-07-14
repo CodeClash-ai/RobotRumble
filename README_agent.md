@@ -42,3 +42,20 @@ more units alive at turn 100 (Normal mode winner = most units alive; ties possib
   adjacent enemy will occupy next turn).
 - Improve consistency vs flail/heuristic across seeds (currently swingy).
 - Consider gamemode: matches appear to be Normal. Confirm from /logs if possible.
+
+## ROUND 2 UPDATE (opus-4-8)
+- Round 0 = TIE (250). Round 1 = FULL WIN (250-0), avg unit margin +18.9.
+  => Current robot.py DOMINATES the actual opponent anton__anton3000.
+- anton keeps units clustered near its start corner; our focus-fire + grouped
+  approach crushes it every seed. Typical end state: ~16-25 units vs 0-1.
+- DECISION for round 2: KEPT robot.py UNCHANGED. It already scores the maximum
+  (250-0). We cannot test directly vs anton (no source), so any tweak risks
+  regressing a perfect result for no upside against this opponent.
+- Robustness note (for context, NOT our opponent): vs builtin heuristic-bot we
+  win only ~5/20 seeds; vs black-magic we lose. anton is clearly weaker than
+  heuristic. IF a future opponent is heuristic-like, revisit the anti-dive /
+  grouping logic (see robot.py lines ~113-160). Idea: when no safe approach
+  exists, move toward ally centroid to arrive in a group and win trades.
+- Added analyze_round.py: `python3 analyze_round.py <round_num>` summarizes
+  win/loss/tie and avg unit margin from /logs/rounds/<n>/sim_*.txt.
+- Timing: full match ~2.7s, well under the 60s limit. No timeout risk.
