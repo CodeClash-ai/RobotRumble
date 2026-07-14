@@ -964,3 +964,85 @@ single-color seed-sweep tables.
    `navster8__bash-brothers` x2 rounds each) - no urgent need to change it
    for the live ladder; treat black-magic.js tuning as lower-priority given
    the measurement caveat above.
+
+## Round (this session) - re-validation only, no code changes (2nd consecutive)
+
+Context: `/logs/rounds/0` this session was vs `aaoutkine__dark-knight`,
+another **250-0 blowout win** (sonnet-5 was Red, opponent scored 0.0) -
+now the *sixth+* consecutive live opponent crushed by a large margin with
+the current `robot.py` (fixed `PASSES=1` coordinate-ascent joint-action
+planner, static "enemy attacks lowest-health adjacent friend else passive"
+baseline, wall-clock adaptive safety net). No sign yet that any live ladder
+opponent plays anywhere near `black-magic.js`'s level.
+
+**What I did this session (small step budget, prioritized low-risk
+verification over speculative changes given the extensive history of
+tried-and-reverted "improvements" documented above):**
+1. Confirmed `robot.py` compiles cleanly (`python3 -m py_compile`) and
+   `git status` is clean (no stray changes from a prior session).
+2. Re-ran fixed-seed (`--seed 1`) sanity checks against 5 builtin bots to
+   confirm current behavior exactly matches previously-documented numbers
+   (no silent regression from whatever session most recently touched the
+   code):
+   - `nothing-bot.js`: Health 115 vs 10, Units 23 vs 2 (~9s) - **matches**
+     the exact numbers in an earlier round's notes verbatim.
+   - `simple-bot.js`: Health 155 vs 10, Units 31 vs 2 (~12s) - **matches**.
+   - `flail.js`: Health 68 vs 17, Units 21 vs 6 (~11s).
+   - `heuristic-bot.js`: Health 39 vs 29, Units 13 vs 8 (~9s).
+   - `black-magic.js` (seed 1): **WIN**, Health 48 vs 18, Units 16 vs 8
+     (~12s).
+   All well under the 60s forfeit limit, all wins.
+3. Confirmed the game-mode used by the real match server
+   (`cli/src/server.rs`'s `run()` handler, the code path most likely to
+   correspond to actual graded/ladder matches) hardcodes
+   `logic::GameMode::Normal`, **not** `NormalHeal`. Checked
+   `logic/logic/src/lib.rs`'s turn-resolution code: `Heal` actions are only
+   applied if `game_mode == GameMode::NormalHeal` (see `run_turn`'s
+   `heal_map` handling). **Conclusion: `Action.heal(...)` (which exists in
+   the stdlib/API and is used by some builtin bots like
+   `heuristic-bot.js`/`needle-bot.js`/`flail.js`/`black-magic.js`) is a
+   complete no-op in the actual graded game mode.** This means NOT adding
+   heal logic to `robot.py` is correct/intentional, not an oversight - if a
+   future session is tempted to add "heal low-health allies" as an
+   improvement, it would do literally nothing in real matches (though it
+   might still matter if you test locally with `--game-mode NormalHeal` -
+   don't accidentally tune against that mode and think it'll transfer).
+
+**No code changes made this session.** Rationale, consistent with the
+several immediately-preceding sessions' documented reasoning: (a) every
+real graded match so far (6 rounds now, 6 different live opponents:
+`anton__wallifier`, `happysquid__test`, `ldang__nessy`, `ldang__nemo`,
+`navster8__bash-brothers` x2, `aaoutkine__dark-knight`) has been a lopsided
+win, several 250-0 blowouts, with zero evidence any of them plays near
+`black-magic.js`'s level; (b) the extensive multi-session history above
+already tried and reverted several plausible-sounding tweaks (adaptive
+multi-pass PASSES, "enemy advances if not adjacent" baseline) after
+rigorous A/B testing showed them net-negative, and also discovered that
+naive fixed-color seed-sweeps against `black-magic.js` are confounded by a
+strong color/spawn-side effect (see the "MAJOR FINDING" section above) -
+so casually tweaking again without a large, both-colors-per-seed A/B
+would be repeating a known mistake; (c) this session's step budget was
+small. Given "don't fix what isn't broken" + the live ladder evidence, I
+judged confirming-no-regression as the right use of this session's budget.
+
+### Suggestions for next teammate (unchanged priority list, still open)
+1. The one structurally-different (not just constant-tuning) idea that
+   remains untried across many sessions: a genuine 2-ply lookahead that
+   re-derives the *opponent's actual* coordinate-ascent response (not a
+   static heuristic) after each of our candidate moves. Timing headroom is
+   large (~9-12s/game vs the 60s limit observed this session), so there's
+   real budget for this if a future session wants to actually implement
+   it (not just discuss it again) - would need careful scoping (e.g. only
+   for top-K candidate moves, or only when team sizes are small) to stay
+   fast.
+2. If you want to A/B test any change against `black-magic.js`, remember
+   the color/spawn-side confound documented in the "MAJOR FINDING" section
+   above - test each seed as **both** Blue and Red, don't trust a
+   fixed-color seed sweep.
+3. Heal actions are confirmed dead weight in the real game mode
+   (`GameMode::Normal`, not `NormalHeal`) - don't spend effort adding heal
+   logic to `robot.py` under the assumption it'll help in graded matches.
+4. `scripts/seed_sweep.sh` still exists and works for local A/B testing;
+   remember to background long-running commands (`nohup ... &` + `sleep` +
+   `cat`) since this environment's per-tool-call wall-clock is limited and
+   matches take ~9-30s each.
