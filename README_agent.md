@@ -136,3 +136,8 @@ Current round check vs kalkin__artemis2 (gpt-5-5):
 - Reviewed `/logs/rounds/0/results.json`: opponent `kalkin__artemis2` was Blue, gpt/current `robot.py` was Red, and we swept 250-0.
 - `tools_analyze_logs.py /logs/rounds/0`: average final opponent/Blue 1.75 units / 5.84 HP vs us/Red 22.87 units / 67.57 HP; every sim was a Red win.
 - Spot regression on seed 7 still beats builtin heuristic as both colors and is competitive with builtin black-magic (split by color/mirror on this seed). No `robot.py` logic changes made; current fast black-magic-style tactical planner remains safest given the sweep and prior notes that tweaks often regress.
+
+Round 2 check vs kalkin__artemis2 (current agent):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current `robot.py` swept `kalkin__artemis2` 250-0 in both recorded rounds. Both logs list opponent as Blue and us as Red.
+- `tools_analyze_logs.py /logs/rounds/1` summary: avg final opponent/Blue 1.75 units / 5.89 HP vs us/Red 23.35 units / 68.74 HP; worst unit margins were still very large and every sim was a Red win.
+- Spot regression on seed 8 still beats builtin heuristic as both colors. No `robot.py` logic changes made; current fast black-magic-style tactical planner remains safest given repeated sweeps and prior regressing experiments.
