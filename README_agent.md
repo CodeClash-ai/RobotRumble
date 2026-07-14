@@ -2428,3 +2428,35 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   nohup ./ab.sh robot.py /tmp/dcbm.js 12 > /tmp/out.txt & ; ~4-5s/game, N>=8 exceeds the 30s
   AGENT shell timeout — poll w/ sleeps). VERY NOISY — run 3+ times (~36+ games) before
   trusting any A/B. Baseline to beat: ~64% (23W-13L/36) REPEATABLY. MUST still crush simple-bot.
+
+## Round 3 (opus-4-8, THIS ACTUAL ROUND) — opponent = devchris__black_magic *** DEPLOYED: KILL-APPROACH ADVANCE ***
+- Results: R0 WON 134-111, R1 WON 134-109, but R2 LOST 117-126 (near-coinflip, we LOST R2).
+  Opponent = devchris__black_magic single-pass greedy coordinate-descent optimizer
+  (/tmp/dcbm.js; regen: git show remotes/origin/human/devchris/black_magic:robot.js).
+  KEY BLIND SPOT (re-confirmed reading dcbm.js initTurn): it PRE-FILLS our units' actions as
+  "attack lowest-HP adjacent FRIEND" — so it thinks WE attack our OWN units, NOT it. It does
+  NOT anticipate our real attacks, so it won't preemptively retreat low-HP units from us.
+- CHANGE DEPLOYED (robot.py = robot_r3_blackmagic_killapp_backup.py): added a "kill-approach"
+  tiebreak in the advance loop, SECOND priority (after trap, before dist). Moving to tile nc
+  sets killapp=0 if nc is orthogonally adjacent to an enemy that would then be KILLABLE
+  (attackers_on[enemy]+1 >= enemy.health) — i.e. we position to COMPLETE a guaranteed kill the
+  opponent doesn't see coming. Only triggers for GUARANTEED kills (not blind concentration,
+  which regressed before). New sort key = (trap,killapp,dist,cdist,th,diag,th-su). Kept STRICT
+  th>su+1, wounded-retreat health<=3, cohesion, focus-fire, predictive-attack/trap, spawn-evac.
+- A/B vs /tmp/dcbm.js (ab.sh N=12, both colors), THREE independent runs:
+    * KILLAPP (DEPLOYED): 9-3, 7-5, 9-3 => COMBINED 25W-11L (~69%). + final confirm 5-4-1.
+    * BASELINE (prior black-magic bot): 6-6, 8-3-1, 6-6 => 20W-15L-1 (~56%).
+  KILLAPP got 9 wins in 2 of 3 runs vs baseline's 6 — repeatable ~+13% win-rate gain over 36
+  games. Regression guards PASS: simple-bot 30-4 (Blue) / 28-4 (Red), chaser.js 18-7. syntax OK.
+- Backups (persistent /workspace): robot_r3_blackmagic_killapp_backup.py (DEPLOYED). Prior
+  baseline = robot_r0_blackmagic_woundedretreat_backup.py (== /tmp/robot_baseline_r3.py).
+- Next teammate: opponent is the black-magic single-pass optimizer (we now ~64-69%, still NOISY
+  — run 3+ N=12 A/Bs before trusting anything). The kill-approach exploit works because the opp
+  doesn't model our attacks. Further upside (unrealized): TRUE 2-ply lookahead (replicate its
+  score+tick, minimax — it only does 1 greedy pass) OR fuller multi-unit kill-assignment (assign
+  exactly enough attackers per enemy to kill in 1 turn, exploiting its surround-indifference
+  surround^2 bug). Test vs /tmp/dcbm.js BOTH colors (ab.sh N=12 in BACKGROUND: nohup ./ab.sh
+  robot.py /tmp/dcbm.js 12 > /tmp/out.txt & ; ~4-5s/game, N>=8 exceeds 30s AGENT shell timeout —
+  poll w/ sleeps). Baseline to beat: killapp ~69% REPEATABLY. MUST still crush simple-bot.
+  DO NOT lower wounded-retreat below health<=3; DO NOT change th>su+1; DO NOT do blind
+  concentrate-attack (regresses — killapp only triggers on GUARANTEED kills).
