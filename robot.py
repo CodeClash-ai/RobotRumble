@@ -493,6 +493,28 @@ def predict_glommer_actions(enemies, friends, turn):
     return actions
 
 
+
+
+def borg_direction_to(a, b):
+    # entropicdrifter__we-are-borg avoids Coords.direction_to and uses
+    # axis-priority: vertical north first, then west/east, then south.
+    if a[1] > b[1]:
+        return Direction.North
+    if a[0] > b[0]:
+        return Direction.West
+    if a[0] < b[0]:
+        return Direction.East
+    if a[1] < b[1]:
+        return Direction.South
+    return None
+
+
+def is_borg_spawn(pos):
+    x, y = pos
+    if x == 1 or x == 17 or y == 1 or y == 17:
+        return True
+    return pos in {(14,2),(16,4),(16,14),(14,16),(4,16),(2,14),(2,4),(4,2)}
+
 def glommer2_retreat_dir(pos, hp, friends, enemies, claimed, turn, movement_map):
     # glommerv2 retreat: move to first Direction square with strictly lower adjacent-threat.
     threat = 0
@@ -512,7 +534,7 @@ def glommer2_retreat_dir(pos, hp, friends, enemies, claimed, turn, movement_map)
                 continue
             if q in enemies and not movement_map.get(q):
                 continue
-            if turn % 10 >= 7 and is_spawn_t(q):
+            if turn % 10 >= 7 and is_borg_spawn(q):
                 continue
             new_threat = 0
             for dd in _MDIRS:
@@ -522,7 +544,7 @@ def glommer2_retreat_dir(pos, hp, friends, enemies, claimed, turn, movement_map)
             if new_threat < threat:
                 blanks.append(d)
     if len(adj) > 1 or (len(adj) == 1 and friends[adj[0]] > hp):
-        return blanks[0] if blanks else None
+        return min(blanks, key=lambda d: sum(friends.get(add(add(pos, d), dd), 0) for dd in _MDIRS)) if blanks else None
     return None
 
 
@@ -541,7 +563,7 @@ def glommer2_walk_dir(src, target, friends, enemies, claimed, turn, movement_map
             continue
         if q in enemies and not movement_map.get(q):
             continue
-        if turn % 10 >= 7 and is_spawn_t(q):
+        if turn % 10 >= 7 and is_borg_spawn(q):
             continue
         blanks.append(d)
     if abs(x) > abs(y) and xd in blanks and add(src, xd) not in claimed:
@@ -587,7 +609,7 @@ def predict_glommerv2_actions(enemies, friends, turn):
 
         # finishing blow on adjacent weaker enemy, if safe from friendly fire/claim.
         if t_walking(epos, nearest_friend) == 1 and friends[nearest_friend] < eh:
-            d = t_direction_to(epos, nearest_friend)
+            d = borg_direction_to(epos, nearest_friend)
             hit = add(epos, d)
             if hit not in claimed and hit not in enemies:
                 claimed.add(hit)
@@ -606,7 +628,7 @@ def predict_glommerv2_actions(enemies, friends, turn):
         if len(target_glom['bots']) < len(own['bots']) or own['health'] > target_glom['health']:
             w = t_walking(epos, target)
             if (len(own['bots']) > 1 and w == 1) or ((we_big or len(own['bots']) == 1) and w <= 2):
-                d = t_direction_to(epos, target)
+                d = borg_direction_to(epos, target)
                 hit = add(epos, d)
                 if hit not in claimed and hit not in enemies:
                     claimed.add(hit)
@@ -649,7 +671,7 @@ def predict_glommerv2_actions(enemies, friends, turn):
                 movement_map[epos] = md
                 actions[epos] = (MOVE, md)
                 continue
-        d = t_direction_to(epos, nearest_friend)
+        d = borg_direction_to(epos, nearest_friend)
         hit = add(epos, d)
         if hit not in claimed and hit not in enemies:
             claimed.add(hit)
@@ -802,7 +824,7 @@ def init_turn(state):
         if u.health is not None:
             enemies[k(u.coords)] = u.health
 
-    # Current opponent is entropicdrifter__glommerv2; allow queued/chain moves,
+    # Current opponent is entropicdrifter__we-are-borg; allow queued/chain moves,
     # but seed the simulation with its deterministic glom/retreat plan.
     allow_chain_moves = True
 
@@ -946,8 +968,13 @@ def robot(state, unit):
     return _old_robot(state, unit)
 
 
-# Final override for the coward matchup: use the coordinated plan directly, with late all-in cleanup.
+# Final override for the current glom matchup: use the coordinated plan,
+# but when the clock is running out and we are not ahead on units, switch
+# individual units to direct range-2 focus/chase to avoid turn-100 unit losses.
 def robot(state, unit):
+    swarm = endgame_swarm_action(state, unit)
+    if swarm is not None:
+        return swarm
     action = ACTIONS.get(unit.id)
     if action is None:
         return None
