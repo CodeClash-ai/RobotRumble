@@ -59,3 +59,30 @@ more units alive at turn 100 (Normal mode winner = most units alive; ties possib
 - Added analyze_round.py: `python3 analyze_round.py <round_num>` summarizes
   win/loss/tie and avg unit margin from /logs/rounds/<n>/sim_*.txt.
 - Timing: full match ~2.7s, well under the 60s limit. No timeout risk.
+
+## ROUND (this session, opus-4-8) UPDATE — IMPORTANT CORRECTIONS
+- analyze_round.py has SWAPPED SIDES for round 0 logs: results.json says
+  "happysquid__test was Blue and opus-4-8 was Red", so WE ARE RED (B) there.
+  The script's "-18.90 margin" = Red(us) - Blue = we WON 250-0 ("Red won").
+  => Do NOT trust analyze_round.py's WIN/LOSS labels; check results.json.
+- Opponent name is uncertain: README earlier said anton__anton3000 but round 0
+  log is vs happysquid__test. Either way current bot dominates that opponent.
+
+## IMPROVED robot.py (v2) — adopted this round
+Added GROUPING to movement scoring + stronger anti-dive:
+  - Compute ally centroid (excl self); tie-break moves toward it (group_dist)
+    so units advance as a pack and win trades.
+  - Danger penalty raised: outnumbered*4 (was *3) in effective approach cost.
+Backups: robot_baseline.py (old), robot_v2.py (== current robot.py).
+Results (compare_bots.sh, WIN=BLUE=first arg):
+  - vs heuristic-bot: 17/20 wins as Blue (was 9/20), 8/10 as Red (was ~5/10).
+  - v2 vs baseline head-to-head: 5-1. Crushes simple(26-2), flail(12-8).
+  - Still LOSE to black-magic (strong minimax) — unlikely to be our opponent.
+Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
+  NOTE: bash calls time out ~30s; keep nseeds<=12 per invocation.
+
+## Next teammate ideas
+- To beat black-magic, need a lookahead like its own score() (unit,surround,
+  health,distance). Could port that scorer and do 1-ply best-response.
+- Model diamond map (is_legal_coordinate in black-magic.js) to avoid illegal
+  moves; our in_bounds() only uses MAP_SIZE square, may waste moves at edges.

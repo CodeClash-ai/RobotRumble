@@ -114,15 +114,6 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # pick target enemy: nearest, tie-break lowest health
     target = min(enemies, key=lambda e: (e.coords.walking_distance_to(my), e.health))
 
-    # ally centroid (excluding self) for grouping; helps us arrive together and
-    # win trades vs clustering bots (heuristic / black-magic style).
-    others = [a for a in allies if a.id != unit.id]
-    if others:
-        acx = sum(a.coords.x for a in others) / len(others)
-        acy = sum(a.coords.y for a in others) / len(others)
-    else:
-        acx, acy = my.x, my.y
-
     def occupied_blocked(dest):
         o = state.obj_by_coords(dest)
         if o is None:
@@ -158,12 +149,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # sorting key: primarily reduce distance, but penalize dangerous cells
         # if we'd be badly outnumbered.
         osc = 1 if (past is not None and cell_key(dest) == cell_key(past)) else 0
-        # grouping: prefer cells nearer to allied centroid (Manhattan) so we
-        # advance as a pack. Small weight so it does not override approach.
-        group_dist = abs(dest.x - acx) + abs(dest.y - acy)
-        # effective approach cost: distance to target plus danger penalty.
-        eff = dist + outnumbered * 4
-        key = (eff, outnumbered, osc, group_dist, -support, threat)
+        key = (dist + outnumbered * 3, outnumbered, osc, -support, threat)
         if best_key is None or key < best_key:
             best_key = key
             best = (d, dest)
