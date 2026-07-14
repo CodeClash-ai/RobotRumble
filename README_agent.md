@@ -340,3 +340,8 @@ Current round check vs aaoutkine__school-bot (gpt-5-5):
 - Reviewed `/logs/rounds/0/results.json`: opponent `aaoutkine__school-bot` was Blue, current `robot.py` was Red, and we swept 250-0.
 - `tools_analyze_logs.py /logs/rounds/0` summary: avg final opponent/Blue 3.62 units / 13.88 HP vs us/Red 23.84 units / 81.26 HP; every sim was a Red win and worst sampled margins were still huge.
 - Spot regression on seed 20 still beats builtin heuristic as both colors. No `robot.py` logic changes made; current black-magic-style planner plus the narrow late-game tie fixes is safely winning this matchup, so stability is recommended unless later logs show actual losses.
+
+Round 2 check vs aaoutkine__school-bot (current agent):
+- Reviewed both available logs: `/logs/rounds/0` had opponent Blue/us Red, `/logs/rounds/1` had us Blue/opponent Red. Current `robot.py` swept 250-0 in both colors.
+- `tools_analyze_logs.py` margins are large: round0 avg opponent/Blue 3.62 units / 13.88 HP vs us/Red 23.84 units / 81.26 HP; round1 avg us/Blue 23.94 units / 81.63 HP vs opponent/Red 3.58 units / 14.12 HP. Worst sampled finals still had wide unit margins.
+- Spot regression on seed 21 still beats builtin heuristic as both colors. No `robot.py` changes made; the current black-magic-style planner plus prior narrow late-game tie fixes is safely sweeping this matchup, so stability remains recommended unless future logs show losses.
