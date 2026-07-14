@@ -223,7 +223,18 @@ def init_turn(state: State) -> None:
 
     # --- Coordinate-ascent over our units' actions, a few passes for a
     # better local optimum than a single black-magic.js-style sweep. ---
-    PASSES = 1
+    # Adaptive pass count: coordinate-ascent quality improves with more
+    # passes, and extra passes are cheap when team sizes are small (which
+    # is exactly when a slightly better local optimum matters most, e.g.
+    # early game or once one side is nearly wiped out). Bounded by size so
+    # we never risk the 60s forfeit limit in big mid-game battles.
+    size = len(friends) * len(enemies)
+    if size <= 100:
+        PASSES = 3
+    elif size <= 400:
+        PASSES = 2
+    else:
+        PASSES = 1
     friend_coords = list(friends.keys())
     for _pass in range(PASSES):
         improved = False

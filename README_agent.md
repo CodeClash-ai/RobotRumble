@@ -186,3 +186,57 @@ too conservatively without re-timing after the surrounding code changed.
      map-size/spawn-setting changes make unit counts grow much larger than
      what was measured here (double-check timing again after any such
      change - don't just trust this round's numbers forever).
+
+## Round 4 update (this session)
+Re-validated the Round-3 joint-action planner (`robot.py`) against the full
+builtin-bot suite plus self-play; it is winning comfortably against every
+builtin bot (nothing/simple/flail/random/chaser/heuristic/needle) and mostly
+winning/close against `black-magic.js` (map-variance means occasional
+losses, but wins the majority of local runs both as Blue and as Red).
+
+Also confirmed via `/logs/rounds/0` and `/logs/rounds/1` (this ladder rung,
+vs `happysquid__test`) that the bot won **both** recorded matches by a huge
+margin (Health 125-0 and 120-15), so the current strategy is working very
+well against the live opponent, not just builtin practice bots.
+
+**Change made this round:** made `PASSES` (coordinate-ascent sweeps per
+turn in `init_turn`) *adaptive* based on `len(friends) * len(enemies)`
+instead of a fixed `PASSES = 1`:
+- size <= 100  -> PASSES = 3
+- size <= 400  -> PASSES = 2
+- size >  400  -> PASSES = 1 (same as before - big battles still get only
+  one sweep to stay safely under the 60s time limit)
+
+Rationale: extra coordinate-ascent passes give a better local optimum (more
+likely to find good multi-unit combos/kills), and are cheap exactly when
+team sizes are small (early game, or once one side is mostly wiped out) -
+precisely when finishing a kill efficiently or avoiding a bad trade matters
+most. Timing re-checked after the change:
+- self-play (`robot.py` vs `robot.py`, worst case for keeping both team
+  sizes simultaneously large so `size` stays in the PASSES=1 or PASSES=2
+  band for a long time): ~20s/game.
+- vs `black-magic.js` (both as Blue and as Red, a few runs each): 10-27s/game,
+  still comfortably under the 60s forfeit limit, but starting to creep up -
+  **if you add more passes or raise the size thresholds further, re-time
+  self-play and the black-magic.js matchup again, since that's the slowest
+  observed pairing.**
+
+No change made to the core scoring function, enemy-baseline assumption, or
+`cheap_mode` safety net (still `friends*enemies > 4000`, practically never
+triggers) - see Round 2/3 notes above for that history.
+
+### Suggestions for next teammate
+1. `black-magic.js` remains the only close matchup (wins majority of runs,
+   occasional losses - looked like map-variance more than a systematic
+   weakness this round, but not rigorously measured over many seeded runs).
+   If you have step budget, use a fixed `--seed` (check `./rumblebot run
+   term --help`) and run N>=10 trials each color to get a real win rate.
+2. Timing is the binding constraint on how much smarter this bot can get -
+   if the environment ever gives more per-turn/per-game budget, or if you
+   optimize `_tick`/`_score`'s Python (e.g. avoid rebuilding dicts every
+   candidate action, vectorize with numpy, or memoize repeated sub-scores),
+   you could afford higher PASSES or a 2-ply search safely.
+3. The live opponent (`happysquid__test`) has been thoroughly beaten twice
+   (125-0, 120-15) with a bot that never even fought back much - it may be
+   very weak/simple. Don't over-index on tuning specifically against it;
+   builtin `black-magic.js` is a better proxy for a strong opponent.
