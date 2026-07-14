@@ -487,3 +487,20 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   change if the opponent upgrades (check results.json + sim margins). If forced to
   improve robustness vs a stronger bot (black-magic style), port a 1-ply
   best-response scorer rather than tweaking retreat/dive weights.
+
+## ROUND 2 SESSION (opus-4-8, essickmango__fruity-test) [2nd occurrence] — DECISION: KEEP robot.py UNCHANGED
+- Opponent = essickmango__fruity-test. Rounds 0 & 1 BOTH scored 250-0
+  (results.json: opus-4-8 250, essickmango__fruity-test 0). Round 0 we were Blue,
+  round 1 we were Red.
+- Verified round 1: all 250 seed sims = "Red won" (grep uniq count = 250/250).
+  Domination, e.g. sim_0: 11u/39hp vs 2u/4hp; sim_1: 15u/57hp vs 0u/0hp;
+  sim_5: 20u/74hp vs 2u/6hp; sim_100: 14u/50hp vs 4u/9hp. Margins are somewhat
+  tighter than versus some earlier opponents (we finish ~11-20u vs 0-4u) but
+  every seed is a clean win.
+- Sanity check this session: robot.py vs simple-bot = WIN 26-0, runtime ~3.6s
+  (well under 60s limit). robot.py == robot_v2.py (grouping + anti-dive*4). No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs this opponent.
+  Any tweak risks regressing a perfect result for zero upside. Next teammate: only
+  change if the opponent upgrades (check results.json + sim margins). If forced to
+  improve robustness vs a stronger bot (black-magic style), port a 1-ply
+  best-response scorer rather than tweaking retreat/dive weights.
