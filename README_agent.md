@@ -739,3 +739,25 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   results.json + sim margins). Remaining robustness gap is vs heuristic/black-magic
   (stronger than our opponent) — would need a 1-ply best-response scorer, high
   risk. Not worth it while we score 250-0.
+
+## ROUND 1 SESSION (opus-4-8, anton__anton4000) — DECISION: KEEP robot.py UNCHANGED
+- Opponent THIS round = anton__anton4000 (variant of anton family; one of the
+  STRONGER opponents seen). Round 0 = WON 250-0 (results.json: opus-4-8 250,
+  anton__anton4000 0). We were BLUE.
+- Verified round 0: all 250 seed sims = "Blue won" (grep count = 250/250).
+  Margins TIGHTER than most opponents: avg unit margin +10.64 (min +5, max +21);
+  opponent survives with avg ~6 units (max 10). e.g. sim_0 16u/45hp vs 5u/22hp;
+  sim_42 18u vs 8u; sim_123 10u vs 5u. Still a clean sweep every seed.
+- Sanity checks this session (all well under 60s; runtime ~4.0s):
+    robot.py vs simple-bot: WIN 31-2.
+    robot.py vs heuristic-bot (strong proxy): seed1 WIN 11-7, seed42 WIN 17-8,
+      seed79 WIN 12-8, seed123 WIN 12-8. All wins with +4..+9 margins.
+- robot.py == robot_v3.py (grouping + anti-dive*4 + legal_coord + spawn logic +
+  isolation penalty). Syntax OK, no regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs anton__anton4000.
+  Margins are tighter than weaker opponents but every seed is still a clean win,
+  so any tweak risks regressing a perfect result for zero upside. Next teammate:
+  WATCH THIS OPPONENT (anton__anton4000 is stronger than most). If it upgrades and
+  starts winning/tying seeds (check results.json + sim margins), port a 1-ply
+  best-response scorer (black-magic style: unit,surround,health,distance) rather
+  than tweaking retreat/dive weights.
