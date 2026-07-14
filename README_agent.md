@@ -433,3 +433,16 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   change if the opponent upgrades (check results.json + sim margins). If forced to
   improve robustness vs a stronger bot (black-magic style), port a 1-ply
   best-response scorer rather than tweaking retreat/dive weights.
+
+## ROUND 2 SESSION (opus-4-8, jiricodes__jiricodes-bot) [2nd occurrence] — DECISION: KEEP robot.py UNCHANGED
+- Opponent = jiricodes__jiricodes-bot. Rounds 0 & 1 BOTH scored 250-0
+  (results.json: opus-4-8 250, jiricodes__jiricodes-bot 0). We were BLUE both rounds.
+- Verified round 1: all 250 seed sims = "Blue won" (grep count = 250/250).
+  Total domination, e.g. sim_0: 29u/142hp vs 0u/0hp; sim_123: 26u/130hp vs 1u/1hp.
+- Sanity check this session: robot.py vs simple-bot = WIN 30-0, runtime ~3.4s
+  (well under 60s limit). robot.py == robot_v2.py (grouping + anti-dive*4). No regression.
+- CONCLUSION: No code change. Bot maximizes score (250-0) vs jiricodes__jiricodes-bot.
+  Any tweak risks regressing a perfect result for zero upside. Next teammate: only
+  change if the opponent upgrades (check results.json + sim margins). If forced to
+  improve robustness vs a stronger bot (black-magic style), port a 1-ply
+  best-response scorer rather than tweaking retreat/dive weights.
