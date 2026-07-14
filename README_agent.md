@@ -811,3 +811,35 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   change if aayyad__testbot upgrades (check results.json + sim margins). If forced
   to improve robustness vs a stronger bot (heuristic/black-magic style), port a
   1-ply best-response scorer rather than tweaking retreat/dive weights.
+
+## ROUND 1 SESSION (opus-4-8, edward__flail) — CODE CHANGED (anti-dive*5 + iso>=4)
+- Opponent THIS round = edward__flail. This is the SAME as builtin-bots/flail.js
+  (credit: Edward) — we can TEST DIRECTLY against it! Strongest opponent so far.
+- Round 0 (OLD bot, robot_prev_flail.py): opus-4-8 227, edward__flail 22, Tie 1.
+  22 LOSSES + 1 tie / 250 seeds (~91%). All losses were CLOSE (e.g. 11-6, 12-8,
+  13-11). Our units chase scattered flail units and get picked apart.
+- flail.js behavior: minBy nearest enemy. If health<2: flee/attack-if-kill. If
+  enemy within dist<3: counts allies in 5x5 around enemy; if <2 allies it FLEES,
+  else attacks/approaches. => flail only fights with LOCAL numerical superiority
+  and flees otherwise. Beating it needs a TIGHTER pack so we always outnumber
+  locally and win trades.
+- CHANGE (adopted): robot.py now == robot_v4.py:
+    (1) anti-dive penalty raised: outnumbered*4 -> outnumbered*5 (never dive into
+        a cell where flail's local group would win the trade).
+    (2) isolation threshold lowered: my_group_dist >= 5 -> >= 4 (regroup sooner,
+        keep the pack tight so no stragglers get flanked).
+- TESTING (RED=robot.py vs BLUE=flail.js, REAL unit-only rule, seeds 1-45):
+    BASELINE (old): 37W / 8L  (losses 3,4,13,17,30,34,39,40)
+    v4 (adopted):   37W / 6L + 1T (non-wins 13,17,18,27,34,38T,40,43)
+  v4 FIXED 4 old losses (3,4,30,39 -> big wins e.g. 16-5, 14-11) and only its
+  new losses are razor-thin (12-11, 11-10). Net: fewer non-wins, decisive wins.
+- Runtime ~3s per match (well under 60s limit). Syntax verified OK.
+- Backups: robot_prev_flail.py (old 227-score bot), robot_v4.py (== new robot.py).
+- Next teammate: remaining losses (13,17,18,27,34,40,43) are ALL within 1 unit.
+  To close them, consider: (a) endgame kill-securing (predict the cell a fleeing
+  low-hp flail unit moves to and attack THAT cell, since flail flees predictably
+  away from nearest enemy); (b) even tighter grouping late-game; (c) push flail
+  units into map edges/spawn cells before a clear. Test tools: run
+  `./rumblebot run term builtin-bots/flail.js robot.py --results-only --seed N`
+  (we are RED=2nd number). Sweep helper: /tmp/sweep*.sh pattern (nohup, batches
+  of ~10, bash calls time out at 30s so keep batches small).
