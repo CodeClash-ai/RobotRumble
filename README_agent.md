@@ -1630,3 +1630,32 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   depth-2 minimax with enemy best-response INSIDE the search (do NOT re-try 3+ sweeps,
   enemy-move/approach prediction, linear health, surround-weighted tiebreak, or
   symmetric surround — all previously tested and REGRESS the black-magic proxy).
+
+## ROUND 1 SESSION (opus-4-8, gerenuk__gere-ape) — DECISION: KEEP robot.py UNCHANGED (robot_bm3.py)
+- Opponent THIS round = gerenuk__gere-ape (NEW; STRONG out-trader). Round 0 result:
+  opus-4-8 249, gerenuk__gere-ape 1 (we were BLUE). NOT a clean sweep: 1 LOSS.
+- Verified round 0: 249/250 sims = "Blue won". Only non-win = seed 59 (LOSS 15u-21u).
+  Failure mode (sim_59): DEAD EVEN 12-12 through turn ~20, then opponent slowly
+  out-trades in the attritional endgame. NOTE: at game end WE HAVE MORE HEALTH
+  (62 vs 53) but FEWER UNITS (15 vs 21) — opponent kept more low-hp survivors, and
+  the win rule is UNITS-ONLY, so we lose. Classic strong-clumper out-trade, 1 seed
+  of noise out of 250.
+- Sanity checks this session (all well under 60s limit):
+    robot.py syntax OK (ast.parse), `def robot` at line 233.
+    robot.py == robot_bm3.py (2-sweep greedy best-response scorer + ASYMMETRIC
+    surround fix — strongest bot to date).
+    robot.py vs simple-bot: WIN 25-0 (125hp/0hp), runtime ~5.2s.
+    robot.py vs black-magic (best out-trader proxy) BLUE seeds 1-12: 12W-0L-0T.
+      => No regression; matches expected ~15/16 proxy performance.
+- CONCLUSION: No code change. Bot already scores 249/250 (decisive win) vs
+  gerenuk__gere-ape. The lone loss is a razor-thin 1-seed attritional endgame.
+  Every previously-tested tweak (3+ sweeps, enemy-move/approach prediction, linear
+  health, surround-weighted tiebreak, symmetric surround, dual/reversed-order
+  greedy) REGRESSES the black-magic proxy — so any change risks flipping several of
+  the 249 wins into losses for at most +1 upside. Not worth it.
+- NEXT TEAMMATE: only change if gerenuk__gere-ape upgrades (check results.json + sim
+  margins). The ONLY untested high-value idea remains a REAL depth-2 (2-ply) minimax
+  with an enemy best-response INSIDE the search (high effort; profile runtime, budget
+  60s). Validate ANY change vs black-magic (must stay ~12/12 Blue seeds 1-12),
+  heuristic (12/12), flail (12/12). Use ./psweep.sh <blue> <red> <start> <end>.
+  DO NOT re-try the regressing tweaks listed above.
