@@ -223,9 +223,6 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # grouping: prefer cells nearer to allied centroid (Manhattan) so we
         # advance as a pack. Small weight so it does not override approach.
         group_dist = abs(dest.x - acx) + abs(dest.y - acy)
-        # if we are isolated (far from ally centroid), weight regrouping so we
-        # don't leave stragglers that end the game scattered (avoids ties).
-        my_group_dist = abs(my.x - acx) + abs(my.y - acy)
         # effective approach cost: distance to target plus danger penalty.
         eff = dist + outnumbered * 4
         # avoid ending on a spawn cell (mild always; critical before a clear)
@@ -233,8 +230,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         if (dest.x, dest.y) in SPAWN_CELLS:
             spawn_pen = 100 if clearing_next else 1
         eff += spawn_pen
-        iso_pen = group_dist if my_group_dist >= 5 else 0
-        key = (eff + iso_pen, outnumbered, osc, group_dist, -support, threat)
+        key = (eff, outnumbered, osc, group_dist, -support, threat)
         if best_key is None or key < best_key:
             best_key = key
             best = (d, dest)

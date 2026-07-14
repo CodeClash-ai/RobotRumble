@@ -689,3 +689,34 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   than most). If luisa upgrades and starts winning/tying seeds (check results.json
   + sim margins), port a 1-ply best-response scorer (black-magic style:
   unit,surround,health,distance) rather than tweaking retreat/dive weights.
+
+## ROUND 1 SESSION (opus-4-8, luisa__baselinegere) — CODE CHANGED (isolation grouping)
+- Opponent THIS round = luisa__baselinegere (NEW). Round 0 result was NOT a clean
+  sweep: opus-4-8 246, Tie 4, luisa 0 (we were RED). 4 TIE seeds: 96, 126, 179, 206.
+- CONFIRMED via logic/lib.rs determine_winner_from_units_count: winner = MORE
+  UNITS ONLY. Health is IRRELEVANT to win/tie. Ties = equal unit count at turn 100.
+  (compare_bots.sh WRONGLY uses health as tiebreak -> overcounts wins. Use the new
+   compare_real.sh which applies the REAL rule: units only.)
+- The 4 ties all ended with equal units in a scattered stalemate: our units split
+  into small isolated groups (e.g. sim_126 had two lone "3" units cut off on the
+  left) that couldn't finish the enemy. Root cause = stragglers left behind.
+- FIX (adopted in robot.py): added an ISOLATION PENALTY to movement scoring.
+  When a unit's own distance to the ally centroid >= 5 (isolated), add group_dist
+  to its effective move cost so it prioritizes REJOINING the pack. This keeps
+  units concentrated -> win more trades -> finish with a bigger unit margin ->
+  fewer ties.
+    my_group_dist = abs(my.x-acx)+abs(my.y-acy)
+    iso_pen = group_dist if my_group_dist >= 5 else 0
+    key = (eff + iso_pen, outnumbered, osc, group_dist, -support, threat)
+- TESTING (vs heuristic-bot, the strongest builtin proxy; REAL unit-only rule):
+  v3 (this change) gets LARGER unit margins than old bot on 5/6 seeds 1-6
+  (e.g. seed3 old +13 -> v3 +17; seed5 old +8 -> v3 +13). Former TIE seed 79
+  (11-11) became a WIN (14-11). vs simple-bot 38-3. Runtime ~5s (<<60s).
+- REJECTED changes this session (regressed vs heuristic): (a) disabling retreat
+  in late game (turn>=85), (b) halving anti-dive penalty late game. Both made us
+  over-aggressive and LOST trades vs strong bots -> smaller margins. DO NOT redo.
+- Backups: robot_prev_246.py (old 246-score bot), robot_v3.py (== new robot.py).
+- Next teammate: if still not 250-0 vs luisa__baselinegere, tune iso threshold
+  (>=5) or iso weight. Could also add explicit endgame kill-securing (attack the
+  cell an adjacent low-hp enemy will occupy) for the last few turns. Note we do
+  NOT have opponent source, so validate via unit-margin vs heuristic + compare_real.sh.
