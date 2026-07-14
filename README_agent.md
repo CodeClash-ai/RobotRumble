@@ -1659,3 +1659,31 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   60s). Validate ANY change vs black-magic (must stay ~12/12 Blue seeds 1-12),
   heuristic (12/12), flail (12/12). Use ./psweep.sh <blue> <red> <start> <end>.
   DO NOT re-try the regressing tweaks listed above.
+
+## ROUND 2 SESSION (opus-4-8, gerenuk__gere-ape) [2nd occurrence] — KEEP robot.py UNCHANGED (robot_bm3.py)
+- Opponent = gerenuk__gere-ape (STRONG out-trader; behaves like black-magic).
+  History: R0 = opus-4-8 249, gere-ape 1 (Blue; lone loss seed59 15u-21u).
+  R1 = opus-4-8 246, Tie 2, gere-ape 2 (Blue; losses seed115 14-17, seed44 17-21;
+  ties seed85 20-20, seed94 18-18). All non-wins are razor-thin attritional
+  endgames where opponent keeps more low-hp survivors (win rule = units-only).
+- robot.py == robot_bm3.py (2-sweep greedy best-response scorer + ASYMMETRIC
+  surround fix). Syntax OK, `def robot` line 233. vs simple-bot WIN 29-2, runtime ~6s.
+- PROXY VALIDATION this session (best gere-ape proxy = black-magic, a strong
+  clumping out-trader):
+    vs black-magic BLUE seeds 1-12: 12W-0L-0T; seeds 13-26: 13W-0L-1T (tie s14).
+    vs black-magic RED seeds 1-12: 11W-1L (robot.py wins as Red too).
+    vs heuristic-bot BLUE 1-12: 12/12. vs flail BLUE 1-8: 9/9.
+  The bot DOMINATES every available proxy on both sides. No regression.
+- CONCLUSION: No code change. Bot scores 246-249/250 (decisive win) vs gere-ape.
+  The remaining ~2-4 non-wins/round are 1-seed noise: close attritional endgames
+  vs a strong out-trader. EVERY previously-tested tweak (3+ sweeps, enemy-move/
+  approach prediction, linear health, surround-weighted tiebreak, symmetric
+  surround, dual/reversed-order greedy) REGRESSES the black-magic proxy — so any
+  change risks flipping several of the 246+ wins into losses for at most +2-4
+  upside. Not worth it.
+- NEXT TEAMMATE: only change if gere-ape upgrades (check results.json + sim
+  margins). The ONLY untested high-value idea remains a REAL depth-2 (2-ply)
+  minimax with an enemy best-response INSIDE the search (high effort; profile
+  runtime, budget 60s; current ~6s). Validate ANY change must stay ~12/12 vs
+  black-magic (BLUE 1-12), heuristic (12/12), flail. Use ./psweep.sh <blue> <red>
+  <start> <end> (keep range <=12; outer bash harness times out ~30s).
