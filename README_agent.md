@@ -653,3 +653,100 @@ just cranking up PASSES on the current single-model-fixed-point approach.
 3. Re-run `scripts/seed_sweep.sh` (still the right tool for this, see
    earlier rounds' notes on usage/backgrounding) with a bigger N before
    trusting any further tuning - 6-seed samples are still small.
+
+## Round (this session) - tried & rejected "enemy advances toward nearest
+## friend" baseline tweak; confirmed current robot.py is the validated best
+
+Context: this session's `/logs/rounds/` (0 and 1) are from the *previous*
+session, both **250-0 blowout wins** vs `ldang__nemo` with the current
+`robot.py` (PASSES=1, static "enemy attacks lowest-health adjacent friend,
+otherwise passive" baseline) - no new live-match evidence this session, just
+more local testing against `black-magic.js` per the prior "next teammate"
+suggestions.
+
+**Tried:** extending the enemy-baseline prediction used inside our own
+coordinate-ascent search so that an enemy with *no* adjacent friend to
+attack is assumed to take one step toward its nearest friend (instead of
+being assumed passive/`None`, which is what both our old code and
+`black-magic.js` itself do). Rationale going in: a more accurate prediction
+of the enemy's next move should only help our own planning react to it
+(e.g. not overextend into a square an advancing enemy is about to threaten).
+
+**Result: made things WORSE, reverted.** Same 6 fixed seeds (100-105) used
+in the prior session's PASSES A/B test, robot.py as Blue vs `black-magic.js`:
+
+| Seed | Current (baseline = passive if not adjacent) | Tried (baseline = advance if not adjacent) |
+|------|------------------------------------------------|----------------------------------------------|
+| 100  | WIN (61 vs 9)   | WIN (36 vs 27) - much closer   |
+| 101  | WIN (63 vs 11)  | **LOSS** (11 vs 47)            |
+| 102  | WIN (32 vs 13)  | WIN (47 vs 9)                  |
+| 103  | LOSS (12 vs 48) | LOSS (24 vs 44)                |
+| 104  | LOSS (21 vs 37) | LOSS (21 vs 36)                |
+| 105  | WIN (44 vs 26)  | WIN (62 vs 28)                 |
+
+Current: 4W/2L (67%). Tried: 3W/3L (50%). Net negative on this fixed-seed
+sample, including one seed (101) that flipped from a comfortable win to a
+clear loss. **Change was reverted** - `robot.py` in the repo is back to
+byte-identical with what this session started with (confirmed via
+`git status` -> "nothing to commit, working tree clean").
+
+### Why the "more accurate prediction" intuition was wrong here (hypothesis)
+Best guess, not rigorously confirmed: `black-magic.js` uses the exact same
+*passive-if-not-adjacent* baseline for scoring **its own** hypothetical
+actions each turn too (see `builtin-bots/black-magic.js`'s `initTurn`, which
+builds `best_actions` for enemies the same simplistic way before optimizing
+its own friends against it). So both bots are implicitly playing a
+symmetric game against the *same* shared static baseline assumption. Making
+our own baseline "smarter" doesn't make the actual opponent's realized
+moves any different (their code is fixed) - it just changes *our* incentive
+landscape in a way that's no longer symmetric with theirs, and apparently
+that asymmetry cuts against us more often than for us on this sample. This
+rhymes with the prior session's PASSES finding ("more refinement against a
+fixed/possibly-wrong model of the opponent isn't strictly better") - the
+lesson generalizes: **since our opponent here runs the literal same
+algorithm, matching its exact assumptions (not just its search depth) seems
+to matter, and one-sided attempts to be "smarter" than it can backfire.**
+A principled way to actually do better would be a true 2-ply search that
+re-derives the opponent's *actual* coordinate-ascent response after each of
+our candidate moves (expensive - needs to run their optimization, not just
+a heuristic guess - see prior rounds' notes on this) rather than tweaking
+the shared static heuristic in one direction only.
+
+### Current status / no functional change this session
+`robot.py` is unchanged from the start of this session. It is the same
+version validated across many prior sessions:
+- Beats every non-black-magic builtin bot comfortably (nothing/simple/
+  flail/random/chaser/heuristic/needle - reconfirmed nothing-bot.js this
+  session: 115-10 health on seed 1).
+- Wins roughly 4/6 (67%) on the one fixed-seed sample (100-105) vs
+  `black-magic.js`, which multiple sessions now agree is the only real
+  contest and is roughly seed/map-dependent.
+- Has crushed the actual live opponent 250-0 in both recorded real matches
+  so far (`/logs/rounds/0`, `/logs/rounds/1`, both vs `ldang__nemo`).
+
+### Suggestions for next teammate
+1. Don't casually tweak the enemy-baseline heuristic in one direction
+   (e.g. "assume they're smarter/more aggressive") without A/B testing on
+   the same fixed seeds first - this session is now the *second* attempt
+   (after the PASSES experiment) where a plausible-sounding "more accurate/
+   more search" change measurably backfired against black-magic.js, likely
+   because it runs the literal same algorithm and symmetry matters.
+2. The only structurally different (not just "tune the constant") idea
+   that hasn't been tried yet and has good theoretical grounding: a genuine
+   2-ply lookahead that re-runs the *opponent's own* coordinate-ascent
+   optimization (not a static heuristic) after each of our candidate
+   actions, so we're truly reacting to their best response rather than a
+   fixed guess in either direction. This is expensive (requires simulating
+   their full search, not O(1) per candidate) but there is timing headroom
+   (single-pass games run ~8-13s vs the 60s limit) - would need careful
+   complexity analysis before attempting (e.g. only run the expensive
+   opponent-response re-derivation for the top few candidate actions per
+   unit, not all of them).
+3. Keep using `scripts/seed_sweep.sh` with the same fixed seeds (100-105 is
+   now a decently-exercised baseline across two sessions) for any further
+   A/B testing - single anecdotal runs without a seed are not reliable
+   enough to judge changes, as this session's (and prior sessions') data
+   keeps confirming.
+4. The live opponent is still not a good stress test (250-0 blowouts both
+   times) - don't over-index tuning specifically against it; black-magic.js
+   remains the best available proxy for a strong opponent.
