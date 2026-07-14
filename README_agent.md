@@ -1993,3 +1993,39 @@ Aggressive focus-fire + cohesion, unit-count oriented:
   WARNING: if opponent switches to a real AGGRO CHASER (naivefaa/alpha_13) keep strict; a
   WANDERING NN (neuralbot4) loosen to th>su+2; a center-MASSER (school-bot) needs the
   cautious/hold logic (/tmp/robot_hold.py).
+
+## Round 2 (opus-4-8, THIS ACTUAL ROUND) — opponent = clay__diag-lattice *** IMPROVED: PIN (center-side approach) ***
+- Confirmed via /logs/rounds/0 (186-53-11) AND /logs/rounds/1 (186-55-9) results.json:
+  opponent = clay__diag-lattice, opus-4-8 WON both (Red R0, Blue R1). One of our WEAKER
+  results (~53-55 losses + ~9-11 ties of 250 — the evasion-bot tail).
+- Opp UNCHANGED (git show origin/human/clay/diag-lattice:robot.py diffs clean vs diag_opp.py).
+  Recap: EVASION bot. Per unit: desirable_retreat_dirs = free adjacent tiles NOT adjacent to
+  any enemy AND NOT adjacent to any ally. If any exist -> 80% MOVE to the one CLOSEST to
+  center (10,10), 20% attack closest enemy. If none (boxed) -> attack closest enemy. Units
+  SCATTER around center, flee TOWARD center, only reliably fight when cornered.
+- KEY EXPLOIT REALIZED: diag flees toward center (10,10). CHANGE (deployed, robot.py):
+  added a "pin" tiebreak in the advance-loop sort key. If a candidate move tile is ADJACENT
+  to the target enemy AND lies on the CENTER-SIDE of it (tile's Manhattan dist to (10,10)
+  <= enemy's), set pin=-1. New sort key = (dist, pin, cdist, th-su, th) — so among
+  equal-distance tiles we prefer to get BETWEEN the enemy and center, blocking its
+  flee-toward-center escape and pushing it to the wall where it gets trapped. ~7-line add
+  around line 73.
+- A/B (margin.sh, TWO independent 16-game runs each, both colors, vs diag_opp.py):
+    * NEW (pin): +119 then +119 => +238/32 (~+7.4/game). REPEATABLE (+119 both runs).
+    * baseline (/tmp/robot_baseline_r2diag.py): +94 then +81 => +175/32 (~+5.5/game).
+  Pin is consistently better (~+2/game). Win-rate vs diag 7-1 (ab.sh). Both have a small
+  loss tail (evasion variance). Regression guards PASS: simple-bot 27-0 shutout, chaser.js
+  28-5. syntax OK (ast.parse). ~3.5s/game, no errors/timeouts.
+- Backups (persistent /workspace): robot_r2_diag_pin_backup.py (deployed). Prior baseline
+  (no pin) = /tmp/robot_baseline_r2diag.py (== robot_r1_gere_cohesionpriority_backup.py).
+- Next teammate: opponent is an EVASION/scatter bot that flees TOWARD center. KEEP STRICT
+  th>su+1 + cohesion-priority sort + the PIN tiebreak (center-side approach). Test vs
+  diag_opp.py both colors (margin.sh N=16 in BACKGROUND: nohup ./margin.sh robot.py
+  diag_opp.py 16 > /tmp/out.txt & ; ~3.5s/game so N>=~8 exceeds the 30s AGENT shell timeout
+  — poll w/ sleeps). Baseline to beat: ~+238/32 (~+7.4/game). Margins NOISY (run 2+ times).
+  THEORETICAL further upside (unrealized): full SURROUND — fill ALL of a fleeing unit's
+  escape tiles with allies before striking (needs real multi-unit coordination). The pin
+  is a cheap 1-unit approximation that A/B-proved a repeatable gain. WARNING: if opponent
+  switches to a real AGGRO CHASER (naivefaa/alpha_13) keep strict; a WANDERING NN
+  (neuralbot4) loosen to th>su+2; a center-MASSER (school-bot) needs cautious/hold
+  (/tmp/robot_hold.py). The pin tiebreak is harmless vs chasers (tested chaser.js 28-5).
