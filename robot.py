@@ -362,6 +362,25 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                        (state.turn >= 85 and len(our_units) < len(enemy_units)))
         late_ahead = ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
                       (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2))
+        if state.turn >= 90 and len(our_units) == len(enemy_units):
+            health_edge = sum(a.health for a in our_units) - sum(e.health for e in enemy_units)
+            if -5 <= health_edge < 0:
+                # Current mitch84__crw_preempt round-1 non-wins included a
+                # small-health-deficit unit tie (sim_43) that was converted
+                # into a loss by late adjacent trades.  A final tie is better
+                # than giving the opponent a win, so in this narrow band only
+                # take kills that look both focused and survivable; otherwise
+                # retreat/hold.  Larger deficits still use the existing
+                # desperation logic, and health ties/edges keep their normal
+                # tie-breakers.
+                clean_safe_kill = (target.health <= allies_on_target and
+                                   unit.health > len(adj))
+                if clean_safe_kill:
+                    return Action.attack(attack_dir)
+                d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 91))
+                if d:
+                    return Action.move(d)
+                return None
         if late_ahead:
             # While protecting a late unit-count lead, avoid nonlethal trades,
             # but still take focused kills. Several close logs were lost by
@@ -442,6 +461,18 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # sterile full-health draw has a chance to become a +1 unit win.
     if state.turn >= 90 and len(our_units) == len(enemy_units):
         health_edge = sum(a.health for a in our_units) - sum(e.health for e in enemy_units)
+        if -5 <= health_edge < 0:
+            # With only a small health deficit, avoid turning a possible final
+            # draw into a loss by walking toward wounded bait.  Prefer passive
+            # preservation plus low-commitment intercept pre-fire.
+            d = kite_from_nearby(state, unit, 6 if state.turn >= 95 else 3, allow_spawn=(state.turn >= 91))
+            if d:
+                return Action.move(d)
+            d = intercept_dir(state, unit)
+            if d:
+                reserved_attack_squares.add(unit.coords + d)
+                return Action.attack(d)
+            return None
         if health_edge == 0:
             d = late_equal_pressure_step(state, unit)
             if d:
@@ -464,10 +495,9 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # non-wins were already multi-unit deficits after the final clear.  In
         # that narrow case preserving shape is still a loss, so allow bounded
         # pressure toward the nearest non-spawn enemy after wounded targets fail.
-        # Keep this off for one-unit deficits before turn 95 because broad late
-        # pressure has regressed past close matchups.
-        if (len(our_units) + 3 <= len(enemy_units) or
-                (state.turn >= 95 and len(our_units) + 2 <= len(enemy_units))):
+        # Keep this off for one-unit deficits because broad late pressure has
+        # regressed past close matchups; use it only for 2+ unit deficits.
+        if len(our_units) + 2 <= len(enemy_units):
             d = late_pressure_step(state, unit)
             if d:
                 return Action.move(d)
@@ -529,9 +559,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         d = late_desperation_step(state, unit)
         if d:
             return Action.move(d)
-        if (state.turn >= 91 and
-                (len(our_units) + 3 <= len(enemy_units) or
-                 (state.turn >= 95 and len(our_units) + 2 <= len(enemy_units)))):
+        if state.turn >= 91 and len(our_units) + 2 <= len(enemy_units):
             d = late_pressure_step(state, unit)
             if d:
                 return Action.move(d)
