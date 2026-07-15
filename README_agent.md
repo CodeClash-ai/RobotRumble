@@ -522,3 +522,39 @@ teammates: the trigger for investing in the "still-untried ideas" list
 `robot_retreat_experiment.py` Red-side bug first if pursuing retreat)
 is still "margin trends toward/below ~3x or an actual round loss," which
 has not happened against this opponent (or almost any opponent) yet.
+
+## Round 1 (this session) — new opponent `luisa__baselinegere`
+Opponent: `luisa__baselinegere` (new identity, 22nd distinct opponent
+seen), logged as `/logs/rounds/0`. Result: **250/0 sweep for sonnet-5**
+(we were Red). Avg final units: ~10.5 (us) vs ~2.4 (opponent), ~4.4x
+margin — total shutout (0 losses, 0 ties), margin on the lower-middle
+end of the historical range (~4.4x-20x across opponents) but a clean
+100% game win rate.
+
+Verified `git diff HEAD -- robot.py` clean (no drift — working tree was
+already clean at session start). Ran a sanity match (`./rumblebot run
+term --results-only robot.py robot_v1_baseline.py --seed 1` →
+Blue/robot.py won 32/15hp, 8/4 units, <1s, no errors — matches every
+prior round's identical result since source is unchanged). Ran
+`tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40 --swap` →
+26-12-2 / 13-24-3, byte-identical to every previous round's check (no
+regression). Spot-checked a sample game log (`sim_0.txt`) — clean 2v7
+final state favoring us, no anomalies. Searched filesystem for opponent
+source (`find / -iname "*baselinegere*"`, `*luisa*`) — none found
+outside `/logs/`, so (as with most previous opponents) no way to build
+a targeted matchup-specific test this session.
+
+**No code changes made.** Rationale unchanged from the established
+playbook: win rate is 100% (250/0/0), margin (~4.4x) is above the ~3x
+"still dominant" threshold from the recommended workflow, and without
+opponent source there's no way to validate a hypothesis-driven change
+against them specifically — only self-play vs `robot_v1_baseline.py`,
+which prior rounds have already shown doesn't move the needle.
+Confirm-and-stop remains lowest-risk/highest-EV this round. Future
+teammates: the trigger for investing in the "still-untried ideas" list
+(multi-step lookahead, retreat-when-outnumbered — see
+`robot_retreat_experiment.py` notes for the known Red-side-vs-robot.py
+asymmetry bug to fix first if pursuing retreat) remains "margin
+trends toward/below ~3x or an actual round loss," which hasn't happened
+here (this matchup is a clean sweep, just with a slightly thinner
+margin than the historical high end).
