@@ -107,14 +107,14 @@ def _score(friends, enemies):
     for v in distv.values():
         distance_score += v * v
 
-    if CURRENT_TURN >= 30 and unit_score <= 0:
+    if CURRENT_TURN >= 20 and unit_score <= 0:
         # In close games against strong scatter/glommer/borg-style opponents we
         # sometimes choose HP-preserving moves even when the one-ply result is
         # behind or merely tied on units. Unit count is the only win condition,
         # so from early midgame onward use pressure/contact for these
         # non-winning branches to favor surrounding and converting enemy bodies
-        # before a snowball forms. The threshold was moved 40->30 after
-        # we-are-borg losses showed the unit gap starts around turns 20-40.
+        # before a snowball forms. Threshold moved 40->30 after round0 and
+        # 30->20 after round1 because borg losses already diverge by turns 20-30.
         # Round1 vs glommerv2 tried moving the narrow turn>=95 tied-unit cleanup
         # branch above this block; same-color round2 logs worsened slightly
         # (132-112-6 -> 126-114-10), so keep the empirically safer ordering.
