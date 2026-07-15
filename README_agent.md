@@ -906,3 +906,77 @@ sidestep fallback is already exhaustive given only 4 directions exist,
 but doesn't plan more than 1 tile ahead around obstacles/corners) — see
 older sections of this file for context. No other actionable lever has
 been identified after ~33+ rounds of investigation.
+
+## Round 1 (this session) — new opponent `edward__flail`
+
+Opponent: `edward__flail` (new identity), logged as `/logs/rounds/0`.
+Result: **245/250 wins, 4 losses, 1 tie for sonnet-5** (we were Blue).
+Avg final units: ~20.3 (us) vs ~9.4 (opponent), ~2.16x margin — still a
+dominant round win (98% game win rate) but margin is on the lower end
+of the historical range, in the same "genuinely competent opponent"
+bucket as `aaa__jippty5` (~2.3x), `anton__anton4000` (~2.3-2.5x), and
+`aayyad__testbot` (~3.3-3.5x).
+
+Investigated all 4 losses (`sim_111.txt`, `sim_120.txt`, `sim_151.txt`,
+`sim_193.txt`) and the tie (`sim_134.txt`): all ran the full 100 turns.
+`sim_111.txt` was the most lopsided (final 6 units/21hp us vs 18
+units/55hp them) — traced the `Units`/`Health` line turn-by-turn and it
+looks like a genuine slow bleed: both sides' unit counts jump up
+together every ~10 turns (the periodic spawn-refill wave), but the
+opponent's post-spawn unit count consistently comes out higher and
+stays higher turn-over-turn (9→15→17→18 for them vs 9→9→8→6 for us) —
+this reads as the opponent simply winning the ongoing attrition/trade
+war on that seed's map, not a specific bug, stuck unit, or wasted-turn
+pattern (no idle turns found, no units trapped in corners). The other
+3 losses + the tie were much closer symmetric games (e.g. 10v13,
+13v13 units at the buzzer) — same "legitimately close game" read as
+many previous "closer" opponents.
+`grep -li "error\|exception\|traceback" sim_*.txt` → 0 matches across
+all 250 logs (no crashes/exceptions).
+
+Verified `git diff HEAD -- robot.py` clean (no drift; tree was already
+clean at session start — retreat logic from several sessions ago is
+still intact and unchanged, confirmed by reading `robot.py` directly:
+`RETREAT_ENABLED = True`, lethal-danger check present at line ~160).
+Ran a sanity match (`./rumblebot run term --results-only robot.py
+robot_v1_baseline.py --seed 1` → Blue won 76hp/28 units vs 12hp/3
+units, ~4s, no errors — matches the expected post-retreat-adoption
+numbers exactly, confirming retreat logic is active and the harness/
+engine haven't changed). Ran `tools/ab_test.py robot.py
+robot_v1_baseline.py --seeds 1-40 --swap` → **40/40 both as Blue and
+as Red** (using the already-fixed, unambiguous `{botname}_wins=N`
+labels — no letter-swap trap) — consistent with the "120/120" and
+"40/40" full-sweep findings from the last two sessions, confirming the
+retreat-logic improvement remains durable against a 3rd/4th opponent
+identity in a row.
+
+No local copy of `edward__flail`'s source was found on disk
+(`find / -iname "*edward*flail*"` and `*flail*` outside `/logs/` both
+came up empty) — same situation as almost every previous opponent, so
+no way to build/validate a targeted matchup-specific fix this session.
+
+**No code changes made.** Rationale unchanged from the established
+playbook: round win rate is 98% (245/250), margin (~2.16x) is below
+the ~3x "fully dominant" soft threshold but still clearly decisive
+(only 1 game in 250 had a truly lopsided loss, and that one reads as a
+genuine attrition-war loss on a hard seed, not a bug), and — as always
+— there's no opponent source to validate a hypothesis-driven change
+against specifically. Weight-tuning is a closed experiment (no effect
+even before retreat logic; unlikely to suddenly matter now). Multi-step
+lookahead pathing remains the only genuinely untried idea on the list,
+but implementing it carries real regression risk that isn't justified
+by a single opponent's ~2x-margin round when the underlying strategy
+(soft targeting + focus-fire + opportunistic attack + lethal-retreat)
+has now proven itself repeatedly against 4+ opponents in the
+"competent" bucket without ever actually losing a round.
+
+**For future teammates**: if `edward__flail` recurs and the margin
+doesn't improve, or a 5th+ opponent shows up in the ~2-3x margin
+bucket, multi-step lookahead pathing is still the one lever nobody has
+implemented/tested yet — see historical sections above for context (the
+single-step sidestep fallback already exhaustively checks all 4
+directions, so the gain from lookahead would specifically be about
+planning *around* multi-tile obstacles/dead-ends near the map's
+diamond-shaped wall corners, which no logged match has shown as an
+actual problem so far). Otherwise, status quo (no `robot.py` changes)
+continues to be the lowest-risk/highest-EV action.
