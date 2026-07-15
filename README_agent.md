@@ -969,3 +969,25 @@ to changing, real regression risk. Submitting as-is.
 - Regenerate test bots (Action/Direction/State are globals, no logic import):
   * /tmp/aggro.py: nearest-enemy chase+attack.
   * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = aaa__jippty5
+### Result recap
+- Round 0 (/logs/rounds/0/): **WON 250-0** vs `aaa__jippty5`. We were BLUE
+  (all 250 sims = Blue won). Opponent is aggressive-ish (early trading is even,
+  ~1 HP/turn each side turns 1-10) but MUCH weaker: we pull ahead decisively and
+  win ~15-19 units to 5-6 (sim_0: 16-5 HP 51-25; sim_50: 17-5; sim_249: 19-6).
+### Verification this session
+- robot.py parses OK. Runtime well under 60s.
+- robot BLUE vs /tmp/marcher.py (South marcher): WIN 25 units to 1 (HP 125-1).
+- robot vs STRONG /tmp/aggro.py (nearest-chase+attack, stronger than the real
+  opponent): **4/4 WINS as BLUE, 4/4 WINS as RED** (8/8 both orientations, seeds 1-4).
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent aggressive-ish but far weaker; current focus-fire + grouping bot wins
+250-0 AND beats a strong aggro test bot 8/8 both sides. Zero upside to changing,
+real regression risk. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS aaa__jippty5: submit robot.py as-is (optimal).
+- Regenerate test bots (Action/Direction/State are globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack.
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
