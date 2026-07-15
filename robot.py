@@ -283,11 +283,20 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                 # stricter preservation rule only on the last two turns while
                 # already ahead, targeting the original sim_178 pattern where a
                 # +1 lead vanished on turn 100 through simultaneous trades.
-                if state.turn >= 99 and len(our_units) > len(enemy_units):
-                    # A focused kill improves/protects final unit count even if
-                    # this attacker is under threat; only avoid nonlethal trades.
-                    clean_kill = (target.health <= allies_on_target)
-                    if clean_kill:
+                lead_margin = len(our_units) - len(enemy_units)
+                # Preserve final-wave/perimeter bodies more carefully in the
+                # closing turns.  Round-1 logs against gerenuk__gere-ape showed
+                # Blue bleeding +2..+4 post-spawn leads by taking adjacent
+                # "clean" kills that were still simultaneous trades.  Earlier
+                # than this, keep the old willingness to fight so edge robots do
+                # not freeze and let the opponent stabilize.
+                preserve_edge = (lead_margin > 0 and
+                                 (state.turn >= 99 or
+                                  (state.turn >= 95 and lead_margin >= 2)))
+                if preserve_edge:
+                    clean_safe_kill = (target.health <= allies_on_target and
+                                       unit.health > len(adj))
+                    if clean_safe_kill:
                         return Action.attack(attack_dir)
                     d = retreat_from_adjacent(state, unit, adj, allow_spawn=True)
                     if d:
@@ -327,8 +336,16 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             # over-preserving and leaving killable enemies alive; if the target
             # should die to this turn's local focus, unit count improves even
             # when the attacker is under threat.
+            lead_margin = len(our_units) - len(enemy_units)
             clean_kill = (target.health <= allies_on_target)
-            if clean_kill:
+            # A focused kill is valuable, but late logs with large leads were
+            # lost by allowing threatened units to trade themselves away.  Require
+            # the attacker to survive local adjacent focus when the lead should be
+            # preserved (2+ lead after turn 95, or any lead on the last two turns).
+            must_preserve = (lead_margin > 0 and
+                             (state.turn >= 99 or
+                              (state.turn >= 95 and lead_margin >= 2)))
+            if clean_kill and (not must_preserve or unit.health > len(adj)):
                 return Action.attack(attack_dir)
             d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 91))
             if d:
