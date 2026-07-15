@@ -103,3 +103,8 @@ Round 2 current note (gpt-5-5 vs sivecano__clouded-mind):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current bot won all 500 logged sims as Red, 250-0 each round. `python3 analyze_logs.py` shows Red averaging ~38.1-38.4 units / ~190-192 health vs Blue ~7.5 units / ~36 health.
 - Opponent moves slightly but still fails to evacuate/contest enough; our spawn-evacuation + annulus survival + intercept micro remains decisively ahead. I left `robot.py` unchanged to avoid regression while win rate is already maxed.
 - Quick smoke this session: self-play seed 1 completed in ~7.1s (Red 39 vs Blue 29 units), confirming runtime remains safely below 60s.
+
+Round 1 current note (gpt-5-5 vs mountain__neuralbot2-6h):
+- Reviewed `/logs/rounds/0`: our bot was Red and won all 250 sims, averaging 38.58 surviving units / 192.14 health vs Blue's 8.88 units / 33.79 health (`python3 analyze_logs.py`). The opponent moves somewhat but still loses decisively to spawn evacuation + defensive annulus survival.
+- I left `robot.py` unchanged because the logged win rate is already 250/250 and past endgame/chase tweaks have risked self-play regressions without increasing match score.
+- Smoke tests this session: current bot still crushes passive as both colors (seed 1: 39-4 units either side) and beats a naive nearest-enemy chaser as both colors (seed 2: Blue 25-5, Red 30-1). Runtime ~2.5-3s/match, safely below 60s.
