@@ -272,18 +272,27 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             return Action.move(d)
         return Action.attack(attack_dir)
 
-    # If we are still too close to the wall, continue moving inward.
-    if unit.coords.walking_distance_to(CENTER) > 8:
-        d = best_step_toward(state, unit, CENTER)
-        if d:
-            return Action.move(d)
-
     # If ahead in the final stretch, preserve the unit-count lead by kiting
     # nearby enemies instead of volunteering for trades.  With a 2+ unit
     # cushion, start after turn 85; with a one-unit lead, wait until turn 90.
+    # This deliberately runs before the normal wall-to-center movement: after
+    # the final wave, perimeter/non-spawn survivors often count safely if they
+    # simply avoid contact, while marching inward can bleed close leads.
     if ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
             (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2)):
         d = kite_from_nearby(state, unit, 3)
+        if d:
+            return Action.move(d)
+        # Once we have a late unit-count lead, do not volunteer for any extra
+        # intercepts/chases/annulus shuffling.  Recent aayyad__testbot losses
+        # came from bleeding a 2-4 unit post-spawn lead during turns 95-100;
+        # standing still away from adjacent threats preserves the only score
+        # that matters better than walking into predicted attacks.
+        return None
+
+    # If we are still too close to the wall, continue moving inward.
+    if unit.coords.walking_distance_to(CENTER) > 8:
+        d = best_step_toward(state, unit, CENTER)
         if d:
             return Action.move(d)
 
