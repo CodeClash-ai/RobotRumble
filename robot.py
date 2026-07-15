@@ -318,7 +318,12 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # simply avoid contact, while marching inward can bleed close leads.
     if ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
             (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2)):
-        d = kite_from_nearby(state, unit, 3, allow_spawn=(state.turn >= 91))
+        # In the last few turns, a one- or two-unit lead can still disappear
+        # if enemies close from distance 4-5 and get attacks after movement.
+        # Start backing away from those slightly farther threats at turn 95;
+        # before then keep the old radius so we don't over-kite too early.
+        kite_radius = 5 if state.turn >= 95 else 3
+        d = kite_from_nearby(state, unit, kite_radius, allow_spawn=(state.turn >= 91))
         if d:
             return Action.move(d)
         # Once we have a late unit-count lead, do not volunteer for chase or
