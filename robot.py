@@ -277,12 +277,20 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # SPAWN EVACUATION (critical): if we're on a spawn tile and a spawn/clear is
     # imminent, get off it -- otherwise we're wiped AND we block our own spawns.
     if unit.coords.is_spawn() and spawn_turn_soon(state):
-        # Exception: don't abandon a GUARANTEED kill this turn (attacks stack).
+        # On the ACTUAL wipe turn (t%10==0), a unit left on a spawn tile is
+        # deleted at the start of next turn REGARDLESS of what it does. Even a
+        # guaranteed kill (enemy -1) is a 1-for-1 that ALSO costs us the spawn
+        # slot, so evacuating (we keep our unit AND free the slot for +1 spawn)
+        # is strictly better for the count-based win. So on the wipe turn we
+        # ALWAYS evacuate if possible. On buffer turns (7,8,9) we still allow a
+        # guaranteed kill first (the unit can evacuate next turn).
+        is_wipe_turn = (state.turn % 10) == 0
         secured_kill = False
-        for d, e in adjacent_enemies(state, my, other_team):
-            if e.health <= count_my_adjacent(state, e.coords, my_team):
-                secured_kill = True
-                break
+        if not is_wipe_turn:
+            for d, e in adjacent_enemies(state, my, other_team):
+                if e.health <= count_my_adjacent(state, e.coords, my_team):
+                    secured_kill = True
+                    break
         if not secured_kill:
             ev = evacuate_spawn(state, unit)
             if ev is not None:
