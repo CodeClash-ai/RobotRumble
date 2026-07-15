@@ -509,7 +509,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # but in the last few turns let high-HP ties take bounded weak-target
         # pressure; this is narrower than the generic late_pressure_step that
         # previously regressed against line/cluster bots.
-        if state.turn >= 97 and health_edge >= 12:
+        if state.turn >= 94 and health_edge >= 12:
             d = late_health_pressure_step(state, unit, radius=7)
             if d:
                 return Action.move(d)
