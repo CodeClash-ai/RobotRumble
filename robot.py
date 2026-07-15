@@ -49,6 +49,16 @@ HEALTH_WEIGHT = 0.6       # prefer already-damaged enemies
 FOCUS_BONUS = 2.0         # bonus (score reduction) for the shared team target
 COORD_WEIGHT = 0.15       # mild pull toward wherever the team overall wants to go
 
+# Retreat experiment (see README_agent.md "Round 2" notes): if a unit
+# would take lethal damage this turn by staying still (i.e. the number of
+# adjacent enemies -- each dealing 1 damage -- is >= its current health),
+# retreat to the safest free adjacent tile instead of attacking. This
+# exploits how the engine resolves combat: attacks target a *coordinate*
+# computed from the attacker's start-of-turn position, resolved *after*
+# movement is applied -- so if we vacate our tile, any attack aimed at it
+# simply whiffs (unrelated to how many enemies were aiming at it).
+RETREAT_ENABLED = True
+
 
 def total_distance_for_units(units: List[Obj], target: Obj) -> float:
     return sum(unit.coords.distance_to(target.coords) for unit in units)
@@ -143,6 +153,28 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     #    the team's focus target.
     adjacent_enemies = [e for e in enemies if unit.coords.walking_distance_to(e.coords) == 1]
     if adjacent_enemies:
+        # 1a) Lethal-danger check: if staying put would let enough adjacent
+        # enemies land a hit this turn to kill us (each deals 1 damage), try
+        # to retreat to the safest free adjacent tile instead of attacking.
+        # See RETREAT_ENABLED comment above for why this works mechanically.
+        if RETREAT_ENABLED and len(adjacent_enemies) >= unit.health:
+            best_dir = None
+            best_safety = -1.0
+            for d in Direction:
+                dest = unit.coords + d
+                if state.obj_by_coords(dest):
+                    continue  # blocked by wall or unit
+                safety = min(dest.distance_to(e.coords) for e in enemies)
+                if safety > best_safety:
+                    best_safety = safety
+                    best_dir = d
+            # Only bother retreating if it actually improves our safety
+            # margin vs. staying put (distance 1, since we're adjacent to
+            # at least one enemy right now).
+            if best_dir is not None and best_safety > 1:
+                debug.inspect("retreating_from", adjacent_enemies[0].id)
+                return Action.move(best_dir)
+
         def adj_score(e: Obj):
             return (e.health, 0 if e.id == focus_target_id else 1)
 

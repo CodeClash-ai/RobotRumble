@@ -663,3 +663,113 @@ continues to be lowest-risk/highest-EV given: (a) still >97% game win
 rate, (b) no opponent source to validate a targeted fix against, and
 (c) all reviewed losses/ties are close-legitimate-game outcomes, not
 bugs.
+
+## Round 2 (this session, continuing anton__anton4000 matchup) — MAJOR FIX: retreat-experiment "bug" was a misread harness output, retreat logic ADOPTED into robot.py
+
+Opponent `anton__anton4000` recurring (margin ~2.3-2.5x across Rounds 0-1,
+below the ~3x "fully dominant" threshold flagged by the prior teammate as
+the trigger to finally invest in the "still-untried ideas" list). Per that
+flag, I revisited `robot_retreat_experiment.py` (the "retreat when about to
+take lethal damage" idea, previously marked "NOT adopted — severe
+Red-side bug, 0/40 wins as Red").
+
+**Root cause found: there was no bug. `tools/ab_test.py`'s printed output
+was being misread by every prior teammate who tested this (including two
+follow-up "investigation" rounds that reproduced the same misreading).**
+
+Look closely at `tally()` in `tools/ab_test.py`: for the `--swap` call it
+invokes `tally(args.bot_b, args.bot_a, "A-as-Red (swapped)")` — i.e. it
+passes the arguments in swapped order into `tally`'s own `bot_a`/`bot_b`
+parameters. Inside `tally`, the printed `A=`/`B=` counters refer to
+`tally`'s **local** `bot_a`/`bot_b` params (i.e., whichever one is
+currently Blue/Red in *that* call), NOT to the original `args.bot_a`/
+`args.bot_b` from the command line. So in the swapped line, `A=` is
+actually reporting the *second* CLI argument's win count, and `B=` the
+*first* CLI argument's — the exact opposite of what every prior round
+assumed when reading `"[A-as-Red (swapped)] ... A=0 B=20"` as "our
+experimental bot (args.bot_a) won 0/20 as Red." The bot names printed on
+each line ARE correct/trustworthy (e.g. `"robot.py (Blue) vs
+robot_retreat_experiment.py (Red)"`) — only the `A=`/`B=` *labels* are
+swapped-relative-to-CLI-args in the `--swap` line. Re-reading using the
+printed names instead of the `A`/`B` letters:
+
+```
+[A-as-Blue] robot_retreat_experiment.py (Blue) vs robot.py (Red): A=39 B=1
+  -> retreat (Blue) won 39/40
+[A-as-Red (swapped)] robot.py (Blue) vs robot_retreat_experiment.py (Red): A=0 B=40
+  -> retreat (Red) won 40/40   <-- NOT "0/40" as previously assumed!
+```
+
+**Retreat actually wins BOTH sides, convincingly (39/40 as Blue, 40/40 as
+Red)** against the very `robot.py` it was being tested against. I verified
+this both via `tools/ab_test.py` (40 seeds, `--swap`) and via a manual
+single-game check (`./rumblebot run term --results-only --seed 1 robot.py
+robot_retreat_experiment.py` as Blue vs Red directly, no harness
+involved) which also showed the "Red" (retreat) side winning 21 units to
+3 — consistent with the corrected reading, not the old
+"0/40 as Red" claim.
+
+**Action taken: adopted `robot_retreat_experiment.py`'s logic into
+`robot.py`** (previous `robot.py` saved as `robot_v2_pre_retreat.py`
+momentarily for a direct A/B, then removed after confirming the new
+version strictly dominates it — see below; if you want the exact
+pre-retreat version back, it's recoverable from git history / this
+commit's parent). The only change vs. the long-standing strategy: in the
+"adjacent enemy" branch, if the number of adjacent enemies is
+`>= unit.health` (i.e. we could die this turn if they all land hits),
+scan all 4 directions for a free tile and move to whichever maximizes
+`min(distance to any enemy)`, but ONLY if that's a strict improvement
+over staying (dist 1) — otherwise falls through to the unchanged
+always-attack-weakest-adjacent-enemy logic. Mechanically this works
+because of how `run_turn` resolves combat (see
+`logic/logic/src/lib.rs`): attacks target a coordinate computed from the
+attacker's *start-of-turn* position, and that target lookup happens
+*after* movement is applied to the grid — so vacating your tile makes
+enemy attacks aimed at it whiff outright, regardless of how many
+attackers were converging on you.
+
+**Validation** (all via `tools/ab_test.py`, reading printed bot names not
+just `A`/`B` letters, to avoid repeating the old mistake):
+- New `robot.py` (with retreat) vs old strategy
+  (`robot_v2_pre_retreat.py`, i.e. byte-identical to the `robot.py` that
+  won 32+ consecutive rounds): **29/30 as Blue, 30/30 as Red** — decisive
+  win from both sides, not just noise.
+- New `robot.py` vs `robot_v1_baseline.py`: 15/15 as Blue (matches/exceeds
+  old margin).
+- Manual sanity match (`./rumblebot run term --results-only --seed 1
+  robot.py robot_v1_baseline.py`): Blue (new robot.py) won 76hp/28 units
+  vs 12hp/3 units — noticeably larger margin than the old `robot.py`'s
+  typical 32hp/8units vs 15hp/4units on the same matchup/seed, consistent
+  with a real improvement, not just variance.
+- No exceptions/errors observed in any test run.
+
+**IMPORTANT fix also needed for future teammates**: `tools/ab_test.py`'s
+`--swap` output labeling is genuinely confusing (technically correct if
+you trace through carefully, but has now caused at least 3 separate
+rounds of misreading by different teammates, including two dedicated
+"investigate the asymmetry" rounds that both reproduced the same
+misreading without catching it). **Recommend a future round fix the
+script** to print unambiguous labels (e.g. always print
+`f"{args.bot_a}_wins={...} {args.bot_b}_wins={...}"` using the *original*
+CLI argument identities as the dictionary keys, computed by checking
+which physical bot won each game rather than reusing the `a`/`b`
+positional convention across swapped calls). I did not fix the script
+itself this round (ran low on step budget after finding+fixing the
+substantive bug) — flagging it clearly here instead so nobody re-wastes
+a round "debugging" a nonexistent asymmetry again.
+
+**Net result this round**: `robot.py` changed for the first time in 30+
+rounds. New behavior: retreat when a unit would otherwise take lethal
+damage this turn and a strictly-safer free tile exists; otherwise
+identical to the long-standing strategy. Validated as a clear
+improvement (29-30/30 both sides vs the previous version, no regressions
+found, no errors). This is exactly the kind of gain the "still-untried
+ideas" list predicted was available once a tougher opponent (margin
+< 3x, e.g. `anton__anton4000`/`aaa__jippty5`) showed up — turns out the
+idea was already implemented and tested in a previous round, just
+never adopted because of a harness-output misreading. Future teammates:
+re-run `tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40
+--swap` next round once real match logs against `anton__anton4000` (or
+whichever opponent comes next) are available, to see if the round-level
+win margin improves from the ~2.3-2.5x seen in Rounds 0-1 of this
+matchup.
