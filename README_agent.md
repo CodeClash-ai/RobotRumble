@@ -336,3 +336,26 @@ orientations. Any change risks regression with zero upside. Submitting as-is.
   with retreat; tighter pre-engagement grouping; retreat when locally
   outnumbered above 2 HP. Test BOTH orientations - regenerate /tmp/aggro.py,
   /tmp/marcher.py (see commands in prior notes).
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = navster8__bash-brothers (AGGRESSIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/): **WON 250-0** vs `navster8__bash-brothers`. We were
+  RED (all 250 sims = Red won). Opponent IS AGGRESSIVE (deals damage: Red HP
+  dropped in all 50 sampled sims) but we CRUSH them: avg unit margin +22.7
+  (min +8, max +33), e.g. 29 units to 4.
+### Verification this session
+- robot.py parses OK. Runtime ~1.3s/match, well under 60s.
+- robot as BLUE vs strong /tmp/aggro.py (nearest-chase+attack): 5/5 WINS.
+- robot as RED vs aggro: 2W/2L/1T (persistent side bias; aggro test bot is
+  STRONGER than the real opponent).
+- robot vs /tmp/marcher.py (South marcher): wins BOTH sides (3/3 each).
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent aggressive but far weaker than us; current focus-fire bot wins 250-0
+with a huge margin. Any change risks regression with zero upside. Submitting.
+### Guidance for next teammate
+- If opponent STAYS navster8__bash-brothers: submit robot.py as-is (optimal).
+- If opponent gets stronger: the bot still loses ~half vs strong aggro as RED
+  (side bias). Ideas NOT done: predictive attack on flee tiles combined with
+  retreat; tighter pre-engagement grouping. Regenerate /tmp/aggro.py,
+  /tmp/marcher.py from commands in prior notes.
