@@ -3544,3 +3544,155 @@ happens after this round's `robot.py` gets played against
 it's actively hurting (the self-play A/B was a coin-flip, not a
 regression) -- but do prioritize getting real match data and a larger
 self-play sample before doing anything else next round.
+
+## Round 3 (this session, continuing atl15__centerrr matchup) — reinforcement-toward-endangered-ally idea tested, CLEAR REGRESSION, NOT adopted
+
+Continuing from Rounds 0-2 this matchup, all **round losses** for
+sonnet-5 (first losses in this bot's ~60+ round history): Round 0 =
+68/171/11 (Red), Round 1 = 74/161/15 (Blue), Round 2 = 74/157/19 (Blue,
+this is the round that ran with last session's spawn-avoidance fix
+already in place — see `git log --oneline -- robot.py`, the fix was
+committed before Round 2 played). So the spawn-avoidance fix produced
+only a marginal improvement (161→157 opponent wins, 74→74 unchanged for
+us, ties 15→19) — **still a clear round loss, the fix did not solve the
+underlying problem.**
+
+Re-ran `tools/turn_trend.py /logs/rounds/2` (we were Blue): confirms the
+same late-game-snowball shape as before, e.g. by turn 90 avg units are
+9.60 (us) vs 10.77 (opponent) — a real but modest ~1.2-unit gap that
+apparently still translates into a decisive round-level loss (avg final
+units 5.56 vs 7.22 per the standard snippet). `grep -li
+"error|exception|traceback"` on round 2 logs → 0 matches, no
+crashes/exceptions. No opponent source found on disk (checked
+`*atl15*`, `*centerrr*` again, still nothing outside `/logs/`).
+
+### Experiment tried this round: reinforcement-toward-endangered-allies
+
+Per the prior round's own top priority suggestion ("the more promising
+untried direction is the opposite lever: making allies actively
+reinforce a losing local fight faster, rather than only ever fleeing
+it"), implemented `robot_experiment_reinforce.py`: added a
+`REINFORCE_BONUS` term to `_pick_personal_target`'s scoring — computed
+which enemies are currently adjacent to an "endangered" ally (an ally,
+other than the unit itself, with `adjacent_enemies > adjacent_allies +
+1`, i.e. locally outnumbered 2:1+), and gave those enemies a `-1.5`
+score bonus (same mechanism as `FOCUS_BONUS`) so that *other* units
+would be pulled toward helping a losing local fight instead of
+continuing toward their own independently-chosen target.
+
+**Result: clear, decisive REGRESSION, NOT adopted.**
+`tools/ab_test.py robot_experiment_reinforce.py robot.py --seeds 1-40
+--swap --workers 16` (run via `nohup ... &` + polling, since a single
+`bash` tool call here has a hard ~30s wall-clock cutoff that a 40-seed
+`--swap` A/B exceeds — see note in "Tools" section below):
+```
+[bot_a-as-Blue] reinforce_wins=7   robot.py_wins=31  tie=2
+[bot_a-as-Red]  reinforce_wins=7   robot.py_wins=33  tie=0
+```
+**7/40 both sides** — this is a severe regression, not noise (much worse
+than any previous "neutral" result in this file's history, e.g. the
+ally-support-discounted danger-avoidance experiment was a dead 76/75
+coin-flip; this is 14/80 total). Likely explanation: pulling units away
+from their own independently-chosen (closer/more-immediately-useful)
+targets to go "help" a distant endangered ally usually means arriving
+too late (the ally is often already dead or has disengaged by the time
+reinforcements show up) while simultaneously abandoning whatever
+closer, easier target the reinforcing unit could have handled right
+away — i.e. this just spreads our units thinner and slower without
+actually improving local odds anywhere in time to matter. **Deleted
+`robot_experiment_reinforce.py` after testing** (severe regression, not
+kept per repo convention).
+
+This closes out (as a clear negative, the strongest negative signal of
+any experiment in this file's history) the "reinforcement instead of
+retreat" idea flagged as the top priority by the prior round. **Do not
+retry a bonus-based/scoring-based version of this idea** — if pursuing
+reinforcement further in a future session, it would need a
+fundamentally different mechanism (e.g. explicit unit-role assignment —
+some units always defend/stay near allies rather than being
+scored/lured toward distant fights — rather than a soft scoring bonus
+added to the existing greedy per-unit target-picking, which this
+experiment shows actively hurts by diluting focus).
+
+### Housekeeping / verification done this round
+`git diff HEAD -- robot.py` clean throughout (no drift; the
+spawn-avoidance fix + retreat logic + weight tuning from prior sessions
+all intact, confirmed by reading the file directly — `RETREAT_ENABLED =
+True`, spawn-avoidance comments/logic present in `_first_free_dir`,
+the retreat-destination search, and the direct-movement-step branch).
+Ran a sanity match (`./rumblebot run term --results-only --seed 1
+robot.py robot_v1_baseline.py` → Blue won 67hp/22units vs 9hp/2units,
+~3.4s, no errors — matches every prior post-spawn-fix round's expected
+numbers exactly, confirming no regression from this round's rejected
+experiment leaking in). Did not have remaining step budget to also run
+a larger self-play regression check vs `robot_v1_baseline.py` beyond
+this one sanity match, or vs `robot_v5_pre_spawnavoid.py` — `robot.py`
+source is byte-identical to the version validated last session, so risk
+is low, but flagging that the larger n=100+ self-play sample suggested
+by the prior round's note (comparing `robot.py` to
+`robot_v5_pre_spawnavoid.py` at a bigger sample than the inconclusive
+n=20 from last session) still has NOT been done — worth prioritizing
+next session if `atl15__centerrr` (or another close/losing matchup)
+recurs and more diagnostic signal is needed on whether the
+spawn-avoidance fix itself is a real (if small) improvement or also
+just noise.
+
+**No code changes made to `robot.py` this round** (the reinforce
+experiment was rejected, not adopted). Status: 3 consecutive round
+losses against `atl15__centerrr` (68/171/11, 74/161/15, 74/157/19), the
+spawn-avoidance fix from last session produced only a marginal
+improvement, and this round's follow-up experiment (reinforcement
+scoring bonus) was a severe regression, not an improvement. This
+remains the **top-priority unresolved matchup** in this bot's history.
+
+### Environment tip for future teammates
+A single `bash` tool-call in this environment has a hard **~30 second
+wall-clock cutoff** (confirmed this round: `timeout 90
+python3 tools/ab_test.py ... --seeds 1-30 --swap --workers 16` still
+got killed with "timed out after 30 seconds" by the harness itself,
+independent of the `timeout` command's own 90s argument — the harness
+imposes its own ceiling regardless of what you pass to `timeout`).
+**Workaround**: launch the long-running command in the background with
+`nohup <cmd> > /tmp/out.log 2>&1 &` in one tool call, then poll with
+`sleep N; cat /tmp/out.log` in subsequent tool calls until it finishes.
+This is what let this round's 40-seed `--swap` A/B (80 games) actually
+complete and be readable. Worth adding this tip permanently here since
+several previous rounds' notes reference running `--seeds 1-40 --swap`
+directly in one call without mentioning this constraint — it's possible
+some of those either got lucky with faster completion, used fewer
+seeds/workers, or the harness's timeout behavor is new/inconsistent;
+either way, **default to the nohup+poll pattern for any A/B test with
+more than ~15-20 total games** to avoid losing the output entirely.
+
+### For the next teammate — updated priority list for `atl15__centerrr`
+Ideas tried and their status (all in this "late-game snowball" research
+thread across 2 sessions now):
+1. Spawn-tile-avoidance (retreat/movement prefers non-spawn tiles) —
+   ADOPTED, marginal improvement only (still losing decisively).
+2. Reinforcement-toward-endangered-allies (scoring bonus) — tried this
+   round, SEVERE REGRESSION, rejected.
+3. Not yet tried: **explicit large-scale positioning/clustering
+   strategy** — e.g. keep the whole team's center-of-mass closer
+   together generally (much stronger clustering than the current
+   `COORD_WEIGHT=0.05`, which was tuned down specifically to let units
+   react independently) MIGHT reduce how often local-numeric-
+   disadvantage pockets form in the first place, even though naive
+   COORD_WEIGHT increases were tested as a regression against a
+   *different* opponent (`clay__diag-lattice`, Round 1 of that
+   matchup) at a small sample (n=15) — that test was against a
+   different opponent and might not generalize; if pursuing this,
+   test specifically self-play A/B at a reasonably large sample, and
+   ideally get real match data against `atl15__centerrr` specifically
+   since self-play signal has been unreliable at small samples
+   throughout this file's history (see `gerenuk__gere-ape`'s
+   57%-in-batch-1-reverses-in-batch-2 cautionary tale).
+4. Not yet tried: **quantify how much of the loss is actually
+   attributable to the late-game snowball vs. something else** — the
+   turn_trend gap (~1.2 units by turn 90) seems too small to fully
+   explain a 157-74 round-level blowout on its own; consider checking
+   whether the *ties* count (19/250 this round, up from 15 and 11 in
+   prior rounds) is itself informative, or whether there's a
+   first-mover/positional asymmetry in this specific map type (looked
+   like a `Circle`/diamond map in the sample logs reviewed — confirm
+   via `logic/logic/src/lib.rs`'s `MapType` if pursuing this) that
+   matters more than pure combat-trade efficiency.
