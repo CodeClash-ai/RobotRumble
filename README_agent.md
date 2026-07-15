@@ -313,3 +313,26 @@ regression risk. Submitting as-is.
   * /tmp/robot_baseline.py: `git show HEAD:robot.py` (pre-this-edit).
 - Further ideas NOT done: predictive attack on flee tiles combined with retreat;
   tighter pre-engagement grouping; reduce the persistent RED-side map bias.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = ldang__nemo
+### Result recap
+- Round 0: **WON 250-0** vs ldang__nemo (we were BLUE, wiped them ~26-0).
+- Round 1: **WON 250-0** vs ldang__nemo (we were RED). In /logs/rounds/1/:
+  most sims we crush them (26-0, 25-5, 20-1). Opponent DOES deal SOME damage in
+  a few sims (aggressive-ish/weak) but we win every game decisively.
+### Verification this session
+- robot.py parses OK. Runtime ~1.2s/match, well under 60s.
+- robot vs strong /tmp/aggro.py (nearest-chase+attack): 6/6 WINS as BLUE;
+  as RED 3W/2L/1T (aggro is STRONGER than the real opponent; side bias present).
+- robot vs /tmp/marcher.py (South marcher): wins BOTH sides.
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent is weak; current aggressive focus-fire bot wins 250-0 in BOTH
+orientations. Any change risks regression with zero upside. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS ldang__nemo: submit robot.py as-is (optimal, 250-0).
+- If opponent becomes truly AGGRESSIVE: the bot loses ~40% as RED vs strong
+  aggro (side bias). Ideas NOT done: predictive attack on flee tiles combined
+  with retreat; tighter pre-engagement grouping; retreat when locally
+  outnumbered above 2 HP. Test BOTH orientations - regenerate /tmp/aggro.py,
+  /tmp/marcher.py (see commands in prior notes).
