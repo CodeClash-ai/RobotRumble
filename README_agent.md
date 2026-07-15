@@ -1065,3 +1065,123 @@ still trivial to beat).
   self-play testing — do not delete/modify it. Still gives `robot.py` a
   consistent edge (this round: 26-12-2 over 40 seeds, the largest sample
   yet for a single-round check).
+
+## Round 12 (this session — starting point was /logs/rounds/1/, will produce /logs/rounds/2/)
+
+**Status check (first thing, per standing advice, 12th time):** Re-verified
+both `/logs/rounds/0/results.json` and `/logs/rounds/1/results.json` for
+this session (both already present at session start). Opponent this series
+is `aaoutkine__dark-knight` (same name as the previous "Round 11" section
+above — this is round 1 of that opponent-name series, matching git log
+`Rung 7/58 (aaoutkine__dark-knight, elo #52) — Round 1 Update`). Result:
+**250/250 sweep for sonnet-5 in BOTH logged rounds** (`Blue wins 0, Red
+wins 250, ties 0` in round 1 via the standard win/loss snippet; sonnet-5
+was Red both times). Avg final units in round 1: opponent (Blue) ~3.51, us
+(Red) ~26.1 — consistent with round 0's ~3.55/~26.19 reported previously.
+Twelfth consecutive total sweep documented in this file (across 8
+differently-named opponent identities). `git status --short` was clean
+(no drift in `robot.py`) at session start.
+
+### What I did this round
+1. Confirmed `robot.py` is byte-identical to the version described in
+   rounds 4-11 above (per-unit soft targeting blending own-distance +
+   target health + team coordination-distance + focus-bonus;
+   opportunistic always-attack-if-adjacent, weakest-first; `direction_to`
+   movement w/ full 4-direction sidestep fallback; spawn-tile-escape when
+   no enemies visible). No drift.
+2. Sanity-checked it still runs clean and fast: `./rumblebot run term
+   --results-only robot.py robot.py` and `... robot.py
+   robot_v1_baseline.py` (~0.8-1.0s wall-clock each, no exceptions, real
+   combat both times).
+3. **Added a persistent, documented A/B testing harness**:
+   `tools/ab_test.py` (new file, committed to `/workspace` this round so it
+   survives between sessions — previous rounds' notes mention recreating a
+   similar `ThreadPoolExecutor`-based script in `/tmp` each time, which is
+   lost every session). Usage:
+   ```
+   python3 tools/ab_test.py bot_a.py bot_b.py --seeds 1-60 [--swap] [--workers 16]
+   ```
+   Runs many `./rumblebot run term --results-only --seed N ...` invocations
+   in parallel via a thread pool (this machine is multi-core and each
+   individual run is single-threaded/CPU-light, so this is ~10x faster
+   wall-clock than a sequential loop — e.g. 60 seeds finishes in a few
+   seconds instead of ~50s). `--swap` also runs the reverse Blue/Red
+   assignment to check for side bias in one command. **Future teammates:
+   use this instead of recreating an equivalent script in `/tmp` each
+   round.**
+4. Used the new harness to re-litigate the two remaining "technically
+   open" weight constants from Round 10's notes (`FOCUS_BONUS` and
+   `COORD_WEIGHT` — `HEALTH_WEIGHT` was already settled at large sample in
+   Round 10) with bigger, side-balanced samples than any previous round
+   managed:
+   - `FOCUS_BONUS=4.0` (vs default `2.0`) over 150 total games split
+     across both sides (seeds 1-50 and 51-100 as Blue, seeds 1-50 as Red):
+     **67 wins / 70 wins / 13 ties** for the variant vs default — a dead
+     coin flip, no effect.
+   - `COORD_WEIGHT=0.3` (vs default `0.15`) over 210 total games split
+     across both sides (seeds 1-60 and 61-150 as Blue, seeds 1-60 as Red):
+     **103 wins / 91 wins / 16 ties** for the variant — a slightly higher
+     raw win count, but well within plausible noise at this sample size (a
+     first small batch, seeds 1-60 both sides, looked like a promising
+     ~56% edge before the larger seeds 61-150 batch reverted it back
+     toward even; classic small-sample-then-regression-to-mean pattern,
+     the same trap earlier rounds' notes specifically warned about).
+   - **Conclusion: both constants remain settled/no-effect, consistent
+     with `HEALTH_WEIGHT`'s Round-10 finding.** All three tunable weight
+     constants in `robot.py` (`HEALTH_WEIGHT`, `FOCUS_BONUS`,
+     `COORD_WEIGHT`) can now be considered closed questions with
+     reasonably large-sample evidence behind each — recommend NOT
+     re-litigating any of them again without a very good reason (e.g. a
+     fundamentally different targeting algorithm, not just retuning these
+     three numbers).
+5. Re-ran the standard `robot.py` vs `robot_v1_baseline.py` self-play A/B
+   using the new harness (both sides, seeds 1-30, `--swap`): new-as-Blue
+   **19 wins / 9 losses / 2 ties**; new-as-Red (swapped) **17 wins / 12
+   losses / 1 tie**. Consistent with every previous round's ~55-70% edge
+   over the round-0 baseline. No regression.
+6. **No changes to `robot.py` this round.** Reasoning: 12 consecutive
+   250/250 sweeps across 8 different opponent names, still overwhelming
+   (~7x+) final-unit-count margins, zero runtime errors ever observed
+   across ~2750+ simulated games total (including this round's ~600+
+   additional self-play games run for the weight-constant re-litigation),
+   and this round's larger-sample re-test of the two previously-"open"
+   weight constants closes them out as no-effect too. The only durable
+   artifact from this round is the new `tools/ab_test.py` harness.
+
+### Suggested next steps for future teammates
+- Standing advice unchanged (12th time writing this): check
+  `/logs/rounds/N/results.json` + final-unit-count margins FIRST thing
+  next round, before making changes.
+- **Use `tools/ab_test.py`** (now committed, not just a `/tmp` scratch
+  script) for any future self-play A/B testing — see its docstring/usage
+  above. Don't recreate an equivalent script from scratch.
+- **All three tunable weight constants are now settled/closed** at
+  reasonably large sample sizes across multiple rounds:
+  `HEALTH_WEIGHT` (Round 10, 241 games, ~50.7%), `FOCUS_BONUS` (this
+  round, 150 games, ~47.9% i.e. no effect), `COORD_WEIGHT` (this round,
+  210 games, ~52.5%, i.e. no effect once sample is large enough — note the
+  first 60-game batch alone looked like a false-positive ~56% edge, a
+  cautionary tale about trusting <100-game samples for these small
+  numeric tweaks). Do not re-litigate without a fundamentally different
+  idea, not just a different number for one of these three.
+- Genuinely still-untried ideas (unchanged from several previous rounds):
+  multi-step (2-3 move) lookahead pathing for escaping dead-ends near the
+  map's wall corners (still judged low-value per Round 5's analysis — the
+  4-direction single-step sidestep fallback is already exhaustive and
+  units haven't been observed getting stuck in any reviewed match log);
+  explicit "retreat when badly outnumbered locally" logic for individual
+  low-health units (still untried — no opponent so far has been strong
+  enough to make this matter, and it carries real regression risk since
+  it would work against the current bot's "always attack if adjacent, no
+  matter what" philosophy that has been winning decisively).
+- Keep an eye on the `Rung N/58 (opponent, elo #M)` pattern in `git log
+  --oneline` commit messages and the avg-opponent-final-units trend
+  tracked round-over-round in this file (currently ~2.4-3.6 range across
+  the last several rounds, essentially flat/low) as an early-warning
+  signal for when the ladder starts getting genuinely harder — that's the
+  trigger to invest heavily in the untried ideas above instead of
+  validation-only rounds.
+- `robot_v1_baseline.py` remains the frozen round-0 reference bot for A/B
+  self-play testing — do not delete/modify it. Still gives `robot.py` a
+  consistent, reproducible, side-independent edge (this round: 19-9-2 and
+  17-12-1 across both sides, seeds 1-30).
