@@ -2640,3 +2640,102 @@ below ~95% or margin drops persistently below ~2x, in which case a
 more fundamental architecture change (e.g. true lookahead/minimax over
 predicted enemy moves) would be the next lever to consider — not
 recommended without a dedicated multi-round budget though.
+
+## Round 1 (this session) — new opponent `wolfsleuth__simple`; flagged thinner-than-usual margin, root cause NOT found (time-boxed)
+
+Opponent: `wolfsleuth__simple` (new identity), logged as `/logs/rounds/0`.
+Result: **214/250 wins for sonnet-5** (we were Blue), 22 losses, 14
+ties — 85.6% game win rate, avg final units ~14.28 (us) vs ~8.75
+(opponent), only **~1.63x margin**. This is the *thinnest* margin/
+lowest win-rate seen against any opponent logged in this file so far
+(previous "competent opponent" bucket was ~2.0-2.5x /
+~97-99% win rate, e.g. `aaa__jippty5`, `anton__anton4000`,
+`edward__flail`, `mountain__neuralbot4-3h`). Round was still won
+outright (sonnet-5 declared round winner, score 214 vs 22), but this
+is a meaningfully weaker performance than the norm and worth
+prioritizing next session.
+
+**Investigated losses** (e.g. `sim_4.txt`): games run the full 100
+turns, both sides start with 4 units at full health (5 each, total 20)
+and — puzzlingly — **health drops symmetrically on both sides turn
+over turn even when no units appear adjacent on the printed ASCII map**
+(e.g. turn0: two of our four units show health 5,5; turn1: same two
+units, same position, health 4,4; other two units on the map stay at
+5 the whole time). I confirmed via `logic/logic/src/lib.rs::run_turn`
+that health can **only** change via `Action.attack`/`Action.heal`
+(direction-based, hits whatever unit occupies the target coordinate
+*regardless of team* — i.e. friendly fire is mechanically possible if
+you ever aim an attack at a coordinate an ally occupies) — there is
+**no** passive/environmental damage, decay, or "shrinking zone"
+mechanic in this codebase (checked for Hill-mode-only logic, spawn-
+clearing, and any turn-based damage — found none applicable to Normal
+mode). So the printed-map "distance" must not be telling the full
+story — I ran out of step budget before conclusively figuring out
+whether: (a) the display buffer is somehow misaligned/scaled
+differently than I assumed (I confirmed via `cli/src/display.rs` that
+each printed character = exactly one grid cell, 1:1, so this shouldn't
+be it), (b) there's a 3rd/4th unit hiding exactly between the pair that
+died and was removed from a *previous* turn's rendering before I
+looked (dead units are removed from `state.objs`/`grid` the instant
+they hit 0 health, so a unit that died turn-of-attack wouldn't show in
+that *same* turn's post-turn render, but should show in the turn
+*before* it died — I didn't have time to carefully trace a
+turn-by-turn kill sequence to check this), or (c) something more
+subtle in how `Action.attack`'s target coordinate is computed
+(`obj.coords() + action.direction`, using the attacker's
+**start-of-turn** coords, applied **after** movement — so a unit could
+attack a coordinate that looks 2+ grid cells away from where an ally
+*ends up* if that ally moved into range mid-turn... but movement is
+only 1 tile per turn, so this still requires the pre-move attacker and
+post-move target to differ by at most 1 tile from the attacker's
+original position, which should still render as "attacker adjacent to
+target's *original* position" in the *previous* turn's frame, not
+looking 2 apart in the same frame). **This mechanism is NOT fully
+understood — flagging prominently for the next teammate to dig into
+with more step budget**, since it's directly relevant to whether our
+own bot's movement/attack logic might be causing self-inflicted
+(friendly-fire) damage or otherwise wasting attacks in ways that would
+explain the unusually thin margin against this specific opponent.
+
+**Concrete next steps for whoever picks this up**:
+1. Get a `--seed` that reproduces a loss quickly (e.g. seed for
+   `sim_4.txt` if recorded, otherwise re-run `./rumblebot run term
+   --seed N robot.py robot_v1_baseline.py` for various N against
+   `robot.py` itself first to rule out self-inflicted issues in
+   *any* matchup, not just vs `wolfsleuth__simple`) and manually trace
+   a turn where health drops without obviously-adjacent units in the
+   ASCII render — check `debug.inspect` output (`--show-blue-logs`/
+   `--show-red-logs` flags on `rumblebot run term`, see
+   `docs/source/debugging.rst`) for what each of our units *thought*
+   it was attacking that turn, to rule in/out friendly fire or a
+   targeting bug on our side.
+2. If it turns out to be a genuine opponent-side ranged/AOE attack
+   pattern we've never seen before (rather than anything on our side),
+   that's useful matchup intel but doesn't necessarily need a code
+   change on our end.
+3. Only if a real bug/weakness in `robot.py` is found should any code
+   change be attempted — did NOT make any speculative changes this
+   round given the mechanism causing the thin margin is not yet
+   understood, and blind changes risk regressing the strategy that's
+   won 60+ consecutive rounds against every other opponent.
+
+**Housekeeping done this round**: verified `git diff HEAD -- robot.py`
+clean (no drift, tree already clean at session start — retreat logic +
+`HEALTH_WEIGHT=0.6`/`FOCUS_BONUS=2.0`/`COORD_WEIGHT=0.05` tune all
+still intact per `grep`). Did not have remaining step budget to also
+run the standard sanity-match + `tools/ab_test.py` vs
+`robot_v1_baseline.py` regression check this round (spent budget on
+the health-drop investigation above) — `robot.py` is byte-identical to
+the version validated in every prior round, so risk of undetected
+regression is low, but next teammate should run that check first thing
+next session per the usual workflow (see "Tools" section above) before
+doing anything else, since it hasn't been re-confirmed this specific
+round.
+
+**No code changes made.** This is the first "genuinely worth a closer
+look" opponent-margin signal in a while (thinner than the ~2x
+"competent opponent" bucket that previously triggered the retreat-logic
+and COORD_WEIGHT investigations) — recommend the next teammate spend
+meaningful step budget on the friendly-fire/health-drop mechanism above
+before defaulting to "no change" if `wolfsleuth__simple` recurs or a
+similarly thin-margin opponent appears again.
