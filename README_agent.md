@@ -3317,3 +3317,58 @@ loss. If it doesn't help, the opponent is simply a stronger combat AI.
   /tmp/bench.py BOT OPP N [B|R] (BOT plays that side; term NON-det, run 6-8x,
   keep N<=6 to stay under 30s wall-clock; compare unit MARGINS not just W/L).
 - /tmp/robot_baseline.py = git show HEAD:robot.py.
+
+---
+## Round 3 edit (opus-4-8, THIS session) - opponent = gerenuk__gere-ape (WE LOSE, ~30%)
+### Result recap - STILL LOSING but shipped a targeted fix
+- Round 0: LOST 72-145-33 (RED). Round 1: LOST 81-148-21 (RED).
+- Round 2: LOST 68-155-27 (BLUE). We keep losing to this stronger combat AI.
+### ROOT CAUSE (traced /logs/rounds/2/sim_0 per-turn units+HP) - THE KEY INSIGHT
+- HP stays EVEN or slightly in OUR FAVOR the WHOLE game (final HP 46-39 in our
+  favor!) yet we LOSE on UNIT COUNT 11-13. Win = most units at turn 100 (HP NOT
+  a tiebreaker).
+- Spawns are ~symmetric (both get +N). The deficit accumulates in COMBAT between
+  spawns: EVERY combat phase we lose MORE units than the opponent (t30-39 we
+  lose 2 vs their 1; t40-49 we lose 3 vs their 2; t50-59 we lose 4 vs their 3).
+- MEANING: our damage is SPREAD (chip many enemies to low HP but don't kill),
+  while the opponent focus-KILLS our units (removes 5 HP + a unit) AND retreats
+  its own damaged units. We deal equal HP damage but convert it into FEWER
+  kills, and we let our own chipped units DIE in the melee.
+### What I changed (robot.py) - RE-ENABLED even_game UNIT PRESERVATION (line 341)
+- `even_game` was DISABLED by a prior teammate (thought it stranded units).
+  Re-enabled as `even_game = state.turn >= 20`. Now a FRAGILE (<=2HP) unit in an
+  UNFAVORABLE fight (not local_favorable) that CANNOT secure a kill RETREATS
+  (toward allies via retreat()) instead of dying in the melee. Preserves our
+  units for the COUNT race - directly targets the "we lose more units in combat"
+  root cause.
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD pre-edit; term NON-det)
+- NEW vs /tmp/cluster.py: BLUE +6.80 (baseline +5.40), RED +8.25 (baseline
+  +3.80). BIG margin gains BOTH sides.
+- NEW vs /tmp/aggro.py: BLUE +3.50 W4L0 (baseline +1.25 W3L0T1), RED +5.50 W4L0
+  (baseline +2.00 W3L1 - ELIMINATED a loss). Better BOTH sides.
+- NEW crushes /tmp/marcher.py 23-3. Runtime 3.4s, well under 60s.
+- CAVEAT: head-to-head NEW vs baseline is NEGATIVE (W0L2T2) - the classic
+  self-play paradox: preservation gives ground vs an EQUAL bot. BUT the real
+  opponent BEATS baseline (155-68), so baseline's aggression is being PUNISHED;
+  preservation is the right direction vs a STRONGER foe. The proxy-margin gains
+  on BOTH sides are the meaningful signal (proxies are weaker but the count-
+  preservation mechanic is opponent-agnostic).
+### Decision: SHIPPED re-enabled even_game (turn>=20). Best-validated change for
+the count race; targets the exact root cause (losing more units in combat).
+### Guidance for next teammate
+- VERIFY next round: do we now KEEP pace on unit count in the combat phases
+  (turns 30-60)? /tmp/trace.py or the awk one-liner:
+  awk '/After turn/{t=$3} /^Health/{print t": "$0}' /logs/rounds/N/sim_0.txt
+  (fields: $2=BlueHP $3=RedHP $5=BlueUnits $6=RedUnits).
+- If it HELPED (>68/81 wins): consider extending preservation (health<=3, or
+  earlier turn). If it HURT (we now strand units and lose worse), REVERT:
+  sed -i 's/even_game = state.turn >= 20.*/even_game = False/' robot.py
+  OR try work2 (turn>=30 + require n_adj_enemies>=2) which is milder (+4.25 vs
+  cluster R) - a middle ground if turn>=20 is too passive.
+- The OTHER untried high-value lever: PREDICTIVE ATTACK (attack the tile a
+  fleeing enemy steps INTO - movement resolves before attacks) so our hits LAND
+  and convert to kills. Do NOT thin attackers (PREDICTIVE COVERAGE was -15).
+- Regenerate test bots: /tmp/cluster.py (attack-weakest-adj + focus-weakest),
+  /tmp/aggro.py (nearest-chase+attack), /tmp/marcher.py (South),
+  /tmp/bench.py BOT OPP N [B|R] (term NON-det, run 4-8x, N<=4 for 30s cap),
+  /tmp/robot_baseline.py = git show HEAD:robot.py.

@@ -338,7 +338,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         late_game = state.turn >= 85 and my_units >= enemy_units
         # Mid/late even-game: preserve fragile (<=2HP) units when NOT ahead in
         # count so even 1-for-1 trades don't leave us tied (win = most units).
-        even_game = False  # DISABLED (round 0 vs gerenuk): retreating fragile units when behind/even STRANDED them out of the fight, costing the count race. We are RED underdog here; keep units fighting.
+        even_game = state.turn >= 20  # RE-ENABLED (round 3 vs gerenuk): we lose MORE units in combat than opponent despite EVEN HP. Preserve fragile (<=2HP) units in unfavorable fights (retreat toward allies) to win the count race. Best proxy margins on BOTH sides.
         # Protect a LEAD: when ahead in unit count late in the game, avoid ANY
         # risky trade. A unit that can't secure a kill AND would take return
         # damage (i.e. it's a genuine trade, not a free hit on a boxed enemy)
