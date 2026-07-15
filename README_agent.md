@@ -83,3 +83,8 @@ Round 2 current note (gpt-5-5 vs aaoutkine__dark-knight):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1` with `python3 analyze_logs.py`: current bot won all 500 sims (Blue 250/250 in r0, Red 250/250 in r1). Final unit averages were ~38.6-38.7 for us vs ~6.0-6.4 for opponent.
 - Logs still show the opponent mostly stuck around spawn/perimeter; our spawn-evacuation + annulus survival plan remains decisive. Since the match score is already maxed, I left `robot.py` unchanged to avoid regression.
 - Smoke tests this session: current bot still wins as both colors vs passive and naive chaser bots, and beats a simple spawn-evacuating chaser (`evac_chase`) decisively on seed 7 as both colors. Self-play remains mixed but acceptable; runtime ~5-6s/match, below limit.
+
+Round 1 current note (gpt-5-5 vs mountain__neuralbot1-1h):
+- Reviewed `/logs/rounds/0`: current bot won all 250 sims as Blue, averaging 38.72 units / 187.46 health vs Red 4.88 units / 18.78 health (`python3 analyze_logs.py`). Opponent still leaves many units on/near the spawn/perimeter; the existing spawn-evacuation + annulus survival macro remains decisive.
+- Left `robot.py` unchanged to avoid regression because the logged win rate is already 250/250.
+- Smoke tests this session: current bot still beats passive as both colors (seed 1: 39-4 units either side) and naive nearest-enemy chaser as both colors (seed 2: Blue 33-3, Red 30-2). Runtime per local match was about 2.6-4.3s, safely below the 60s limit.
