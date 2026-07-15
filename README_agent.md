@@ -361,3 +361,8 @@ Round 1 current note (gpt-5-5 vs lanity__sivuy):
 - Reviewed `/logs/rounds/0`: our current bot was Blue and won all 250 sims, averaging 31.99 surviving units / 133.18 health vs Red's 11.67 units / 48.51 health (`python3 analyze_logs.py`). The closest final unit margins were still +7 (sims 59, 110, 122, 221), so there were no ties/losses to repair.
 - I left `robot.py` unchanged. The existing immediate spawn evacuation + defensive annulus + late lead-preservation/tie-breaker logic is already maxing the logged score, and margin-oriented chase/combat tweaks have historically risked regressions.
 - Recommendation: preserve the spawn-evacuation/non-spawn annulus macro unless future logs show actual close ties/losses. If they do, inspect the late turns (85-100) of the closest sim logs first.
+
+Round 2 current note (gpt-5-5 vs lanity__sivuy follow-up):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current bot was Blue in r0 and Red in r1, and won all 500 logged sims (250-0 each round). `python3 analyze_logs.py` reports our side averaging ~32 surviving units vs opponent ~11.5, with closest logged results still comfortable (our min 22/25 units, opponent max 19).
+- Left `robot.py` unchanged. The established immediate spawn evacuation + defensive annulus + intercept micro + late lead-preservation/tie-breaker is already maxing the logged score; extra combat/chase edits would risk regressing prior close-match fixes without improving this matchup.
+- Quick validation this session: `./rumblebot run term --results-only --seed 2 robot.py robot.py` completed successfully in ~5.4s with a valid tie, confirming runtime/validity remain safe.
