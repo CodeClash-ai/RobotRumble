@@ -327,3 +327,75 @@ fluke.
 
 Otherwise, status quo stands: `robot.py` unchanged, still the
 proven 32+-round-winning strategy.
+
+## Round 1 (this session) — new opponent `jay0jayjay__naivestarter`, plus follow-up on retreat-experiment asymmetry
+
+Opponent: `jay0jayjay__naivestarter` (new identity), logged as
+`/logs/rounds/0`. Result: **250/0 sweep for sonnet-5** (we were Red this
+round). Avg final units: ~22.1 (us) vs ~4.1 (opponent), ~5.4x margin —
+decisive full sweep, margin on the lower end of the historical range
+(~5-20x across all opponents so far) but still a total shutout (0 losses,
+0 ties). Verified `git diff HEAD -- robot.py` clean (no drift). Ran a
+sanity match (`./rumblebot run term --results-only robot.py
+robot_v1_baseline.py --seed 1` → Blue/robot.py won 32/15hp, 8/4 units,
+clean/fast <1s) and `tools/ab_test.py robot.py robot_v1_baseline.py
+--seeds 1-40 --swap` → usual 26-12-2 / 13-24-3 split, identical to every
+prior round's check (source unchanged, no regression). **No code changes
+made to `robot.py`** — still the same dominant strategy, no new
+weakness surfaced by this opponent.
+
+### Follow-up investigation: `robot_retreat_experiment.py` asymmetry (from prior round's "NOT adopted" note)
+
+Prior round's note claimed the retreat-when-about-to-die variant had a
+severe "side-dependent bug" (0/40 wins as Red vs `robot.py`, but 39/40 as
+Blue), hypothesized to be a coordinate/`Direction`-orientation bug. I
+re-ran the exact same A/B (`tools/ab_test.py
+robot_retreat_experiment.py robot.py --seeds 1-40 --swap`) and
+**reproduced the same result exactly** (39/1 as Blue, 0/40 as Red) — so
+this is a real, reproducible finding, not sampling noise.
+
+However, I then also ran `robot_retreat_experiment.py` vs
+`robot_v1_baseline.py` (instead of vs current `robot.py`) with
+`--swap`, seeds 1-20:
+```
+[A-as-Blue] retreat vs baseline: A=20 B=0 (retreat wins ALL as Blue)
+[A-as-Red (swapped)] baseline vs retreat: retreat wins ALL 20 as Red too
+```
+**This contradicts the "coordinate/Direction bug" hypothesis** — if it
+were a genuine team/orientation bug in the retreat code itself (e.g.
+`Direction` semantics differing by team), retreat should lose as Red
+regardless of *which* opponent it's playing. Instead, retreat wins as
+Red against `robot_v1_baseline.py` but loses as Red against `robot.py`
+specifically. So the real story is more interesting: **`robot.py`
+(current, with soft per-unit targeting/focus-fire) apparently has some
+specific interaction that hard-counters the retreat behavior when
+retreat is playing Red against it**, while the simpler
+`robot_v1_baseline.py` does not exploit this. This is NOT simply "the
+retreat idea is bad" (it beats baseline convincingly from either side) —
+it's something more subtle about how `robot.py`'s targeting logic
+interacts with retreat's movement choices specifically when retreat is
+on the Red/mirror-spawn side against an opponent using clustering/focus
+tactics.
+
+I did not have remaining step budget this round to fully isolate the
+mechanism (candidate next steps: dump `debug.inspect` turn-by-turn for a
+single seed where retreat-as-Red loses to `robot.py`, and check whether
+`robot.py`'s "always attack adjacent" + focus-fire clustering is
+consistently arriving at retreat units' vacated-tile-adjacent squares
+fast enough to re-engage/corner them before retreat can create distance,
+in a way baseline's less-coordinated movement doesn't). This reframes
+the prior round's "known bug, don't touch" conclusion into "known
+matchup-specific weakness, worth debugging further" — retreat is not
+fundamentally broken, but it currently loses badly specifically against
+our own current bot's style when playing the mirrored/Red side, which is
+a good sign that our own `robot.py`'s clustering+focus-fire is doing
+something right, but a bad sign for adopting retreat naively without
+understanding why.
+
+**No changes made to `robot.py`** this round either — status quo
+(dominant, unchanged strategy) stands; this was purely an investigative
+follow-up per the prior round's flag. `robot_retreat_experiment.py`
+remains in the repo, still NOT adopted, with this refined understanding
+of the asymmetry documented for whoever wants to dig further (start with
+turn-by-turn `debug.inspect` traces on a seed where it loses as Red vs
+`robot.py`, e.g. seed 1).
