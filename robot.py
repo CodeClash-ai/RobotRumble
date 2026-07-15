@@ -138,6 +138,34 @@ def step_to_annulus(state: State, unit: Obj) -> Optional[Direction]:
 
 
 
+def kite_from_nearby(state: State, unit: Obj, radius: int = 3) -> Optional[Direction]:
+    # Late-game preservation helper: when we already lead on unit count, avoid
+    # letting nearby enemies force trades.  Move only if the step increases our
+    # distance from the closest local threat, and never step onto spawn.
+    threats = [e for e in enemy_units if unit.coords.walking_distance_to(e.coords) <= radius]
+    if not threats:
+        return None
+    current_min = min(unit.coords.walking_distance_to(e.coords) for e in threats)
+    dirs = list(DIRECTIONS)
+
+    def score(d: Direction) -> Tuple[int, int, int, int]:
+        dest = unit.coords + d
+        min_dist = min(dest.walking_distance_to(e.coords) for e in threats)
+        all_near = sum(1 for e in enemy_units if dest.walking_distance_to(e.coords) <= 2)
+        allies_near = sum(1 for a in our_units if a is not unit and dest.walking_distance_to(a.coords) <= 2)
+        return (min_dist, -all_near, allies_near,
+                -abs(dest.walking_distance_to(CENTER) - 7))
+
+    dirs.sort(key=score, reverse=True)
+    for d in dirs:
+        dest = unit.coords + d
+        if is_free(state, dest) and not is_spawn_coord(dest):
+            if min(dest.walking_distance_to(e.coords) for e in threats) > current_min:
+                reserved_moves.add(dest)
+                return d
+    return None
+
+
 def intercept_dir(state: State, unit: Obj) -> Optional[Direction]:
     # Pre-fire an adjacent empty tile when an enemy two steps away is likely to
     # move into it.  Movement is resolved before attacks, so this punishes
@@ -166,9 +194,9 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             return Action.move(d)
 
     # Combat micro: focus weak adjacent enemies when we can kill/trade well;
-    # otherwise dodge away from obvious adjacent attacks.  Very late in games
+    # otherwise dodge away from obvious adjacent attacks.  Late in games
     # where we already have a unit-count lead, favor preserving that lead over
-    # nonlethal trades; one lost logged game came from bleeding a small lead
+    # nonlethal trades; recent close logs came from bleeding a small lead
     # during turns 90-100.
     adj = adjacent_enemies(state, unit)
     if adj:
@@ -176,7 +204,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         attack_dir, target = adj[0]
         allies_on_target = local_count(our_units, target.coords, 1)
         enemies_near_us = local_count(enemy_units, unit.coords, 2)
-        if state.turn >= 98 and len(our_units) > len(enemy_units) and target.health > allies_on_target:
+        if state.turn >= 90 and len(our_units) > len(enemy_units) and target.health > allies_on_target:
             d = retreat_from_adjacent(state, unit, adj)
             if d:
                 return Action.move(d)
@@ -191,6 +219,13 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # If we are still too close to the wall, continue moving inward.
     if unit.coords.walking_distance_to(CENTER) > 8:
         d = best_step_toward(state, unit, CENTER)
+        if d:
+            return Action.move(d)
+
+    # If ahead in the final stretch, preserve the unit-count lead by kiting
+    # nearby enemies instead of volunteering for trades.
+    if state.turn >= 90 and len(our_units) > len(enemy_units):
+        d = kite_from_nearby(state, unit, 3)
         if d:
             return Action.move(d)
 
