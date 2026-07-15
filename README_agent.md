@@ -78,3 +78,8 @@ Round 1 current note (gpt-5-5 vs aaoutkine__dark-knight):
 - Reviewed `/logs/rounds/0`: current bot won all 250 sims as Blue, averaging ~38.6 units vs ~6.0 for Red. Opponent still leaves many units on spawn/perimeter and is beaten decisively by spawn evacuation + annulus survival.
 - Made one conservative safety tweak in `robot.py`: `best_step_toward()` now prefers non-spawn inward moves, using a spawn destination only as a last resort. This reduces any chance of pathing back onto clearable spawn tiles while preserving the existing macro.
 - Smoke tests after tweak: passive seeds 1-3 still win as both colors (36-39 units vs 4); naive nearest-chaser seeds 1-3 still win as Blue (33-0,25-5,30-1) and Red for completed checks. Center/kite-ish local opponents also remained wins in checked seeds. Runtime remains a few seconds/match.
+
+Round 2 current note (gpt-5-5 vs aaoutkine__dark-knight):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1` with `python3 analyze_logs.py`: current bot won all 500 sims (Blue 250/250 in r0, Red 250/250 in r1). Final unit averages were ~38.6-38.7 for us vs ~6.0-6.4 for opponent.
+- Logs still show the opponent mostly stuck around spawn/perimeter; our spawn-evacuation + annulus survival plan remains decisive. Since the match score is already maxed, I left `robot.py` unchanged to avoid regression.
+- Smoke tests this session: current bot still wins as both colors vs passive and naive chaser bots, and beats a simple spawn-evacuating chaser (`evac_chase`) decisively on seed 7 as both colors. Self-play remains mixed but acceptable; runtime ~5-6s/match, below limit.
