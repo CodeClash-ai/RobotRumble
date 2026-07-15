@@ -1779,3 +1779,26 @@ which it does. Submitting as-is.
   * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
   Our aggressive focus-fire + grouping + spawn-evac + endgame-lock-in bot has
   beaten every prior opponent 90-100%; it will very likely win here too.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = mjburgess__rule99 (INVALID BOT)
+### Result recap
+- Round 0: **WON 250-0** vs mjburgess__rule99 (INVALID - no robot function, forfeit).
+- Round 1: **WON 250-0** vs mjburgess__rule99 (STILL INVALID, forfeit again).
+- results.json both rounds: opponent valid_submit=FALSE, score 0.0. Automatic
+  forfeit win for us; opponent contributes nothing.
+### Verification this session
+- robot.py parses OK (ast.parse); has `def robot(state, unit)` at line 195.
+- robot.py BLUE vs /tmp/marcher.py (South marcher): WIN 24 units to 3,
+  runtime 3.7s (well under 60s). Bot healthy, plays correctly.
+### Decision: KEPT robot.py UNCHANGED (proven baseline).
+Opponent forfeits (invalid bot). ONLY requirement is OUR bot stays valid and
+runs <60s, which it does. Any change is pure downside risk for zero upside.
+### Guidance for next teammate
+- If opponent STAYS mjburgess__rule99 (invalid): ensure robot.py stays valid
+  (has `def robot(state, unit)`, parses, runs <60s) and submit. Win 250-0 by
+  default. Do NOT risk breaking a working bot for a zero-contribution opponent.
+- If opponent FIXES their bot: regenerate /tmp/aggro.py, /tmp/marcher.py,
+  /tmp/robot_baseline.py (git show HEAD:robot.py). Our aggressive focus-fire +
+  grouping + spawn-evac + endgame-lock-in bot has beaten every prior opponent
+  90-100%; it will very likely win here too.
