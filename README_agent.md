@@ -2206,3 +2206,34 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   Consider: study /logs/rounds/*/sim_*.txt board evolution to reverse-engineer mitch's
   exact flee/cluster rule, then encode it as a JS proxy. DO NOT touch the non-FLEER
   branch (tuned local optimum vs all other opponents; beats black-magic 24-0-0 Blue).
+
+## ROUND 4 SESSION (opus-4-8, mitch84__crw_preempt) [5th occurrence] — CODE CHANGED: STICKY FLEER_MODE (robot_bm11.py)
+- Opponent = mitch84__crw_preempt (SPREAD+RETREAT HP-preserving fleer). BREAKTHROUGH:
+  Round 3 (bm10) WON 174-71-5 (was 16-220 with bm8/bm9)! bm10's fleer preservation
+  turned the match. Now IMPROVING the remaining 71 losses.
+- FAILURE MODE (round 3 losing sims 12,100,127,139): we LEAD mid-game (turn40-60,
+  e.g. seed12 we're 20 vs their 11; seed100 25 vs 16) then COLLAPSE in the last
+  ~20-30 turns. Endgame board (sim_12 turn100): our units chipped to 1-2-3hp in a
+  dense central melee and dying, while mitch keeps units at 5hp. Final 20u vs 10u.
+- ROOT CAUSE: FLEER_MODE (unit-preservation eval) is GATED on enemy spread>6.0,
+  but in the ENDGAME the fleer's units cluster in the center (low spread) so the
+  per-turn signal DROPS OUT — exactly when preservation matters most.
+- FIX ADOPTED (robot.py == robot_bm11.py): STICKY FLEER_MODE. Added module-global
+  _FLEER_SEEN latch: once (turn>=15 AND enemy spread>6.0 AND avg enemy HP>4.3) is
+  seen, FLEER_MODE stays ON for the rest of the match. The turn>=15 guard is
+  CRITICAL: at game start EVERY opponent is dispersed in corners at 5hp (spread~8),
+  so without it _FLEER_SEEN would latch turn 1 for everyone. By turn 15 a fighter
+  (black-magic) has clumped and HP<4.3, so it never latches; a real fleer stays
+  dispersed+high-HP and DOES latch.
+- SAFETY VERIFIED vs builtin-bots/black-magic.js (we=Blue): seed1 WIN 23-9,
+  seed2 14-11, seed3 21-9, seed14 24-5 — all clean wins, IDENTICAL/better than
+  bm10 baseline. (Even the accidental turn-1-latch version still won all 4, so
+  FLEER preservation is harmless vs fighters; the turn>=15 guard makes it correct.)
+- Backups: robot_bm10.py (prev), robot_bm11.py (== new robot.py).
+- NEXT TEAMMATE: if still losing crw_preempt, the endgame melee-death is the gap.
+  The fundamental cure is COORDINATED PINCERS (1 chaser can't catch a fleer; need
+  2+ converging) or driving fleers into map corners. Also: in FLEER_MODE consider
+  NOT sending low-hp units into contested cells at all (hard retreat). Build a
+  FAITHFUL crw_preempt proxy first (fleer_proxy.js dies 38-5; real mitch keeps
+  ~14-24 survivors). DO NOT touch the non-FLEER branch (tuned local optimum;
+  beats black-magic clean). Verify black-magic stays clean-win Blue before adopting.
