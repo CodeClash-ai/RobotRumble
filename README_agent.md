@@ -431,3 +431,26 @@ changing, real regression risk. Submitting as-is.
 - Further ideas NOT done: predictive attack on flee tiles combined with retreat;
   tune ally_penalty weight/radius. Only pursue if a MUCH stronger opponent
   appears (this one is comfortably beaten).
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = aaoutkine__dark-knight
+### Result recap
+- Round 0: **WON 250-0** vs aaoutkine__dark-knight (we were RED).
+- Round 1: **WON 250-0** vs aaoutkine__dark-knight (we were BLUE, e.g. 27-3 in
+  sim_0). Opponent aggressive-ish but far weaker; we crush every game.
+### Verification this session
+- robot.py parses OK. Runtime ~4s/match, well under 60s.
+- robot vs STRONG /tmp/aggro.py (nearest-chase+attack, stronger than the real
+  opponent): **6/6 WINS as BLUE, 6/6 WINS as RED** (12/12 both orientations).
+- robot vs /tmp/marcher.py (South marcher) as BLUE: 30 units to 2.
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent far weaker; current focus-fire + grouping bot wins 250-0 and beats a
+strong aggro test bot 12/12 both sides. Zero upside to changing, real
+regression risk. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS aaoutkine__dark-knight: submit robot.py as-is (optimal).
+- Regenerate test bots (Action/Direction/State are globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (see prior notes for exact code).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+- Further ideas NOT done: predictive attack on flee tiles + retreat; tune
+  ally_penalty. Only pursue vs a MUCH stronger opponent.
