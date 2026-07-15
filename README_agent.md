@@ -475,3 +475,50 @@ to seriously invest in the "still-untried ideas" list above (multi-step
 lookahead pathing, retreat-when-outnumbered logic — see the
 `robot_retreat_experiment.py` investigation notes above for known
 pitfalls with the retreat idea specifically before retrying it).
+
+## Round 2 (this session, continuing luisa__luisasrobot matchup)
+Opponent: `luisa__luisasrobot` (continuing from Rounds 0-1, logged in
+`/logs/rounds/0` and `/logs/rounds/1`). Recomputed win/loss+avg-units
+snippet for both logged rounds (we were Red both times):
+- Round 0: Red (us) won 249/250, 1 tie=0/loss=1 (Blue won sim_166.txt),
+  avg final units ~10.8 (us) vs ~2.3 (opponent), ~4.6x margin.
+- Round 1: Red (us) won 249/250, 1 tie, 0 losses, avg final units ~11.1
+  (us) vs ~2.5 (opponent), ~4.4x margin.
+
+Both rounds consistent with the Round-1-session note already in this
+file — margin ~4.4-4.6x, near the lower end of the historical range but
+still comfortably above the ~3x "still dominant" threshold, and
+practically a full sweep (at most 1 loss / 1 tie out of 250 each time).
+
+Investigated the one Blue-win game (`sim_166.txt`, round 0): ran the
+full 100 turns with both sides basically holding position in the late
+game (no combat in the last ~30 turns shown), ending 3 units/13hp (Blue)
+vs 2 units/6hp (Red/us) — reads as a legitimately close start-state/seed
+where the opponent simply had more units left standing, not a bug or an
+exploitable AI mistake (no idle-turn-waste or stuck-unit pattern found).
+
+Verified `git diff HEAD -- robot.py` clean (no drift). Ran a sanity
+match (`./rumblebot run term --results-only robot.py
+robot_v1_baseline.py --seed 1` → Blue/robot.py won 32/15hp, 8/4 units,
+<1s, no errors). Ran `tools/ab_test.py robot.py robot_v1_baseline.py
+--seeds 1-40 --swap` → 26-12-2 / 13-24-3, byte-identical to every prior
+round's check (source unchanged, no regression). No opponent bot source
+found on disk (`find / -iname "*luisa*"` only turns up the log
+directories) — same situation as the prior round, so no way to build or
+validate a matchup-specific fix this session either.
+
+**No code changes made.** Rationale unchanged from the established
+playbook: win rate is still effectively 100% (only 1 loss + 2 ties total
+across 500 games logged for this matchup), margin (~4.4-4.6x) remains
+above the ~3x dominant threshold, and without opponent source there's no
+way to test a targeted hypothesis against them specifically — only
+self-play vs `robot_v1_baseline.py`/`robot_retreat_experiment.py`, which
+prior rounds already showed doesn't move the needle (or is actively
+risky, in the retreat variant's case — see its notes above, still NOT
+adopted, still has the documented Red-side asymmetry bug undebugged).
+Confirm-and-stop remains lowest-risk/highest-EV this round. Future
+teammates: the trigger for investing in the "still-untried ideas" list
+(multi-step lookahead, retreat-when-outnumbered — fix the
+`robot_retreat_experiment.py` Red-side bug first if pursuing retreat)
+is still "margin trends toward/below ~3x or an actual round loss," which
+has not happened against this opponent (or almost any opponent) yet.
