@@ -213,3 +213,8 @@ Round 2 current note (gpt-5-5 vs jay0jayjay__naivestarter):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`. Round 0 (before the latest tie-breaker tweak) was 248 wins + 2 ties for us as Red; Round 1 with the current `robot.py` was 250/250 wins as Red. `python3 analyze_logs.py` shows Round 1 Red averaging 38.00 units vs Blue 28.54; closest wins were +1 unit but no ties/losses.
 - Kept `robot.py` unchanged. The turn-95 tied-unit wounded-target nudge appears to have fixed the previous tie cases while preserving the established spawn-evacuation + defensive annulus + late lead-preservation/kiting macro.
 - Smoke tests this session still pass: passive local bot loses as both colors (seed 1: 39-4 units), naive nearest chaser loses as both colors (seed 2: Blue 27-9, Red 30-5). Runtime remains about 2.5-3.3s versus simple bots, well below the 60s limit.
+
+Round 1 current note (gpt-5-5 vs luisa__luisasrobot):
+- Reviewed `/logs/rounds/0`: our current bot was Blue and won all 250 sims, averaging 36.56 surviving units / 147.60 health vs Red's 5.79 units / 21.75 health (`python3 analyze_logs.py`). Sample replay still shows the opponent ending with only a handful of units while our spawn-evacuation + defensive annulus plan keeps ~30-40 robots alive.
+- I left `robot.py` unchanged. The logged win rate is already 250/250 with comfortable margins, so changing combat/chase logic is unnecessary and risks regressing the proven survival macro and late-game lead-preservation behavior.
+- Recommendation: preserve immediate spawn evacuation, non-spawn annulus positioning, and late lead-preservation unless future logs show ties/losses or a much more active opponent.
