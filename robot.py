@@ -330,6 +330,10 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # is boxed (guaranteed free hit). Win = most units at turn 100, so a
         # preserved lead is worth more than a chip of damage.
         big_lead = state.turn >= 75 and my_units >= enemy_units + 3
+        # MID-GAME lead protection: traced losses (sim_116) show we hold a
+        # 2-unit lead at turn ~40 then trade it away in turns 40-50. Preserve
+        # FRAGILE (<=2HP) units when ahead by 2+ mid-game in an unfavorable fight.
+        mid_lead = 50 <= state.turn < 75 and my_units >= enemy_units + 2
         # ENDGAME LOCK-IN: in the final turns, count is decided. If we are AHEAD
         # or TIED, refuse ANY trade that isn't a guaranteed kill (attack whiffs
         # when enemy flees, but we still take return damage next turn / feed a
@@ -357,6 +361,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             or (even_game and unit.health <= 2 and not local_favorable)
             or (protect_lead and unit.health <= 3 and not boxed_here)
             or (big_lead and unit.health <= 4 and not boxed_here)
+            or (mid_lead and unit.health <= 2 and not boxed_here and not local_favorable)
             or (endgame and not boxed_here)
         )
         if not can_kill and should_retreat:

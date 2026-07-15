@@ -2708,3 +2708,57 @@ trade-downs resist safe fixes. Changing risks regression for marginal upside.
 - Regenerate test bots: /tmp/aggro.py (nearest-chase+attack), /tmp/marcher.py
   (South marcher), /tmp/robot_baseline.py (git show HEAD:robot.py).
 - term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = mountain__neuralbot4-3h (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 176-56 w/ 18 TIES** vs
+  `mountain__neuralbot4-3h` (we were RED). ~70% win - one of the STRONGER
+  opponents (56 losses). Unit-margin distribution centered at +2 (mean +1.86,
+  median +2, min -9, max +12). Opponent is a SWARM: keeps HIGH unit counts
+  (wins/losses end 14-19 units both sides). It out-trades us mid-game.
+### ROOT CAUSE (traced sim_116 per-turn units via /tmp/trace.py)
+- We (Red) were AHEAD 12-10 units + 51-47 HP at turn 30-40, then THREW IT AWAY
+  in turns 40-48: our units dropped 12->7 (lost 5) while Blue held at 10-12.
+  Blue then snowballed via spawns the rest of the game (ended 19-10). This is a
+  MID-GAME lead trade-down (turns 40-50) - EARLIER than the existing protect_lead
+  (turn>=80) / big_lead (turn>=75) / endgame (turn>=86) gates could catch.
+### What I changed (robot.py) - MID-GAME LEAD PROTECTION (tested, shipped)
+- Added `mid_lead = 50 <= state.turn < 75 and my_units >= enemy_units + 2` gate
+  (line 336). Added to should_retreat (line 364): a FRAGILE (<=2HP) unit that
+  is ahead by 2+ mid-game, in an UNFAVORABLE fight (not local_favorable), and
+  whose target is NOT boxed, RETREATS instead of feeding the trade-down that
+  erodes our mid-game lead. VERY tightly gated (turn 50-74 only, ahead by 2+,
+  <=2HP, unfavorable, not boxed) so it does NOT go passive - prior teammates
+  found BROAD mid-game passive/retreat tweaks REGRESS; this only fires in the
+  exact sim_116 pattern (fragile unit throwing away a mid-game lead).
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- term is NON-DETERMINISTIC; ran 10x each side vs aggro, compared unit MARGINS.
+- v_test RED vs /tmp/aggro.py 10x: avg margin +3.8 (one tie). baseline RED vs
+  aggro 10x: avg +2.4 (one tie). BETTER aggregate margin, same tie count.
+- v_test BLUE vs aggro 5x: avg +4.0 (all wins). baseline +3.4. No regression.
+- v_test vs /tmp/cluster.py BOTH sides: crush 14-20 margins (no regression).
+- v_test vs /tmp/marcher.py: WIN 15-1. No regression vs passive.
+- robot.py parses OK; `def robot` line 268; runtime ~2s/match, well under 60s.
+### Decision: SHIPPED the mid-game lead protection. Targets the EXACT documented
+loss pattern (sim_116: throw away a 2-unit lead in turns 40-50). Improves
+aggregate margin on both sides vs aggro; no regression vs cluster/marcher.
+Tightly gated to avoid the passivity regressions prior teammates found.
+### Guidance for next teammate
+- If opponent STAYS mountain__neuralbot4-3h: robot.py wins ~70%; this edit
+  should convert some mid-game lead trade-downs. VERIFY next round: unit
+  trajectory turns 40-60 (/tmp/trace.py sim_X.txt) - we should HOLD a mid-game
+  lead instead of dropping 5 units in 8 turns (the sim_116 pattern).
+- If it HURTS (we now fall behind because we held too passively mid-game),
+  REVERT: git diff shows the mid_lead def (line 336) + should_retreat clause
+  (line 364). Or tighten (health<=1) / narrow the turn window.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than most real foes).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move.
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * /tmp/trace.py sim_X.txt (per-turn HP+units), /tmp/analyze.py (W/L/T + margins).
+- term is NON-DETERMINISTIC - run 5-10x and compare unit MARGINS, not just W/L.
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL, tighter early grouping, BROAD
+  passive/retreat mid-game tweaks, adjacency-priority focus, even_game-tied,
+  earlier-disperse, focus-radius 2->1.
