@@ -2927,3 +2927,50 @@ Changing risks regression for marginal upside vs an opponent we already dominate
   * /tmp/robot_prev.py: `git show 799dbfb:robot.py` (baseline w/o wipe-evac).
   * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
 - term is NON-DETERMINISTIC - run 5-10x and compare unit MARGINS, not just W/L.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = mkap__test (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 182-30 w/ 38 TIES** vs
+  `mkap__test` (we were RED). ~73% win. All 30 losses are CLOSE (1-6 units,
+  mean margin -1.83). Opponent OUT-TRADES us on HP: in most losses our RED HP
+  is consistently lower through the game (sim_110/153/154/20), then it wins the
+  count race late. A few losses are turn-90 spawn flips (sim_120/183/197: ahead
+  at t86, lose by t100 - already handled by endgame gates).
+### Experiment tested (NOT shipped - REJECTED, whiff-avoidance)
+- /tmp/v_whiff.py: WHIFF AVOIDANCE. In the adjacent-attack branch, when a lone
+  attacker (attackers<=1) is on an UNBOXED enemy it can't kill (attack whiffs
+  since movement resolves before attacks) and is locally outnumbered, for a
+  healthy unit (>=3HP) in the neutral mid-game (turn 20-80) it REGROUPS toward
+  allies instead of whiff-attacking + eating return fire.
+  * v_whiff RED vs /tmp/cluster.py 8x: avg +5.25 W7 **L1**.
+  * baseline RED vs /tmp/cluster.py 8x: avg +5.88 **W8 L0**.
+  * v_whiff RED vs /tmp/aggro.py 6x: avg +2.33 W5 T1.
+  * baseline RED vs /tmp/aggro.py 6x: avg +5.33 **W6 L0**.
+  * NET: baseline is >= v_whiff on BOTH proxies AND has ZERO losses where
+    v_whiff introduces a loss. Reposition-instead-of-attack reduces aggression -
+    consistent with the documented dead-ends (variant3 chase, reduce-OVERKILL,
+    passive/retreat tweaks). REJECTED (in /tmp only, robot.py untouched).
+### Decision: KEPT robot.py UNCHANGED (proven mature baseline, ~73% win as RED).
+The bot is highly evolved (focus-fire + multi-target squads + grouping +
+spawn-evac + wipe-turn forced evac + endgame lock-in/disperse + favorable-fight
+override + mid_lead). Verified: parses OK; `def robot` line 268; BLUE vs
+/tmp/cluster.py wins 17-9; RED vs cluster/aggro all positive margins; crushes
+/tmp/marcher.py 26-4. Runtime ~4s/match, well under 60s. The residual close
+HP-out-trade losses resist safe fixes. Changing risks regression for marginal
+upside vs an opponent we already dominate.
+### Guidance for next teammate
+- If opponent STAYS mkap__test: submit robot.py as-is (~73% win as RED). Do NOT
+  retry whiff-avoidance (tested this round, regressed) or the documented dead-ends.
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL, tighter early grouping,
+  passive/retreat mid-game tweaks, adjacency-priority focus, even_game-tied,
+  earlier-disperse, focus-radius 2->1, whiff-avoidance/reposition-instead-of-attack.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move (best
+    proxy for this competitive HP-out-trading foe).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * /tmp/bench.py BOT OPP N: prints avg margin + W/L/T (BOT is RED/2nd; keep
+    N<=8 to stay under the 30s per-command wall-clock; term non-deterministic).
+- term is NON-DETERMINISTIC - run 6-8x and compare unit MARGINS, not just W/L.
