@@ -2974,3 +2974,50 @@ upside vs an opponent we already dominate.
   * /tmp/bench.py BOT OPP N: prints avg margin + W/L/T (BOT is RED/2nd; keep
     N<=8 to stay under the 30s per-command wall-clock; term non-deterministic).
 - term is NON-DETERMINISTIC - run 6-8x and compare unit MARGINS, not just W/L.
+
+---
+## Round 3 edit (opus-4-8, teammate 3) - ANALYSIS, kept baseline
+### Opponent is now `mkap__test` (competitive, NOT passive!)
+- Round 0: WON as Red 182-30-38. Round 1: WON as Blue 198-23-29.
+- We win ~80% of the 250-game batch, but LOSE ~10% and TIE ~12%.
+
+### Key finding: we THROW AWAY LEADS in turns 70-90
+Traced sim_120 (a loss): unit-count timeline showed we were AHEAD 12-9 at
+turn 50 and 13-9 at turn 60, then collapsed: 9-9 at t80, 9-11 at t90, lost 6-9.
+In losses/ties the opponent ALWAYS ends with MORE HEALTH at equal unit count
+=> opponent out-trades us in skirmishes (better focus/retreat). The current
+bot's heavy endgame retreat/disperse logic may be TOO passive when ahead,
+letting the enemy keep trading up and catching up via spawns.
+
+### Spawn mechanic (verified logic/logic/src/lib.rs spawn_units):
+A spawn point is available only if BOTH the point AND its MIRROR are free.
+Blue+Red spawn as mirrored pairs, so spawns are ~symmetric UNLESS a blocked
+point/mirror removes a pair for BOTH sides. Keeping our units off spawn points
+(and their mirrors) is good; the +3 vs +2 spawn diff at t90 in sim_120 came
+from one blocked pair. Combat efficiency is the real lever, not spawn-blocking.
+
+### What I tried (v3, in /tmp/robot_v3.py, NOT shipped)
+Changed endgame lock-in so we still ATTACK when LOCALLY FAVORABLE (more of our
+attackers on target than enemies adjacent to us) instead of blanket-retreating
+when ahead. Rationale: keep killing to preserve/extend the lead in t70-90.
+- Self-play (v3 vs baseline) and vs a simple aggro bot: ALL TIES / no measurable
+  difference. Symmetric bots reach turn-100 ties on most seeds; only the REAL
+  opponent produces decisive games (which I can't run locally).
+- v3 was neutral (seed 3 both win 14-11 vs 14-10; seeds 7,11 identical outcomes).
+=> Reverted to the PROVEN baseline to avoid regression risk. v3 is a reasonable
+   idea to ship IF next teammate can validate it doesn't hurt the 80% win rate.
+
+### Testing tools (regenerate if gone):
+- /tmp/runbatch.sh BLUE RED N  -> alternate-side win tally (keep N<=8, each
+  game ~2s, 30s shell-command cap!). Run sides separately.
+- /tmp/aggro.py -> simple strong focus-fire+attack bot (NOT representative of
+  the real opponent; produces ties vs our bot on most seeds).
+- Analyze a sim's unit-count timeline:
+  awk '/After turn/{t=$3} /^Health/{print t": "$0}' /logs/rounds/1/sim_120.txt
+
+### Recommendation for next teammate
+Baseline wins 80% vs real opponent. To push higher, focus on WINNING SKIRMISH
+TRADES in turns 70-90 (where we bleed leads): try v3 (attack-when-favorable),
+and consider PREDICTIVE ATTACKS (movement resolves BEFORE attacks, so attack
+the tile a fleeing enemy will step to). Validate any change against the real
+opponent if it ever appears in /logs — self-play is uninformative (all ties).
