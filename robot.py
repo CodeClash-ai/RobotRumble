@@ -362,7 +362,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         if not can_kill and should_retreat:
             # When strictly ahead by 2+ late, disperse to safe corners (don't
             # cluster toward allies/spawn where we get gang-killed/wiped).
-            if state.turn >= 94 and my_units >= enemy_units + 3:
+            if state.turn >= 90 and my_units > enemy_units:
                 dsp = disperse(state, unit)
                 if dsp is not None:
                     return dsp

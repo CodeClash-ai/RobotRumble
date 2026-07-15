@@ -2331,3 +2331,68 @@ favorable trades in even mid-games.
   tighter early grouping (no robust gain), passive/retreat mid-game tweaks
   (lose aggression). Also tested & REJECTED this session: adjacency-priority
   focus (`-adjnow` first in score) - it caused a LOSS+TIE vs aggro (regression).
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = lanity__sivuy (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 211-10 w/ 29 TIES** vs
+  `lanity__sivuy` (we were BLUE). ~84% win. Competitive foe.
+### ROOT CAUSE (traced sim_0, sim_31, sim_49, sim_225 via /tmp/trace.py):
+  ALL non-wins share the TURN-90 SPAWN + ENDGAME TRADE-DOWN pattern:
+  * We are AHEAD/EVEN through turn ~89, then at the turn-90 spawn we get FEWER
+    net units than the opponent (Blue +1/+2 vs Red +4), then we bleed our
+    remaining lead down 1-for-1 in turns 92-100 to a tie/loss.
+  * Spawn is SYMMETRIC per point-pair (lib.rs spawn_units: spawns 1 blue + 1
+    red per free pair). The differential comes from clear_spawn WIPING our
+    units sitting on spawn tiles at the spawn turn. As the aggressor we push
+    INTO enemy territory (which contains spawn points), occupy them, get wiped
+    AND block spawn pairs -> we net fewer spawns.
+  * Endgame trade-down: existing endgame lock-in retreated ahead units via
+    retreat() which pulls TOWARD allies -> clusters near spawn -> gets wiped/
+    gang-killed. disperse (spread to safe non-spawn tiles) only fired at
+    lead>=3, turn>=94 - too tight to catch the lead>=1/2 cases (sim_0: lead 2).
+### What I changed (robot.py) - EARLIER/BROADER ENDGAME DISPERSE (tested, shipped)
+- In the adjacent-retreat path, the disperse gate was widened from
+  `turn>=94 and my_units>=enemy_units+3` to `turn>=90 and my_units>enemy_units`
+  (line ~365). So whenever STRICTLY AHEAD from turn 90 on, a fragile/non-kill
+  unit DISPERSES (spread to safe tiles that maximize distance from enemies,
+  AVOID spawn tiles pre-spawn, and maximize min-dist to allies = anti-cluster/
+  anti-gang-kill/anti-spawn-wipe) instead of clustering via retreat(). This
+  directly targets BOTH the spawn-wipe (disperse avoids spawn tiles) and the
+  endgame trade-down (spread units can't be gang-killed to erode the lead).
+  ONE-LINE gate change; disperse() itself already avoids bad_spawn_tile.
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- term is NON-DETERMINISTIC; ran 3-7x each orientation, compared unit MARGINS.
+- new BLUE vs /tmp/cluster.py (competitive proxy, our real side): +7,+9,+8 then
+  +1,+1,+7 then +7,+8,+6,+4 - ALL wins, strong margins. baseline BLUE vs
+  cluster had a TIE (10-10) and smaller margins (+6,+6). CLEAR improvement.
+- new BLUE vs /tmp/aggro.py (STRONGER than real foe): +6,+1,+4,+5,+2,+3 all
+  wins. baseline +1,+2,+5. Comparable/better.
+- new RED vs aggro/cluster: +4,+2,tie / -1,+3 == baseline RED (2 ties, a big
+  cluster loss) - NO regression (we are BLUE vs the real opponent anyway).
+- vs /tmp/marcher.py BLUE: crush 24-2. No regression vs passive.
+- robot.py parses OK; `def robot` line 268; runtime ~2.5s/match, well under 60s.
+- CAVEAT: one isolated BLUE-vs-cluster run lost 12-13 (non-determinism outlier);
+  the aggregate (10+ runs) is clearly winning with better margins than baseline.
+### Decision: SHIPPED the broader endgame disperse. Targets the EXACT documented
+loss pattern (turn-90 spawn-wipe + endgame trade-down of a small lead). Wins
+more and by wider margins on our real BLUE side; no regression on RED/passive.
+### Guidance for next teammate
+- If opponent STAYS lanity__sivuy: robot.py wins ~84%+; this edit should convert
+  many of the 29 ties / 10 close losses (all the turn-90 spawn/endgame pattern).
+  VERIFY next round (/tmp/trace.py sim_X.txt): at turn 90 do we now KEEP pace on
+  the spawn count, and HOLD our lead turns 92-100 instead of trading down?
+- If it HURTS (dispersing too early makes us fall behind late), REVERT: git diff
+  shows the single gate (turn>=90/lead>=1 back to turn>=94/lead>=3 in the
+  adjacent-retreat path, line ~365). Or raise to turn>=92.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move (best
+    proxy for a competitive clustered foe).
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * /tmp/trace.py sim_X.txt (per-turn B/R units+HP), /tmp/analyze.py (W/L/T -
+    EDIT team=BLUE = 1st "Units B R" number).
+- term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
+- DOCUMENTED DEAD-ENDS (do NOT retry): reduce-OVERKILL (regresses margin),
+  tighter early grouping (no robust gain), passive/retreat mid-game tweaks.
