@@ -242,6 +242,22 @@ def late_equal_pressure_step(state: State, unit: Obj) -> Optional[Direction]:
                                            e.coords.walking_distance_to(CENTER)))
     return best_step_toward(state, unit, target.coords)
 
+
+def late_pressure_step(state: State, unit: Obj) -> Optional[Direction]:
+    # Very late, if unit counts are tied without a health edge or we are behind,
+    # holding position preserves only a draw/loss. Apply bounded pressure toward
+    # the nearest non-spawn enemy even if it is not already wounded. This is
+    # deliberately only used in the last few turns so it does not disturb the
+    # proven survival macro or earlier lead-preservation logic.
+    candidates = [e for e in enemy_units if (not is_spawn_coord(e.coords) and
+                                            unit.coords.walking_distance_to(e.coords) <= 6)]
+    if not candidates:
+        return None
+    target = min(candidates, key=lambda e: (unit.coords.walking_distance_to(e.coords),
+                                           e.health,
+                                           e.coords.walking_distance_to(CENTER)))
+    return best_step_toward(state, unit, target.coords)
+
 def intercept_dir(state: State, unit: Obj) -> Optional[Direction]:
     # Pre-fire an adjacent empty tile when an enemy two steps away is likely to
     # move into it.  Movement is resolved before attacks, so this punishes
@@ -434,6 +450,10 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             d = late_desperation_step(state, unit)
             if d:
                 return Action.move(d)
+            if state.turn >= 98 and health_edge <= 0:
+                d = late_pressure_step(state, unit)
+                if d:
+                    return Action.move(d)
 
     # If we are behind after the final clear, preserving a smaller loss is
     # worthless.  Take the controlled wounded-target nudge before inward wall
@@ -444,6 +464,10 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         d = late_desperation_step(state, unit)
         if d:
             return Action.move(d)
+        if state.turn >= 98:
+            d = late_pressure_step(state, unit)
+            if d:
+                return Action.move(d)
 
     # If we are still too close to the wall, continue moving inward.
     if unit.coords.walking_distance_to(CENTER) > 8:
@@ -503,6 +527,10 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         d = late_desperation_step(state, unit)
         if d:
             return Action.move(d)
+        if state.turn >= 98:
+            d = late_pressure_step(state, unit)
+            if d:
+                return Action.move(d)
 
     # Movement resolves before attacks: if a nearby enemy is probably stepping
     # next to us, attack the destination square preemptively instead of walking
