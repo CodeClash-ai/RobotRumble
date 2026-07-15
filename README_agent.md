@@ -282,3 +282,79 @@ less "clustering pull" helps further.
 - `Action.heal` is confirmed a no-op in `Normal` game mode (see round 2's
   notes above) -- don't bother unless you've confirmed matches run in
   `NormalHeal` mode.
+
+## Round 2 (this session, actually produces logs/rounds/2 -- see numbering note below)
+
+**Numbering clarification:** the previous "Round 2 update" section above was
+written by the teammate whose edits actually produced `/logs/rounds/1/`
+(`results.json` has `"round_num": 1`). They used 1-indexed round numbering
+in prose while the actual `results.json`/`logs/rounds/N` directories are
+0-indexed, which was confusing. This session's edits (mine) will produce
+`/logs/rounds/2/` once submitted. Future teammates: trust
+`results.json`'s `round_num` field and the `/logs/rounds/N` directory name
+over any prose "Round X" headers in this file when trying to match notes to
+actual match logs.
+
+**Status check:** Re-verified `/logs/rounds/1/results.json` and
+`/logs/rounds/1/sim_*.txt` — still a clean 250/250 sweep for `sonnet-5`
+(happysquid__test was Blue, sonnet-5 was Red; final state in `sim_0.txt` was
+`Health 5 115 Units 1 23`, i.e. we ended with 23 units vs their 1). Opponent
+(`happysquid__test`) still appears very weak — no evidence yet of them
+adapting. Given two consecutive 250-0 sweeps with the current `robot.py`
+strategy (per-unit soft targeting + opportunistic adjacent-attack +
+direction_to movement w/ sidestep fallback), I chose **not** to change the
+core strategy this round to avoid unnecessary risk.
+
+### What I did this round
+1. Re-validated `robot.py` still runs without crashing/timing out
+   (`./rumblebot run term --results-only robot.py robot.py`, and vs
+   `robot_v1_baseline.py`) — a single 100-turn match takes ~0.8-1.0s
+   wall-clock, nowhere close to the 60s limit.
+2. Ran a small grid search over the three tunable weight constants
+   (`HEALTH_WEIGHT`, `FOCUS_BONUS`, `COORD_WEIGHT`) in `robot.py`, A/B
+   testing each variant against the current checked-in `robot.py` over 5
+   seeds each (see `/tmp/sweep.py` pattern below — not saved to disk
+   persistently, recreate if needed). Results were all within noise (2-3
+   wins out of 5 either way) — no configuration showed a clear, consistent
+   improvement over the current defaults with this small sample size. Given
+   how well the current bot is already doing against the real opponent, and
+   that tiny-sample self-play deltas are not reliable signal, I left the
+   constants unchanged (`HEALTH_WEIGHT = 0.6`, `FOCUS_BONUS = 2.0`,
+   `COORD_WEIGHT = 0.15`).
+3. Re-ran the `robot.py` vs `robot_v1_baseline.py` A/B (new bot as Blue)
+   over seeds 20-31: **7 wins / 5 losses / 0 ties** — consistent with
+   previous rounds' findings that the current bot has a modest-but-real
+   edge over the round-0 baseline in mirror self-play, but it's not an
+   overwhelming margin. This reinforces that most of our 250-0 record
+   against the real opponent is about the opponent being weak/passive, not
+   about our bot being unbeatable — worth remembering if a much stronger
+   opponent shows up in a future round.
+
+### No code changes to strategy this round
+Left `robot.py` exactly as inherited. `robot_v1_baseline.py` remains a
+useful frozen reference point for future A/B testing (do not delete/modify
+it — it's intentionally a pristine copy of the round-0 winning bot).
+
+### Suggested next steps for future teammates
+- Keep re-running the win/loss snippet (see earlier section) on the latest
+  `/logs/rounds/N` after each round **first**, before making changes. If the
+  opponent is still getting crushed 250-0, there's little upside to major
+  strategy changes and real downside risk (introducing a bug). If the
+  opponent suddenly starts fighting back / winning some units, that's the
+  signal to invest more heavily in the open ideas list below.
+- If you do want to grid-search the weight constants properly, use bigger
+  sample sizes (15-20+ seeds per config) than I did this round (5), split
+  across multiple shell commands to avoid the ~30s per-command timeout
+  (each `rumblebot run term` invocation is ~0.8-1.0s, so budget ~25-30 runs
+  max per command call).
+- Still-open ideas from previous rounds (unchanged, still valid):
+  - Real BFS/A* pathfinding around the diamond map's wall corners (current
+    approach is greedy `direction_to` + 1-step sidestep fallback, can still
+    theoretically oscillate in tight clumps, though this hasn't been
+    observed to matter in practice yet).
+  - Proper multi-target split-the-army coordination for when there are many
+    units spread far apart (current per-unit soft targeting partially
+    addresses this already).
+  - `Action.heal` is confirmed a no-op in `Normal` game mode (traced through
+    the Rust engine in a previous round) — do not bother adding it unless
+    you've separately confirmed matches run in `NormalHeal` mode.
