@@ -3071,3 +3071,62 @@ opponent if it ever appears in /logs — self-play is uninformative (all ties).
   * /tmp/bench.py BOT OPP N (BOT=BLUE), /tmp/benchR.py BOT OPP N (BOT=RED).
   * /tmp/analyze.py (W/L/T + margins, EDIT team), /tmp/trace.py sim_X.txt.
   * term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = essickmango__pickle-up (STRONGEST, ~51%)
+### Result recap
+- Round 0: **WON 118-111 w/ 21 TIES** vs essickmango__pickle-up (BLUE, ~47% margin).
+- Round 1: **WON 117-111 w/ 22 TIES** vs essickmango__pickle-up (RED, mean unit
+  margin -0.4). This is the CLOSEST opponent ever - a near-coin-flip.
+  Round 1 was the FIRST round with the round-0 SQUAD=3->2 edit; result held
+  (118->117 as we switched Blue->Red). SQUAD=2 is NOT regressing.
+### ROOT CAUSE (traced /logs/rounds/1 win-vs-loss unit+HP trajectories)
+- Games are decided EARLY. In LOSSES, HP margin goes negative FIRST (turn 20:
+  -1.1 HP but +0.02 units), then COMPOUNDS: by turn 80 losses are -3.14 units /
+  -15.2 HP. In WINS we lead HP from turn 10 and it snowballs the other way.
+  The opponent wins the FIRST MELEE's HP exchange (turns 10-30) and it
+  compounds. The endgame (90->100) is NOT where games are decided (wins hold
+  +4.6->+4.3; losses -4.4->-5.4) - the existing endgame gates work fine.
+  => The ONLY lever is EARLY/MID combat HP efficiency, which resists safe fixes.
+### Experiment tested (NOT shipped - neutral/mixed, REJECTED)
+- /tmp/v_boxed.py: focus-target score now prefers BOXED enemies first
+  (guaranteed kills): score = (0 if boxed else 1, -reachers, health, total) in
+  init_turn. Idea: kill cornered enemies cleanly for better HP trades.
+  * BLUE vs /tmp/cluster.py 8x: +5.00 (baseline +4.75) ~equal.
+  * RED  vs /tmp/cluster.py 8x: +4.75 (baseline +5.50) ~equal.
+  * BLUE vs /tmp/aggro.py 8x: **+1.62 (baseline +3.38) - REGRESSED** (boxed
+    focus pulls the squad toward a cornered enemy that isn't the best kill).
+  * RED  vs /tmp/aggro.py 8x: +2.75 W6L0T2 (baseline +1.88 W6L1T1) slightly
+    better. NET mixed/neutral, regresses BLUE-vs-aggro. REJECTED.
+### Decision: KEPT robot.py UNCHANGED (proven mature baseline, ~51% vs strongest foe).
+The bot is EXTREMELY evolved (focus-fire + multi-target SQUAD=2 + grouping +
+spawn-evac + wipe-turn forced evac + endgame lock-in/disperse + favorable-fight
+override + mid_lead). Verified: parses OK; `def robot` line 268; BLUE vs cluster
+W8L0 +4.75, RED vs cluster W6L0 +5.50, BLUE vs aggro +3.38, RED vs aggro +1.88.
+Runtime ~2.3s/match, well under 60s. This is a near-coin-flip match decided by
+early combat HP efficiency; ALL known levers are dead-ends and my tested
+boxed-focus change was neutral/mixed. Changing risks tipping a 51% match to a
+loss for marginal upside.
+### Guidance for next teammate
+- If opponent STAYS essickmango__pickle-up: submit robot.py as-is (~51%, a
+  near-coin-flip we currently WIN on both sides 118/117). Do NOT retry the
+  documented dead-ends OR the boxed-focus tweak (tested this round, mixed).
+- The ONLY realistic lever is EARLY-MELEE HP EFFICIENCY (turns 10-30 - whoever
+  wins the first HP exchange snowballs). This is genuinely hard and resists safe
+  fixes. Untried & risky: predict the enemy flee tile and only commit a lone
+  attacker when the hit will LAND (movement resolves before attacks). NOTE the
+  PREDICTIVE COVERAGE variant already tested as a DISASTER (-15 margin) - a
+  different, more conservative predictive approach would be needed.
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL, PREDICTIVE COVERAGE (-15),
+  tighter early grouping, passive/retreat mid-game tweaks, adjacency-priority
+  focus, even_game-tied, earlier-disperse, focus-radius 2->1, whiff-avoidance,
+  boxed-focus (this round). SQUAD=2, mid_lead, wipe-turn-evac all test
+  neutral-to-positive (keep them).
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move.
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * /tmp/bench.py BOT OPP N (BOT=BLUE), /tmp/benchR.py BOT OPP N (BOT=RED) -
+    keep N<=8 to stay under the 30s per-command wall-clock; term IS
+    non-deterministic - run 8x+ and compare unit MARGINS, not just W/L.
