@@ -416,7 +416,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # Start backing away from those slightly farther threats at turn 95;
         # before then keep the old radius so we don't over-kite too early.
         lead_margin = len(our_units) - len(enemy_units)
-        kite_radius = 6 if state.turn >= 95 else (5 if (state.turn >= 91 and lead_margin >= 3) else 3)
+        kite_radius = 6 if state.turn >= 95 else (5 if state.turn >= 91 else 3)
         d = kite_from_nearby(state, unit, kite_radius, allow_spawn=(state.turn >= 91))
         if d:
             return Action.move(d)
@@ -446,7 +446,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             d = late_equal_pressure_step(state, unit)
             if d:
                 return Action.move(d)
-        if state.turn >= 95 and health_edge <= 8:
+        if state.turn >= 93 and health_edge <= 12:
             d = late_desperation_step(state, unit)
             if d:
                 return Action.move(d)
