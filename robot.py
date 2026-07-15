@@ -110,6 +110,25 @@ def step_to_annulus(state: State, unit: Obj) -> Optional[Direction]:
     return None
 
 
+
+def intercept_dir(state: State, unit: Obj) -> Optional[Direction]:
+    # Pre-fire an adjacent empty tile when an enemy two steps away is likely to
+    # move into it.  Movement is resolved before attacks, so this punishes
+    # simple chase bots without changing the survival macro versus passive bots.
+    best: Optional[Tuple[Tuple[int, int], Direction]] = None
+    for d in DIRECTIONS:
+        adj = unit.coords + d
+        if state.obj_by_coords(adj) is not None:
+            continue
+        for e in enemy_units:
+            if (e.coords.walking_distance_to(unit.coords) == 2 and
+                    e.coords.walking_distance_to(adj) == 1 and
+                    adj.walking_distance_to(unit.coords) < e.coords.walking_distance_to(unit.coords)):
+                val = (local_count(our_units, adj, 1), -e.health)
+                if best is None or val > best[0]:
+                    best = (val, d)
+    return best[1] if best else None
+
 def robot(state: State, unit: Obj) -> Optional[Action]:
     # Combat micro: focus weak adjacent enemies when we can kill/trade well;
     # otherwise dodge away from obvious adjacent attacks.
@@ -138,6 +157,13 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         d = best_step_toward(state, unit, CENTER)
         if d:
             return Action.move(d)
+
+    # Movement resolves before attacks: if a nearby enemy is probably stepping
+    # next to us, attack the destination square preemptively instead of walking
+    # into a brawl.  Do this only after spawn/perimeter evacuation.
+    d = intercept_dir(state, unit)
+    if d:
+        return Action.attack(d)
 
     # Take only local fights.  Do not over-chase perimeter bait or distant
     # passers; unit-count survival is usually better than damage.
