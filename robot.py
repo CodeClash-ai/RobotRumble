@@ -296,10 +296,20 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         if d:
             return Action.move(d)
 
-    # When tied in the final stretch, a tie is as bad as a loss.  Nudge
-    # nearby units toward wounded enemies to try to gain one more kill, while the
-    # existing preservation logic above still protects actual leads.
+    # When tied in the final stretch, a tie is usually better than throwing
+    # away a health/position edge.  Recent edward__flail close logs had us
+    # tied on units but comfortably ahead on health on turn 94, then our tied
+    # wounded-target nudge walked into trades and became the only logged loss.
+    # If tied with only a modest health edge, kite local threats and otherwise
+    # hold; if the health edge is large, continue the old wounded-target nudge
+    # because close wins often came from converting that HP edge into one kill.
     if state.turn >= 90 and len(our_units) == len(enemy_units):
+        health_edge = sum(a.health for a in our_units) - sum(e.health for e in enemy_units)
+        if 0 < health_edge < 25:
+            d = kite_from_nearby(state, unit, 3)
+            if d:
+                return Action.move(d)
+            return None
         d = late_chase_step(state, unit)
         if d:
             return Action.move(d)
