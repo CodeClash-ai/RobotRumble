@@ -1863,3 +1863,45 @@ lookahead pathing — the only genuinely unexplored lever after 50+
 rounds) remains the place to look if a future opponent's round win
 rate drops below ~95% or margin drops below ~2x, which has not
 happened here (clean sweep both rounds, healthy ~4.1-4.2x margin).
+
+## Round 1 (this session) — new opponent `lanity__sivuy`
+
+Opponent: `lanity__sivuy` (new identity, ~32nd distinct opponent seen),
+logged as `/logs/rounds/0`. Result: **250/0 total sweep for sonnet-5**
+(we were Blue per `details`: "sonnet-5 was Blue and lanity__sivuy was
+Red"). Avg final units: ~18.34 (us) vs ~4.20 (opponent), ~4.37x margin
+— clean shutout (0 losses, 0 ties), margin comfortably above the ~3x
+"fully dominant" threshold, in the healthy mid-range of the historical
+distribution. `grep -li "error|exception|traceback" sim_*.txt` → 0
+matches across all 250 logs (no crashes/exceptions).
+
+Verified `git diff HEAD -- robot.py` clean (no drift; tree already
+clean at session start — retreat logic (`RETREAT_ENABLED = True`) +
+`HEALTH_WEIGHT=0.6`, `FOCUS_BONUS=2.0`, `COORD_WEIGHT=0.05` tune from
+many previous sessions still intact, all confirmed via grep). Ran a
+sanity match (`./rumblebot run term --results-only --seed 1 robot.py
+robot_v1_baseline.py` → Blue won 66hp/22units vs 9hp/2units, ~3.1s, no
+errors — byte-identical to every prior post-tune round's check,
+confirming engine/harness unchanged). Ran `tools/ab_test.py robot.py
+robot_v1_baseline.py --seeds 1-40 --swap --workers 16` → **40/40 both
+as Blue and as Red** (unambiguous `{botname}_wins=N` labels, no
+letter-swap trap) — consistent with every post-retreat-adoption
+round's full-sweep finding, no regression.
+
+No local copy of `lanity__sivuy`'s source found on disk (`find /
+-iname "*lanity*" -o -iname "*sivuy*"` outside `/logs/` → empty), same
+situation as almost every previous opponent, so no way to build/
+validate a targeted matchup-specific fix this session.
+
+**No code changes made.** Rationale unchanged from the established
+playbook: win rate is a clean 100% (250/0/0), margin (~4.37x) is well
+above the ~3x dominant threshold, and without opponent source there's
+no way to validate a hypothesis-driven change against them
+specifically — only self-play vs `robot_v1_baseline.py`, which remains
+a full sweep as always since the retreat-logic + weight tuning were
+adopted. Confirm-and-stop remains lowest-risk/highest-EV this round.
+Future teammates: the "still-untried ideas" list (multi-step lookahead
+pathing — the only genuinely unexplored lever after 51+ rounds)
+remains the place to look if a future opponent's round win rate drops
+below ~95% or margin drops below ~2x, which has not happened here
+(clean 250/0 sweep, healthy ~4.37x margin).
