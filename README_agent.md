@@ -848,3 +848,61 @@ baseline" to "120/120 vs baseline," it's plausible we're now well past
 the point of diminishing returns on this bot's core loop. Recommend just
 continuing the validate-and-confirm workflow unless a genuinely
 tougher opponent appears (win rate < ~95% or margin < ~2x).
+
+## Round 2 (this session, continuing aayyad__testbot matchup)
+Opponent: `aayyad__testbot` (continuing from Rounds 0-1, logged in
+`/logs/rounds/0` and `/logs/rounds/1`). Recomputed win/loss+avg-units
+snippet for both:
+- Round 0: Blue (us) won 249/250, 1 loss (Red won `sim_115.txt`), 0
+  ties. avg final units ~18.6 (us) vs ~5.7 (opponent), ~3.27x margin.
+- Round 1: Blue (us) won 250/250, 0 losses, 0 ties. avg final units
+  ~19.3 (us) vs ~5.5 (opponent), ~3.51x margin.
+
+Both consistent with prior session's note — margin ~3.3-3.5x, moderate
+(not the historical ~19x seen against weaker bots, but well above the
+~3x "still dominant" threshold) and near-total shutout (1 loss / 500
+games across both rounds combined).
+
+Investigated the one loss (`sim_115.txt`, round 0): full 100-turn game,
+ended 10 units/26hp (Red/opponent) vs 10 units/33hp... (actually Health
+26 33 Units 10 11, Red won) — a genuinely close symmetric late-game
+state (10v11 units), no bug, no stuck/idle-unit pattern found. Not
+exploitable via a quick code read.
+
+Verified `git diff HEAD -- robot.py` clean (no drift, tree already
+clean at session start — retreat logic from 2 sessions ago still intact
+and unchanged). Ran a sanity match (`./rumblebot run term
+--results-only robot.py robot_v1_baseline.py --seed 1` → Blue won
+76hp/28 units vs 12hp/3 units, ~4s, no errors — matches the
+post-retreat-adoption numbers, not the old pre-retreat 32hp/8units
+baseline, confirming retreat logic is still active). Ran
+`tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40 --swap` →
+**40/40 both as Blue and as Red** (using the now-fixed, unambiguous
+`{botname}_wins=N` labels from the `tools/ab_test.py` bugfix 2 sessions
+ago) — consistent with the "120/120" full-sweep finding from last
+session, confirming the retreat-logic improvement is durable and not a
+one-off. Also ran 3 robot.py-vs-itself mirror matches (seeds 1-3) as an
+extra crash/hang sanity check — all completed cleanly in 3-4s each with
+plausible balanced-ish outcomes (slight edge to Blue/first-mover, as
+expected in a mirror match), no exceptions.
+
+**No code changes made.** Rationale: win rate remains effectively 100%
+against this opponent (499/500 games across both logged rounds), margin
+(~3.3-3.5x) is stable and above the "still dominant" threshold, the
+single loss reviewed shows no exploitable bug (just a close symmetric
+game), and — as with nearly every previous opponent — no local copy of
+`aayyad__testbot`'s source exists to build/validate a matchup-specific
+fix against. Confirm-and-stop remains the lowest-risk/highest-EV action
+this round.
+
+**For future teammates**: current status is very healthy — the retreat
+logic adopted a couple of sessions ago is confirmed durable (40/40 both
+sides vs baseline, matching the previous "120/120" finding). If this
+opponent (or another with margin persistently in the ~2-3.5x range,
+e.g. `aaa__jippty5`, `anton__anton4000`) keeps recurring without margin
+improving, and you want to push further, the only genuinely untried
+idea left on the list is **multi-step lookahead pathing** (single-step
+sidestep fallback is already exhaustive given only 4 directions exist,
+but doesn't plan more than 1 tile ahead around obstacles/corners) — see
+older sections of this file for context. No other actionable lever has
+been identified after ~33+ rounds of investigation.
