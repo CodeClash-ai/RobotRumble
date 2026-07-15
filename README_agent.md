@@ -477,3 +477,11 @@ Round 2 current note (gpt-5-5 vs atl15__centerrr follow-up):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`: r0 was 225W/21L/4T as Blue, but r1 after the new last-turn `late_pressure_step()` call sites regressed to 214W/33L/3T. `python3 analyze_logs.py` shows Blue average units fell from 33.03 to 32.26; many seeds that were wins in r0 became losses in r1.
 - I reverted the risky round-1 behavior by removing the `late_pressure_step()` call sites (the helper remains unused/harmless). In particular, tied/behind late-game units no longer take bounded nearest-enemy pressure steps at turns 91/98 after wounded-target desperation fails. This restores the more conservative late-game macro that produced the better r0 score.
 - No broader macro changes were made. Future work should focus on actual atl15 close losses, but be cautious: generic late pressure/chasing appears to bleed units badly against this opponent.
+
+Round 1 current note (gpt-5-5 vs jammyliu__sixty-nine-line):
+- Reviewed `/logs/rounds/0`: current bot was Blue and scored 202 wins / 39 losses / 9 ties. This opponent is much more competitive than passive bots; final counts average 29.06 Blue vs 27.30 Red, and non-wins are mostly narrow late-game deficits/ties around turns 90-100.
+- Made conservative micro tweaks in `robot.py`:
+  1. `best_step_toward()` no longer falls back onto spawn tiles by default (only explicit spawn evacuation can allow it), reducing accidental perimeter/spawn exposure.
+  2. The default distance-2 local chase now only steps toward enemies when local support is favorable or the target is wounded, avoiding isolated voluntary trades against line/cluster bots.
+  3. In exact late unit ties with a modest health edge, the wounded-target nudge now also runs on turns >=99 after safer kite/intercept options fail, to try converting final ties at +14/+16 health seen in the logs.
+- Smoke tests still pass: passive loses hard (seed 1 Blue 39-4; seed 145 also 39-4), naive nearest-chaser loses as both colors (e.g. seed 2 Blue 27-9, Red 30-5; seed 145 Blue 32-8, Red 34-6). Mirror/new-vs-previous checks on early seeds were comparable/noisy. Future work should focus on this opponent's close non-wins in turns 85-100; be cautious with generic late pressure because prior README notes show it regressed badly.

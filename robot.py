@@ -73,7 +73,7 @@ def local_count(units: List[Obj], c: Coords, r: int) -> int:
     return sum(1 for o in units if o.coords.walking_distance_to(c) <= r)
 
 
-def best_step_toward(state: State, unit: Obj, target: Coords) -> Optional[Direction]:
+def best_step_toward(state: State, unit: Obj, target: Coords, allow_spawn_fallback: bool = False) -> Optional[Direction]:
     current_dist = unit.coords.walking_distance_to(target)
     primary = unit.coords.direction_to(target)
     dirs = list(DIRECTIONS)
@@ -91,7 +91,7 @@ def best_step_toward(state: State, unit: Obj, target: Coords) -> Optional[Direct
                 return d
             if fallback is None:
                 fallback = d
-    if fallback is not None:
+    if fallback is not None and allow_spawn_fallback:
         reserved_moves.add(unit.coords + fallback)
         return fallback
     return None
@@ -121,7 +121,7 @@ def evacuate_spawn_step(state: State, unit: Obj) -> Optional[Direction]:
     # If no off-spawn square is free, a closer spawn-ring step can still help
     # before the very last pre-clear turn by opening room for the next action.
     if state.turn < 90:
-        return best_step_toward(state, unit, CENTER)
+        return best_step_toward(state, unit, CENTER, allow_spawn_fallback=True)
     return None
 
 def retreat_from_adjacent(state: State, unit: Obj, adj: List[Tuple[Direction, Obj]], allow_spawn: bool = False) -> Optional[Direction]:
@@ -490,13 +490,12 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             if d:
                 reserved_attack_squares.add(unit.coords + d)
                 return Action.attack(d)
-            # If the health edge is only very small, a final unit-count tie is
-            # still likely; take the existing wounded-target nudge after safer
-            # kiting/intercepts have failed.  Keep larger modest health edges
-            # in pure preservation mode (the edward__flail loss was around
-            # +16 health), but use +1..+12 cases like current close tie/loss logs to
-            # try to turn a draw into a one-unit win.
-            if health_edge <= 12:
+            # Current logs versus sixty-nine-line still have exact final ties at
+            # +14/+16 health where no one moved after the final spawn.  Once the
+            # match reaches the last two turns, a tie is no better than a loss;
+            # use the existing wounded-target nudge for the whole modest-health
+            # band, after safer kite/intercept options fail.
+            if state.turn >= 99 or health_edge <= 12:
                 d = late_desperation_step(state, unit)
                 if d:
                     return Action.move(d)
@@ -528,13 +527,19 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         reserved_attack_squares.add(unit.coords + d)
         return Action.attack(d)
 
-    # Take only local fights.  Do not over-chase perimeter bait or distant
-    # passers; unit-count survival is usually better than damage.
+    # Take only favorable local fights.  Do not step adjacent to an enemy just
+    # because it is nearby: against stronger line/cluster bots, those voluntary
+    # approaches can bleed bodies before the final unit-count tally.  We still
+    # use intercept pre-fire above, and only close distance when local support is
+    # at least comparable so the move is not an isolated trade invitation.
     enemy = nearest_enemy(unit)
     if enemy and unit.coords.walking_distance_to(enemy.coords) <= 2 and not is_spawn_coord(enemy.coords):
-        d = best_step_toward(state, unit, enemy.coords)
-        if d:
-            return Action.move(d)
+        my_support = local_count(our_units, unit.coords, 2)
+        enemy_support = local_count(enemy_units, enemy.coords, 2)
+        if my_support >= enemy_support + 1 or enemy.health <= 2:
+            d = best_step_toward(state, unit, enemy.coords)
+            if d:
+                return Action.move(d)
 
     # If too clustered in the center, spread back out to the defensive annulus.
     if unit.coords.walking_distance_to(CENTER) < 6:
