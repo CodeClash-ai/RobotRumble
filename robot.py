@@ -107,6 +107,15 @@ def _score(friends, enemies):
     for v in distv.values():
         distance_score += v * v
 
+    if CURRENT_TURN >= 95 and unit_score == 0 and health_score <= 0:
+        # If the match is about to end tied on units and we are not ahead on
+        # total sqrt-health, keep unit count primary but next prefer lowering
+        # enemy HP so close endgames can convert before turn 100.  Keep this
+        # before the broader turn>=40 tied/behind pressure branch; otherwise the
+        # narrow final cleanup rule is unreachable for tied-unit positions.
+        # (health_score - friend_health_score) is exactly -enemy_sqrt-health.
+        enemy_health_score = health_score - friend_health_score
+        return (unit_score, enemy_health_score, health_score, friend_health_score, surround_score, distance_score)
     if CURRENT_TURN >= 40 and unit_score <= 0:
         # In close games against strong scatter/glommer-style opponents we were
         # sometimes choosing HP-preserving moves even when the one-ply result
@@ -115,13 +124,6 @@ def _score(friends, enemies):
         # non-winning branches to favor surrounding and converting enemy bodies
         # before a snowball forms.
         return (unit_score, surround_score, distance_score, health_score)
-    if CURRENT_TURN >= 95 and unit_score == 0 and health_score <= 0:
-        # If the match is about to end tied on units and we are not ahead on
-        # total sqrt-health, keep unit count primary but next prefer lowering
-        # enemy HP so close endgames can convert before turn 100.
-        # (health_score - friend_health_score) is exactly -enemy_sqrt-health.
-        enemy_health_score = health_score - friend_health_score
-        return (unit_score, enemy_health_score, health_score, friend_health_score, surround_score, distance_score)
     if CURRENT_TURN >= 60:
         # Late-game pressure/contact remains useful for cleaning up scatter bots,
         # but starting this order too early (turn 30) over-committed into the
