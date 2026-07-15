@@ -157,11 +157,18 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # Mid/late even-game: preserve fragile (<=2HP) units when NOT ahead in
         # count so even 1-for-1 trades don't leave us tied (win = most units).
         even_game = state.turn >= 50 and my_units <= enemy_units
+        # Protect a LEAD: when ahead in unit count late in the game, avoid ANY
+        # risky trade. A unit that can't secure a kill AND would take return
+        # damage (i.e. it's a genuine trade, not a free hit on a boxed enemy)
+        # should retreat to preserve the numeric lead (win = most units).
+        protect_lead = state.turn >= 80 and my_units > enemy_units
+        boxed_here = enemy_boxed(state, e, my_team)
         should_retreat = (
             unit.health <= 1
             or (outnumbered and unit.health <= 2)
             or (late_game and unit.health <= 3)
             or (even_game and unit.health <= 2)
+            or (protect_lead and unit.health <= 3 and not boxed_here)
         )
         if not can_kill and should_retreat:
             r = retreat(state, unit)

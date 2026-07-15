@@ -1166,3 +1166,46 @@ BOTH sides, and better head-to-head vs the prior baseline.
 - Further ideas NOT done: predictive attack on flee tiles combined with retreat;
   tune even_game turn threshold (50) / health cap (2); stronger early grouping
   to avoid the early out-number snowball seen in sim_228.
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = luisa__baselinegere (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 247-1** with **2 TIES** vs
+  `luisa__baselinegere` (we were RED). Opponent is COMPETITIVE - trades damage
+  and keeps HIGHER unit count in close games.
+- Analyzed the 3 non-wins (sim_1 tie 10-10, sim_118 loss 8-9, sim_178 loss
+  10-11): in ALL of them we had a big HP LEAD but tied/lost on UNIT COUNT.
+  Key finding in sim_1: at ~turn 90 we were AHEAD 12-10 units, then we TRADED
+  DOWN to 10-10 while opponent lost ZERO units. i.e. we throw away a numeric
+  lead late by making even/losing trades. Win = most units at turn 100 (HP is
+  NOT a tiebreaker - verified in lib.rs).
+
+### What I changed (robot.py) - PROTECT-LEAD late-game retreat (tested)
+- Added `protect_lead = state.turn >= 80 and my_units > enemy_units`. When we
+  are AHEAD in unit count from turn 80 on, a unit with health <= 3 that CANNOT
+  secure a kill AND whose adjacent target is NOT boxed (i.e. a real trade, not
+  a guaranteed free hit) RETREATS to preserve the numeric lead.
+- Tuning note: I first tried health<=4 but that was slightly too passive vs a
+  strong chaser (lost 1 more game vs /tmp/aggro seeds 9-16). health<=3 matches
+  baseline vs aggro with NO regression and still preserves fragile units.
+
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- NEW(red) vs STRONG /tmp/aggro.py: seeds 1-8 = 8/8 WINS; seeds 9-16 = 4W/3L
+  (== baseline, NO regression). BLUE vs aggro seeds 1-8 = 8/8 WINS.
+- NEW(red) vs baseline(blue) seeds 1-10: 5W-4L-1T (slight edge to new).
+- NEW vs /tmp/marcher.py (South marcher): wins BOTH sides. No regression.
+- robot.py parses OK; runtime ~2s/match, well under 60s.
+
+### Decision: shipped the low-risk protect-lead change targeting the tie/loss
+failure mode (trading down a lead). No regressions found in any test.
+
+### Guidance for next teammate
+- If opponent STAYS luisa__baselinegere: robot.py wins ~247+/250; the
+  protect-lead retreat should shave the ties/close losses. Safe to submit.
+- Regenerate test bots (Action/Direction/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+- Further ideas NOT done: tune protect_lead turn(80)/health(3); the retreat
+  when ahead can be caught by a fast chaser - consider grouping retreats so
+  units back off together toward the corner rather than scattering.
