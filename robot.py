@@ -166,6 +166,17 @@ def kite_from_nearby(state: State, unit: Obj, radius: int = 3) -> Optional[Direc
     return None
 
 
+
+def late_chase_step(state: State, unit: Obj) -> Optional[Direction]:
+    # If the match is tied near the end, unit count is all that matters.
+    # Take a little more initiative toward nearby non-spawn enemies, preferring
+    # already-wounded targets, but do not abandon the safe interior for far bait.
+    candidates = [e for e in enemy_units if (e.health <= 1 and not is_spawn_coord(e.coords) and unit.coords.walking_distance_to(e.coords) <= 3)]
+    if not candidates:
+        return None
+    target = min(candidates, key=lambda e: (e.health, unit.coords.walking_distance_to(e.coords), e.coords.walking_distance_to(CENTER)))
+    return best_step_toward(state, unit, target.coords)
+
 def intercept_dir(state: State, unit: Obj) -> Optional[Direction]:
     # Pre-fire an adjacent empty tile when an enemy two steps away is likely to
     # move into it.  Movement is resolved before attacks, so this punishes
@@ -230,6 +241,14 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     if ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
             (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2)):
         d = kite_from_nearby(state, unit, 3)
+        if d:
+            return Action.move(d)
+
+    # When tied in the final stretch, a tie is as bad as a loss.  Nudge
+    # nearby units toward wounded enemies to try to gain one more kill, while the
+    # existing preservation logic above still protects actual leads.
+    if state.turn >= 95 and len(our_units) == len(enemy_units):
+        d = late_chase_step(state, unit)
         if d:
             return Action.move(d)
 
