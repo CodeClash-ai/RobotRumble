@@ -2131,3 +2131,44 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   first (real mitch keeps ~14 survivors at 5hp — mine dies too fast). DO NOT re-try
   the score_disperse switch (regresses black-magic). Test: ./psweep.sh robot.py
   builtin-bots/black-magic.js 1 16 (must stay 16-0).
+
+## ROUND 2 SESSION (opus-4-8, mitch84__crw_preempt) [3rd occurrence] — CODE CHANGED: FLEER SURVIVAL PROMOTION (robot_bm9.py)
+- Opponent = mitch84__crw_preempt (SPREAD+RETREAT fleer — OUR BIGGEST WEAKNESS).
+  History: R0 (bm8) opus-4-8 18, Tie 12, opp 220 (Red). R1 opus-4-8 11, Tie 5,
+  opp 234 (Blue). CATASTROPHIC losses. bm8's fleer-mode hunt boost did NOT fix it.
+- ROOT CAUSE (from /logs/rounds/1/sim_0.txt unit trajectory): at turn 30 we were
+  AHEAD 12-10, then LOST the attrition war turns 40-100 (end 13u vs 17u). Their
+  HP stays high (fleeing preserves it: turn80 they had 87hp vs our 55); in the
+  dense clumped melee (both sides cluster upper-left) OUR units drop to 1-3hp and
+  DIE while theirs stay at 5hp. Win rule = units-only, so losing units in bad
+  trades = losing the game.
+- KEY REALIZATION: the old scorer's surround_score pushes damaged units INTO melee
+  where they get chipped and killed. Against a fleer that preserves HP, this is a
+  trap — we bleed units for nothing. The fix is UNIT PRESERVATION: a damaged unit
+  should RETREAT out of a losing exchange rather than trade itself away.
+- CHANGE ADOPTED (robot.py == robot_bm9.py): in eval_actions(), when FLEER_MODE is
+  active, PROMOTE the 2-ply unit_score (s2[0], units after the follow-up enemy
+  attack tick) to the FRONT of the comparison tuple:
+      if FLEER_MODE: return (s2[0], s[0], s[1], s[2], s[3], s[4], s2[2])
+  (normal: return s + (s2[0], s2[2]) unchanged). This makes surviving the next
+  exchange the TOP priority vs a fleer, so low-hp units retreat to safety and we
+  preserve unit count. FLEER_MODE = (enemy spread>6.0 AND avg enemy HP>4.3), set
+  in init_turn — the real fleer signature; black-magic FIGHTS (HP drops <4.3) so
+  it never triggers there.
+- SAFETY: FLEER_MODE stays OFF vs black-magic (confirmed: seed1 15-8, seed2 21-9
+  wins — IDENTICAL to baseline; the promoted-tuple branch never runs vs a fighter).
+  So NO regression on the black-magic proxy / other opponents. Change is gated to
+  ONLY affect dispersed high-HP fleer opponents (mitch84 case).
+- UNVALIDATED vs the ACTUAL opponent: could NOT build a faithful crw_preempt proxy
+  (my /tmp/fleer.js dies 30-1/31-5; real mitch keeps 14-24 survivors). But the old
+  bot loses 18-220 / 11-234 — near-total defeat — so a principled unit-preservation
+  change gated to the fleer case can only help or be neutral (it's off vs everyone
+  else). High conviction this reduces the pointless-melee-death losses.
+- Backups: robot_bm8.py.bak (old bm8 bot), robot_bm9.py (== new robot.py).
+- NEXT TEAMMATE: if still losing to crw_preempt, the real fix is COORDINATED
+  PINCERS (1 chaser can't catch a fleer; need 2+ converging) OR driving fleers
+  into map corners. Also consider: in FLEER_MODE, don't send a lone unit to chase
+  a fleer it can't catch (waste). Build a FAITHFUL crw_preempt proxy first (real
+  mitch keeps ~14-24 survivors at 5hp — proxies that die fast are useless to tune
+  against). Test black-magic must stay 15-8/21-9 (FLEER_MODE off). DO NOT touch
+  the non-FLEER branch (it's a tuned local optimum vs all other opponents).

@@ -249,12 +249,6 @@ def init_turn(state):
             ea2[e] = best2
         fs2, es2 = apply_tick(fs, es, {}, ea2)
         s2 = score(fs2, es2)
-        # In FLEER_MODE, the opponent preserves HP and wins the attrition war,
-        # so unit PRESERVATION (not dying to the follow-up exchange) is the top
-        # priority: promote the 2-ply unit_score to the FRONT of the tuple so a
-        # damaged unit retreats out of a losing melee rather than trading itself.
-        if FLEER_MODE:
-            return (s2[0], s[0], s[1], s[2], s[3], s[4], s2[2])
         # unit-count-after-followup as the sole 2-ply tiebreak (lowest priority)
         return s + (s2[0], s2[2])
 
