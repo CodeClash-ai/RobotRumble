@@ -769,3 +769,25 @@ real regression risk. Submitting as-is.
   * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
 - Further ideas NOT done: predictive attack on flee tiles + retreat; tune
   ally_penalty. Only pursue vs a MUCH stronger opponent than this one.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = jiricodes__jiricodes-bot
+### Result recap
+- Round 0: **WON 250-0** vs jiricodes__jiricodes-bot (we were BLUE).
+- Round 1: **WON 250-0** vs jiricodes__jiricodes-bot (we were BLUE, sim_0:
+  28 units to 0, HP 139-0). Opponent aggressive-ish (targets/attacks) but far
+  weaker; we crush every game.
+### Verification this session
+- robot.py parses OK. Runtime ~1.5-5s/match, well under 60s.
+- robot BLUE vs /tmp/marcher.py (South marcher): WIN 28 units to 1 (HP 140-5).
+- robot BLUE vs STRONG /tmp/aggro.py (nearest-chase+attack, stronger than the
+  real opponent): 3/3 WINS (seeds 1-3).
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent aggressive-ish but far weaker; current focus-fire + grouping bot wins
+250-0 both rounds AND beats a strong aggro test bot. Zero upside to changing,
+real regression risk. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS jiricodes__jiricodes-bot: submit robot.py as-is (optimal).
+- Regenerate test bots (Action/Direction/State are globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack.
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
