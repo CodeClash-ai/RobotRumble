@@ -107,12 +107,13 @@ def _score(friends, enemies):
     for v in distv.values():
         distance_score += v * v
 
-    if CURRENT_TURN >= 40 and unit_score < 0:
-        # In close games against strong neural/scatter opponents we were
+    if CURRENT_TURN >= 40 and unit_score <= 0:
+        # In close games against strong scatter/glommer-style opponents we were
         # sometimes choosing HP-preserving moves even when the one-ply result
-        # was behind on units.  Unit count is the only win condition, so in
-        # those losing branches use pressure/contact earlier to favor
-        # surrounding and converting enemy bodies before a midgame snowball.
+        # was behind or merely tied on units.  Unit count is the only win
+        # condition, so from midgame onward use pressure/contact for these
+        # non-winning branches to favor surrounding and converting enemy bodies
+        # before a snowball forms.
         return (unit_score, surround_score, distance_score, health_score)
     if CURRENT_TURN >= 95 and unit_score == 0 and health_score <= 0:
         # If the match is about to end tied on units and we are not ahead on
