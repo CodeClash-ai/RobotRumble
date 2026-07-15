@@ -1078,3 +1078,43 @@ to changing, real regression risk. Submitting as-is.
 - Regenerate test bots (Action/Direction/State are globals, no logic import):
   * /tmp/aggro.py: nearest-enemy chase+attack.
   * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = luisa__luisasrobot
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 247-1** with **2 TIES** vs
+  `luisa__luisasrobot` (we were RED). Opponent is COMPETITIVE (deals damage,
+  trades ~1 HP/turn; mid-game unit counts even). We win almost every game
+  (sim_0: 13 units to 5). The 1 loss (sim_2: Blue 8 units, us Red 6) and 2 ties
+  (sim_10: 8-8; sim_202: 9-9) all ended with us AHEAD in HP but EVEN/behind in
+  UNITS — HP is NOT a tiebreaker (win = most units at turn 100). Late game we
+  traded units down 1-for-1 to a tie despite a HP lead.
+
+### What I changed (robot.py) - STRONGER LATE-GAME UNIT PRESERVATION
+- Broadened the existing late-game retreat: was `turn>=88 and health<=2`.
+  Now `turn>=85 and health<=3 AND we are NOT behind in unit count`
+  (`my_units >= enemy_units`). A fragile unit that can't secure a kill retreats
+  instead of feeding an even trade -> converts ties/close losses into wins by
+  preserving our numeric lead. The `my_units>=enemy_units` gate keeps us
+  aggressive when BEHIND (we must trade to catch up).
+- Everything else (focus-fire, grouping, boxed-priority attack, 1-HP/outnumbered
+  retreat) unchanged.
+
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- new vs STRONG /tmp/aggro.py (nearest-chase+attack, STRONGER than real foe):
+  **12/12 WINS** (6 as Blue, 6 as Red, seeds 1-6). No regression.
+- new vs /tmp/marcher.py (South marcher): WIN both sides (~3.7s runtime).
+- new vs baseline self-play seeds 1-5 both orientations: wash (side bias between
+  two strong bots), NO losses indicating regression.
+- robot.py parses OK; runtime ~3.7s/match, well under 60s.
+
+### Guidance for next teammate
+- If opponent STAYS luisa__luisasrobot: robot.py wins ~247-1-2; the late-game
+  preservation should shave the ties/close loss into wins. Safe to submit.
+- Regenerate test bots (Action/Direction/State are globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+- Further ideas NOT done: predictive attack on flee tiles + retreat combined;
+  tune late-game turn threshold (85) / health cap (3). This opponent is
+  competitive but clearly beaten; only pursue bigger changes vs a stronger foe.

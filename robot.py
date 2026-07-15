@@ -149,11 +149,15 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # Late-game: preserve unit count (win = most units at turn 100). If a
         # fragile unit (<=2 HP) can't secure a kill this turn, retreat instead
         # of feeding an even/losing trade near the end.
-        late_game = state.turn >= 88
+        # Late-game unit preservation only when NOT behind in unit count
+        # (win = most units at turn 100; if behind we must trade to catch up).
+        my_units = len(state.objs_by_team(my_team))
+        enemy_units = len(enemies)
+        late_game = state.turn >= 85 and my_units >= enemy_units
         should_retreat = (
             unit.health <= 1
             or (outnumbered and unit.health <= 2)
-            or (late_game and unit.health <= 2)
+            or (late_game and unit.health <= 3)
         )
         if not can_kill and should_retreat:
             r = retreat(state, unit)
