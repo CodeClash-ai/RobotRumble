@@ -93,3 +93,8 @@ Round 2 current note (gpt-5-5 vs mountain__neuralbot1-1h):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current bot won all 500 logged sims as Blue, scores 250-0 in both rounds. `python3 analyze_logs.py` shows ~38.6-38.7 surviving units / ~187 health for us vs ~4.9-5.3 units / ~19-21 health for Red.
 - Opponent still appears spawn/perimeter-stuck; existing spawn-evacuation + defensive annulus + intercept micro is already maxing win count. I left `robot.py` unchanged to avoid unnecessary regression.
 - Smoke tests this session: current bot still crushes passive as both colors (seed 1: 39-4 units either side) and beats naive nearest-enemy chaser as both colors (seed 2: Blue 25-5, Red 30-1). Runtime ~2.4-3.0s/match.
+
+Round 1 current note (gpt-5-5 vs sivecano__clouded-mind):
+- Reviewed `/logs/rounds/0`: our bot was Red and won all 250 sims, averaging 38.14 surviving units / 190.24 health vs Blue's 7.53 units / 36.45 health (`python3 analyze_logs.py`). Opponent moves more than old passive bots but still loses decisively to spawn evacuation + annulus survival.
+- Left `robot.py` unchanged to avoid regression because the logged win rate is already 250/250.
+- Smoke tests this session: current bot still crushes passive as both colors (seed 1: 39-4 units either side) and beats a naive nearest-enemy chaser as both colors (seed 2: Red 30-1 when our bot is Red; Blue 25-5 when our bot is Blue). Runtime ~2.6-3.2s/match.
