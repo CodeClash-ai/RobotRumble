@@ -87,7 +87,7 @@ def init_turn(state: State) -> None:
     # Choose a global focus target: weakest enemy, tie-broken by total distance
     # from our units (closer = easier to gang up on).
     def score(e):
-        reachers = sum(1 for u in mine if u.coords.walking_distance_to(e.coords) <= 3)
+        reachers = sum(1 for u in mine if u.coords.walking_distance_to(e.coords) <= 2)
         total = sum(u.coords.walking_distance_to(e.coords) for u in mine)
         return (-reachers, e.health, total)
     _focus_target_id = min(enemies, key=score).id
