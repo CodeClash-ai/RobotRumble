@@ -347,6 +347,11 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                     d = retreat_from_adjacent(state, unit, adj, allow_spawn=True)
                     if d:
                         return Action.move(d)
+                    # If trapped on the final wave and the focused target should
+                    # die, attack rather than passively absorbing adjacent hits;
+                    # a trade is better than losing only our body.
+                    if target.health <= allies_on_target:
+                        return Action.attack(attack_dir)
                     return None
                 if target.health <= allies_on_target:
                     return Action.attack(attack_dir)
@@ -391,6 +396,11 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 91))
             if d:
                 return Action.move(d)
+            # Trapped adjacent units are likely to be hit anyway; if local focus
+            # can remove the target, take the trade instead of holding and dying
+            # for free.  This is still restricted to exact late unit ties.
+            if target.health <= allies_on_target:
+                return Action.attack(attack_dir)
             return None
         if late_ahead:
             # While protecting a late unit-count lead, avoid nonlethal trades,
@@ -410,6 +420,10 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 91))
             if d:
                 return Action.move(d)
+            # With no escape square, a focused kill/trade is preferable to
+            # waiting in place while adjacent enemies attack us.
+            if clean_kill:
+                return Action.attack(attack_dir)
             return None
         if (target.health <= allies_on_target or allies_on_target >= enemies_near_us + 1 or
                 (late_behind and target.health <= 3)):
@@ -483,7 +497,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # but in the last few turns let high-HP ties take bounded weak-target
         # pressure; this is narrower than the generic late_pressure_step that
         # previously regressed against line/cluster bots.
-        if state.turn >= 94 and health_edge >= 5:
+        if state.turn >= 94 and health_edge >= 12:
             d = late_health_pressure_step(state, unit, radius=7)
             if d:
                 return Action.move(d)
