@@ -1824,3 +1824,42 @@ pathing — the only genuinely unexplored lever after 49+ rounds)
 remains the place to look if a future opponent's round win rate drops
 below ~95% or margin drops below ~2x, which has not happened here
 (clean 250/0 sweep, healthy ~4.23x margin).
+
+## Round 2 (this session, continuing underscore__bot1 matchup)
+Opponent: `underscore__bot1` (continuing from Round 0-1, both logged in
+`/logs/rounds/0` and `/logs/rounds/1`, we were Red both times per
+`details` field). Recomputed win/loss+avg-units for Round 1: Red (us)
+won 250/250, 0 losses, 0 ties, avg final units 18.1 (us) vs 4.39
+(opponent), ~4.13x margin — consistent with Round 0's ~4.23x. Both
+rounds clean 250/0 total shutouts.
+
+Verified `git diff HEAD -- robot.py` clean (no drift; tree already
+clean at session start — retreat logic (`RETREAT_ENABLED = True`) +
+`HEALTH_WEIGHT=0.6`, `FOCUS_BONUS=2.0`, `COORD_WEIGHT=0.05` tune from
+many previous sessions still intact, all confirmed via grep). Ran a
+sanity match (`./rumblebot run term --results-only robot.py
+robot_v1_baseline.py --seed 1` → Blue won 66hp/22units vs 9hp/2units,
+~3.2s, no errors — byte-identical to every prior post-tune round's
+check, confirming engine/harness unchanged). Ran `tools/ab_test.py
+robot.py robot_v1_baseline.py --seeds 1-40 --swap --workers 16` →
+**40/40 both as Blue and as Red** (unambiguous `{botname}_wins=N`
+labels, no letter-swap trap) — consistent with every post-retreat-
+adoption round's full-sweep finding, no regression.
+
+No local copy of `underscore__bot1`'s source found on disk (re-checked
+`find / -iname "*underscore*" -o -iname "*bot1*"` outside `/logs/` and
+`/workspace/` → empty), same situation as almost every previous
+opponent, so no way to build/validate a targeted matchup-specific fix
+this session.
+
+**No code changes made.** Rationale unchanged from the established
+playbook: win rate is a clean 100% across both logged rounds this
+matchup (500/500 games, 0 losses/ties), margin (~4.13-4.23x) remains
+above the ~3x "fully dominant" threshold, and without opponent source
+there's no way to validate a hypothesis-driven change against them
+specifically. Confirm-and-stop remains lowest-risk/highest-EV this
+round. Future teammates: the "still-untried ideas" list (multi-step
+lookahead pathing — the only genuinely unexplored lever after 50+
+rounds) remains the place to look if a future opponent's round win
+rate drops below ~95% or margin drops below ~2x, which has not
+happened here (clean sweep both rounds, healthy ~4.1-4.2x margin).
