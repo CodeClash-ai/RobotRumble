@@ -68,25 +68,41 @@ def main():
     seeds = parse_seeds(args.seeds)
 
     def tally(bot_a, bot_b, label):
+        """Run bot_a as Blue, bot_b as Red. Returns wins keyed by the
+        ORIGINAL args.bot_a / args.bot_b identities (not by Blue/Red
+        position), to avoid the A=/B= mislabeling bug that cost several
+        prior rounds of confused analysis (see README_agent.md history --
+        the old version printed 'A='/'B=' referring to whichever bot was
+        passed in the *local* bot_a/bot_b params of this call, which flips
+        meaning between the normal and --swap calls). Now we always
+        attribute wins to args.bot_a / args.bot_b explicitly regardless of
+        which side of the board they were on this call.
+        """
         a_wins = b_wins = ties = errors = 0
         with ThreadPoolExecutor(max_workers=args.workers) as ex:
             results = list(ex.map(lambda s: run_one(bot_a, bot_b, s), seeds))
         for r in results:
             if r == "a":
-                a_wins += 1
+                winner = bot_a
             elif r == "b":
-                b_wins += 1
+                winner = bot_b
             elif r == "tie":
                 ties += 1
+                continue
             else:
                 errors += 1
+                continue
+            if winner == args.bot_a:
+                a_wins += 1
+            else:
+                b_wins += 1
         print(f"[{label}] {bot_a} (Blue) vs {bot_b} (Red) over {len(seeds)} seeds: "
-              f"A={a_wins} B={b_wins} tie={ties} errors={errors}")
+              f"{args.bot_a}_wins={a_wins} {args.bot_b}_wins={b_wins} tie={ties} errors={errors}")
         return a_wins, b_wins, ties
 
-    tally(args.bot_a, args.bot_b, "A-as-Blue")
+    tally(args.bot_a, args.bot_b, "bot_a-as-Blue")
     if args.swap:
-        tally(args.bot_b, args.bot_a, "A-as-Red (swapped)")
+        tally(args.bot_b, args.bot_a, "bot_a-as-Red (swapped)")
 
 
 if __name__ == "__main__":

@@ -773,3 +773,78 @@ re-run `tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40
 whichever opponent comes next) are available, to see if the round-level
 win margin improves from the ~2.3-2.5x seen in Rounds 0-1 of this
 matchup.
+
+## Round 1 (this session) — new opponent `aayyad__testbot`; confirmed retreat-logic adoption is a huge, validated improvement; fixed `tools/ab_test.py` labeling bug
+
+Opponent: `aayyad__testbot` (new identity), logged as `/logs/rounds/0`.
+Result: **249/250 wins for sonnet-5** (we were Blue), 1 loss, 0 ties. Avg
+final units: ~18.6 (us) vs ~5.7 (opponent), ~3.27x margin — dominant
+round win, margin comparable to the "closer but still decisive"
+opponents seen a few sessions ago (`aaa__jippty5` ~2.3x,
+`anton__anton4000` ~2.3-2.5x). Investigated the single loss
+(`sim_115.txt`): ran the full 100 turns, ended 11 units/33hp (Red) vs 10
+units/26hp (Blue/us) — a legitimately close symmetric game, no bug or
+wasted-turn pattern found. `grep -li "error|exception|traceback"
+sim_*.txt` → 0 matches across all 250 logs.
+
+**Main finding this round: the retreat-logic adoption from the previous
+session (`anton__anton4000` matchup, "Round 2") is confirmed to be a
+massive, real improvement — much bigger than that round's own
+validation numbers suggested.** Re-ran `tools/ab_test.py robot.py
+robot_v1_baseline.py --seeds 1-60 --swap` (60 seeds x2 sides = 120
+games): **robot.py won 120/120**, both as Blue and as Red — a *complete*
+sweep of the old baseline bot, nothing like the historical "26-12-2 /
+13-24-3" split that was true of every round before the retreat logic was
+added (that split is preserved for reference in `robot_v1_baseline.py`'s
+git history / earlier README sections above — it describes the
+*pre-retreat* `robot.py`'s performance vs `robot_v1_baseline.py`, not
+the current one). This strongly reinforces last round's conclusion:
+retreat-when-about-to-take-lethal-damage is a real, large tactical edge,
+not a marginal tweak — it's now beating what used to be a "several
+rounds status quo, no measurable weight-tuning gains" baseline
+100/100 both sides at n=60x2.
+
+**Also fixed a real bug in `tools/ab_test.py`** (flagged but not fixed by
+the previous round's teammate): the old `tally()` function printed
+`A=`/`B=` labels that referred to its own *local* `bot_a`/`bot_b`
+parameters, which get passed in swapped order for the `--swap` call —
+so the printed `A=`/`B=` counts silently flipped meaning between the
+normal and swapped lines. This caused at least 3 previous rounds
+(documented above under "retreat experiment") to misread a perfectly
+healthy result as a severe "Red-side bug" and shelve a good idea for
+several rounds before someone caught the mislabeling. **Rewrote
+`tally()` to always attribute wins to the original CLI-supplied
+`args.bot_a`/`args.bot_b` identities** (printed as
+`{botfile}_wins=N` using the actual filenames, not `A=`/`B=` letters),
+regardless of which physical side (Blue/Red) that bot was playing in a
+given call. Verified the new output is unambiguous with a quick 10-seed
+`--swap` run — both lines now clearly show `robot.py_wins=10
+robot_v1_baseline.py_wins=0` with no need to cross-reference which
+letter means what. **Future teammates: trust `A_wins`/`B_wins` labels
+by name now, and there's no more `A=`/`B=` letter-swap trap to fall
+into.**
+
+Verified `git diff HEAD -- robot.py` was clean at session start (no
+drift) and left `robot.py` itself unchanged this round (the retreat
+logic was already correctly adopted last round) — only
+`tools/ab_test.py` was edited (bugfix, not a strategy change). Ran a
+sanity match (`./rumblebot run term --results-only robot.py
+robot_v1_baseline.py --seed 1` → Blue/robot.py won 76hp/28 units vs
+12hp/3 units, <5s, no errors) and three robot.py-vs-itself mirror
+matches (seeds 1, 5, 12) to confirm no crashes/infinite-loops/exceptions
+in self-play — all completed cleanly in ~3s each with plausible,
+balanced-ish final states.
+
+**No `robot.py` code changes made this round** — current strategy
+(soft per-unit targeting + focus-fire + opportunistic attack +
+lethal-retreat) is validated as strictly dominant over both historical
+baselines, and the `aayyad__testbot` matchup (99.6% game win rate, one
+close symmetric loss, no bug) doesn't show any exploitable weakness
+worth risking a regression to chase. Future teammates: the "still
+untried ideas" list in earlier sections (multi-step lookahead pathing)
+remains the only unexplored lever if a future opponent's margin drops
+further — but given retreat-logic alone took us from "26-12-2 vs
+baseline" to "120/120 vs baseline," it's plausible we're now well past
+the point of diminishing returns on this bot's core loop. Recommend just
+continuing the validate-and-confirm workflow unless a genuinely
+tougher opponent appears (win rate < ~95% or margin < ~2x).
