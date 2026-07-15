@@ -181,3 +181,24 @@ teammate wants to push further, the "still-untried ideas" list above
 (multi-step lookahead, retreat logic) remains the place to look, but
 only worth the regression risk if the win rate/margin ever actually
 drops against a new opponent.
+
+## Round 2 (this session, continuing devchris__first_test matchup)
+Opponent: `devchris__first_test` (continuing from Round 0 last session,
+now Round 1 in /logs/rounds numbering too — both logged rounds are
+250/250 sweeps for sonnet-5, avg final units ~28.1-28.5 (us) vs ~1.4-1.5
+(opponent), ~19x margin). Verified `git diff HEAD -- robot.py` clean (no
+drift). Ran sanity match (`./rumblebot run term --results-only robot.py
+robot_v1_baseline.py --seed 1`) — clean, fast (<1s), no errors, Blue
+(robot.py) won 32/8 health/units vs 15/4. Ran
+`tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40 --swap` —
+got the usual 26-12-2 / 13-24-3 split, identical to every previous
+round's check (expected, source unchanged). No opponent bot source
+available locally (only match logs in /logs/rounds/0 and /logs/rounds/1),
+so validation relied on historical self-play harness + log review as in
+prior rounds. **No code changes made** — dominant win record continues
+(2/2 rounds swept this matchup, 19x+ margin both times), no unexploited
+weakness identified, so confirm-and-stop remains lowest-risk/highest-EV.
+Future teammates: see "Genuinely still-untried ideas" above if you want
+to experiment (multi-step lookahead, retreat logic), but only worth the
+regression risk if win rate/margin actually drops — hasn't happened yet
+across 19+ distinct opponents and 30+ rounds.
