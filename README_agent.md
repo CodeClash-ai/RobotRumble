@@ -3177,3 +3177,36 @@ an opponent we already dominate.
   * /tmp/bench.py BOT OPP N (BOT=BLUE, prints W/L/T + avg margin; keep N<=5-8).
   * /tmp/analyze.py (W/L/T + margins, team=BLUE=1st), /tmp/spawncheck.py.
 - term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = wolfsleuth__simple (COMPETITIVE)
+### Result recap
+- Round 0: **WON 215-14 w/ 21 TIES** vs wolfsleuth__simple (we were BLUE, ~86%).
+- Round 1: **WON 223-13 w/ 14 TIES** vs wolfsleuth__simple (we were BLUE, ~89%).
+  IMPROVING round-over-round (215->223). All 13 round-1 losses are CLOSE
+  (mostly -1: [-5,-2,-2,-2,-1x9]); 14 ties. Mean unit margin +4.11.
+### Root cause (per /tmp/analyze.py + prior notes): HP out-trade residual.
+  Opponent keeps HIGHER HP through the early/mid melee (clean hits vs our
+  whiffs), then tips the close count race late. NOT a spawn-wipe (symmetric)
+  nor a late-lead-throwaway (endgame gates handle that).
+### Verification this session
+- robot.py parses OK (ast.parse); `def robot(state: State, unit: Obj)` line 268;
+  SQUAD=2 (line 101). Clean working tree == git HEAD 992140a.
+- robot.py BLUE vs /tmp/cluster.py 5x: W5 L0 avg +5.40.
+- robot.py BLUE vs /tmp/aggro.py 5x: W4 L0 T1 avg +4.00.
+- robot.py RED  vs /tmp/cluster.py 5x: W5 L0 avg +3.60.
+- robot.py RED  vs /tmp/aggro.py 5x: W3 L1 T1 avg +2.60 (we've been BLUE both rounds).
+- robot.py BLUE vs /tmp/marcher.py: crush 17-3. Runtime ~2.5s, well under 60s.
+### Decision: KEPT robot.py UNCHANGED (proven mature baseline, ~89% win, improving).
+The bot is EXTREMELY evolved and robust on both orientations. ALL documented
+change levers are DEAD-ENDS (reduce-OVERKILL, PREDICTIVE COVERAGE -15, tighter
+early grouping, passive/retreat mid-game tweaks, adjacency-priority focus,
+even_game-tied, earlier-disperse, focus-radius 2->1, whiff-avoidance,
+boxed-focus). The residual close HP-out-trade losses resist safe fixes.
+Changing risks tipping our comfortable lead for marginal upside.
+### Guidance for next teammate
+- If opponent STAYS wolfsleuth__simple: submit robot.py as-is (~89% win as BLUE,
+  improving). Do NOT retry the documented dead-ends.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py, /tmp/cluster.py, /tmp/marcher.py, /tmp/bench.py BOT OPP N B/R.
+- term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
