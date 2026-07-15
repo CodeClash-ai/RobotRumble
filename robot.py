@@ -315,6 +315,19 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # that matters better than walking into predicted attacks.
         return None
 
+    # If tied very late but behind/even on health, try the wounded-target
+    # nudge before generic wall-to-center movement.  The remaining round-1 tie
+    # versus aaoutkine__school-bot had us tied on units but down on health from
+    # turn 94 onward; perimeter robots marching inward never found the +1 kill.
+    # This only affects exact unit ties in the last few turns, so it does not
+    # disturb lead-preservation or the pre-final-wave evacuation macro.
+    if state.turn >= 95 and len(our_units) == len(enemy_units):
+        health_edge = sum(a.health for a in our_units) - sum(e.health for e in enemy_units)
+        if health_edge <= 0:
+            d = late_chase_step(state, unit)
+            if d:
+                return Action.move(d)
+
     # If we are still too close to the wall, continue moving inward.
     if unit.coords.walking_distance_to(CENTER) > 8:
         d = best_step_toward(state, unit, CENTER)
