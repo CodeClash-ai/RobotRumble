@@ -1802,3 +1802,51 @@ runs <60s, which it does. Any change is pure downside risk for zero upside.
   /tmp/robot_baseline.py (git show HEAD:robot.py). Our aggressive focus-fire +
   grouping + spawn-evac + endgame-lock-in bot has beaten every prior opponent
   90-100%; it will very likely win here too.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = ketza__bob (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 195-35 w/ 20 TIES** vs
+  `ketza__bob` (we were BLUE). ~78% win - a COMPETITIVE opponent (strongest in
+  a while, 35 losses). Opponent uses "TAG TEAMS": it splits its army into
+  MULTIPLE 3-unit squads, each focus-firing a DIFFERENT target in parallel
+  (see /logs/rounds/0/sim_0.txt "Red tag teams" logs). This kills several of
+  our units per turn = efficient trades.
+### ROOT CAUSE of losses (traced /tmp/trace2.py):
+- NOT spawn wipes (/tmp/spawndelta.py: only 22/315 spawn events had a Blue
+  deficit, 0 big wipes). Losses are COMBAT TRADE-DOWNS: we stay ~even/slightly
+  behind all game then lose the count race. Our baseline used a SINGLE global
+  focus target -> ALL our units dogpile ONE enemy (overkill) while the opponent
+  gang-kills several of ours in PARALLEL with its multi-squad tag teams.
+### What I changed (robot.py) - MULTI-TARGET SQUAD ASSIGNMENT (tested, shipped)
+- init_turn now builds `_target_by_unit` (unit_id -> enemy_id) via a greedy
+  nearest-pair assignment: assign ~3 allies (cap = max(2, min(4, health+1)))
+  to EACH enemy, so we kill MULTIPLE enemies per turn instead of dogpiling one.
+  pick_target uses this per-unit assignment first (falls back to old single
+  focus / nearest-weak). Kept single `_focus_target_id` for compat. All other
+  logic (attack, retreat gates, grouping, spawn-evac, endgame lock-in) unchanged.
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- NEW(Blue) vs baseline(Red) seeds 1-11: **7W 3L 1T** - clear edge on OUR real
+  (BLUE) side. NEW(Red) vs baseline(Blue) seeds 1-5: 3W 1L 1T - also better
+  as Red => genuine improvement, NOT just side bias.
+- NEW BLUE vs /tmp/aggro.py seeds 1-6: **6/6 WINS** (term 11-8). RED vs aggro
+  seeds 1-6: 3W 3T, NO losses (slightly softer than baseline's 5W/1T as Red,
+  but we play BLUE vs ketza__bob so this is fine).
+- NEW vs /tmp/marcher.py both sides: crush (22-2, 21-1). No regression vs passive.
+- robot.py parses OK; runtime ~1.6-1.9s/match, well under 60s.
+### Decision: SHIPPED multi-target squad assignment. Directly counters the
+opponent's parallel tag-team gang-kills by killing multiple enemies per turn
+instead of overkilling one. Better on BOTH orientations vs baseline & aggro.
+### Guidance for next teammate
+- If opponent STAYS ketza__bob: this should convert some trade-down losses/ties
+  by matching their parallel gang-kill efficiency. VERIFY next round: unit-count
+  trajectory (/tmp/trace.py sim_X.txt) should hold even/ahead better mid-late.
+- Tuning knobs: SQUAD size (3) and the per-enemy cap in init_turn. If we're
+  spreading TOO thin (getting picked off), raise cap; if still overkilling,
+  lower it. TEST BLUE side vs /tmp/aggro.py AND head-to-head vs baseline; reject
+  regressions.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack.
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * /tmp/trace.py / /tmp/trace2.py / /tmp/spawndelta.py / /tmp/analyze.py: log tools.

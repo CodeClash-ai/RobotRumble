@@ -14,6 +14,7 @@ DIRECTIONS = [Direction.North, Direction.East, Direction.South, Direction.West]
 last_positions: Dict[str, Any] = {}
 # Per-turn shared state computed in init_turn
 _focus_target_id = None
+_target_by_unit = {}  # unit_id -> enemy id (squad assignment)
 _planned_moves: Dict[str, Any] = {}  # unit_id -> destination Coords
 
 
@@ -74,8 +75,9 @@ def count_enemy_adjacent(state, coords, other_team):
 
 
 def init_turn(state: State) -> None:
-    global _focus_target_id, _planned_moves
+    global _focus_target_id, _planned_moves, _target_by_unit
     _planned_moves = {}
+    _target_by_unit = {}
     other = state.other_team
     enemies = state.objs_by_team(other)
     mine = state.objs_by_team(state.our_team)
@@ -85,13 +87,41 @@ def init_turn(state: State) -> None:
     # Choose a global focus target: weakest enemy, tie-broken by total distance
     # from our units (closer = easier to gang up on).
     def score(e):
-        # Prefer the enemy the MOST allies can reach quickly (fast gang-kill),
-        # tie-broken by low health then total distance. reachers = allies within
-        # walking distance 3 (can converge & finish before spawn refresh).
         reachers = sum(1 for u in mine if u.coords.walking_distance_to(e.coords) <= 3)
         total = sum(u.coords.walking_distance_to(e.coords) for u in mine)
         return (-reachers, e.health, total)
     _focus_target_id = min(enemies, key=score).id
+
+    # MULTI-TARGET SQUAD ASSIGNMENT: instead of dogpiling ALL units on ONE enemy
+    # (overkill while the opponent gang-kills several of ours in parallel), assign
+    # ~SQUAD allies to each enemy. Greedy: repeatedly pick the (ally,enemy) pair
+    # with the smallest walking distance, assign the ally, and stop adding to an
+    # enemy once it has enough attackers to KILL it (health+1 attackers) or SQUAD.
+    # This lets us kill MULTIPLE enemies per turn = better net trades.
+    SQUAD = 3
+    assigned = {}  # enemy_id -> count of allies assigned
+    # cap per enemy: enough to guarantee a kill (health) but at least 2, at most SQUAD+1
+    def cap(e):
+        return max(2, min(SQUAD + 1, e.health + 1))
+    # precompute distances
+    pairs = []
+    for u in mine:
+        for e in enemies:
+            pairs.append((u.coords.walking_distance_to(e.coords), u.id, e.id))
+    pairs.sort()
+    eby = {e.id: e for e in enemies}
+    for dist, uid, eid in pairs:
+        if uid in _target_by_unit:
+            continue
+        if assigned.get(eid, 0) >= cap(eby[eid]):
+            continue
+        _target_by_unit[uid] = eid
+        assigned[eid] = assigned.get(eid, 0) + 1
+    # any leftover allies (all enemies full) -> send to nearest enemy (finish/help)
+    for u in mine:
+        if u.id not in _target_by_unit:
+            ne = min(enemies, key=lambda e: u.coords.walking_distance_to(e.coords))
+            _target_by_unit[u.id] = ne.id
 
 
 
@@ -360,8 +390,14 @@ def enemy_boxed(state, e, my_team):
 
 
 def pick_target(state, unit, enemies):
-    global _focus_target_id
+    global _focus_target_id, _target_by_unit
     my = unit.coords
+    # squad assignment first (parallel gang-kills)
+    eid = _target_by_unit.get(unit.id)
+    if eid is not None:
+        t = state.obj_by_id(eid)
+        if t is not None:
+            return t
     if _focus_target_id is not None:
         t = state.obj_by_id(_focus_target_id)
         if t is not None:
