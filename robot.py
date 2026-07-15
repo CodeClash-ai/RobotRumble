@@ -180,6 +180,21 @@ def late_chase_step(state: State, unit: Obj) -> Optional[Direction]:
     target = min(candidates, key=lambda e: (e.health, unit.coords.walking_distance_to(e.coords), e.coords.walking_distance_to(CENTER)))
     return best_step_toward(state, unit, target.coords)
 
+
+
+def late_desperation_step(state: State, unit: Obj) -> Optional[Direction]:
+    # If we are behind near the end, preserving a smaller loss is worthless;
+    # normal scoring is by final unit count.  Take controlled initiative toward
+    # nearby wounded, non-spawn enemies to try to flip one-unit losses/ties.
+    # Keep the radius modest so we do not abandon the interior for perimeter bait.
+    candidates = [e for e in enemy_units if (not is_spawn_coord(e.coords) and
+                                            e.health <= 3 and
+                                            unit.coords.walking_distance_to(e.coords) <= 5)]
+    if not candidates:
+        return None
+    target = min(candidates, key=lambda e: (e.health, unit.coords.walking_distance_to(e.coords), e.coords.walking_distance_to(CENTER)))
+    return best_step_toward(state, unit, target.coords)
+
 def intercept_dir(state: State, unit: Obj) -> Optional[Direction]:
     # Pre-fire an adjacent empty tile when an enemy two steps away is likely to
     # move into it.  Movement is resolved before attacks, so this punishes
@@ -203,9 +218,31 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # A robot left on a spawn tile is deleted before the next reinforcement wave,
     # and movement can also dodge attacks aimed at its old square.
     if is_spawn_coord(unit.coords):
-        d = best_step_toward(state, unit, CENTER)
-        if d:
-            return Action.move(d)
+        # Before the final wave, spawn tiles will be wiped at the next wave and
+        # must be evacuated.  After the last spawn (turn 90+) there is no turn
+        # 101 clear, so perimeter robots are often safer counting as survivors
+        # than marching into late trades.
+        if state.turn < 90:
+            d = best_step_toward(state, unit, CENTER)
+            if d:
+                return Action.move(d)
+        else:
+            adj = adjacent_enemies(state, unit)
+            if adj:
+                adj.sort(key=lambda t: t[1].health)
+                attack_dir, target = adj[0]
+                allies_on_target = local_count(our_units, target.coords, 1)
+                if target.health <= allies_on_target:
+                    return Action.attack(attack_dir)
+                d = retreat_from_adjacent(state, unit, adj)
+                if d:
+                    return Action.move(d)
+                return None
+            d = intercept_dir(state, unit)
+            if d:
+                reserved_attack_squares.add(unit.coords + d)
+                return Action.attack(d)
+            return None
 
     # Combat micro: focus weak adjacent enemies when we can kill/trade well;
     # otherwise dodge away from obvious adjacent attacks.  Late in games
@@ -219,13 +256,16 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         attack_dir, target = adj[0]
         allies_on_target = local_count(our_units, target.coords, 1)
         enemies_near_us = local_count(enemy_units, unit.coords, 2)
+        late_behind = ((state.turn >= 90 and len(our_units) < len(enemy_units)) or
+                       (state.turn >= 85 and len(our_units) + 2 <= len(enemy_units)))
         if ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
                 (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2)) and target.health > allies_on_target:
             d = retreat_from_adjacent(state, unit, adj)
             if d:
                 return Action.move(d)
             return None
-        if target.health <= allies_on_target or allies_on_target >= enemies_near_us + 1:
+        if (target.health <= allies_on_target or allies_on_target >= enemies_near_us + 1 or
+                (late_behind and target.health <= 3)):
             return Action.attack(attack_dir)
         d = retreat_from_adjacent(state, unit, adj)
         if d:
@@ -252,6 +292,14 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # existing preservation logic above still protects actual leads.
     if state.turn >= 90 and len(our_units) == len(enemy_units):
         d = late_chase_step(state, unit)
+        if d:
+            return Action.move(d)
+
+    # If we are behind near the end, a cautious loss is still a loss.  Push
+    # toward wounded local targets to try to recover one unit before turn 100.
+    if ((state.turn >= 90 and len(our_units) < len(enemy_units)) or
+            (state.turn >= 85 and len(our_units) + 2 <= len(enemy_units))):
+        d = late_desperation_step(state, unit)
         if d:
             return Action.move(d)
 
