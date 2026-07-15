@@ -97,10 +97,12 @@ def best_step_toward(state: State, unit: Obj, target: Coords) -> Optional[Direct
     return None
 
 
-def retreat_from_adjacent(state: State, unit: Obj, adj: List[Tuple[Direction, Obj]]) -> Optional[Direction]:
+def retreat_from_adjacent(state: State, unit: Obj, adj: List[Tuple[Direction, Obj]], allow_spawn: bool = False) -> Optional[Direction]:
     # Move out of current adjacent attacks when the local fight is poor.  The
-    # destination must also avoid spawn tiles so dodging never sacrifices future
-    # reinforcements to clear_spawn().
+    # Before the last reinforcement wave the destination must avoid spawn tiles
+    # so dodging never sacrifices future reinforcements to clear_spawn().  After
+    # turn 90 there is no further spawn clear, so callers may allow spawn as an
+    # escape square if it increases distance from threats.
     enemies = [e for _, e in adj]
     current_min_dist = min(unit.coords.walking_distance_to(e.coords) for e in enemies)
     dirs = list(DIRECTIONS)
@@ -116,7 +118,7 @@ def retreat_from_adjacent(state: State, unit: Obj, adj: List[Tuple[Direction, Ob
     dirs.sort(key=score, reverse=True)
     for d in dirs:
         dest = unit.coords + d
-        if (is_free(state, dest) and not is_spawn_coord(dest) and
+        if (is_free(state, dest) and (allow_spawn or not is_spawn_coord(dest)) and
                 min(dest.walking_distance_to(e.coords) for e in enemies) > current_min_dist):
             reserved_moves.add(dest)
             return d
@@ -138,10 +140,12 @@ def step_to_annulus(state: State, unit: Obj) -> Optional[Direction]:
 
 
 
-def kite_from_nearby(state: State, unit: Obj, radius: int = 3) -> Optional[Direction]:
+def kite_from_nearby(state: State, unit: Obj, radius: int = 3, allow_spawn: bool = False) -> Optional[Direction]:
     # Late-game preservation helper: when we already lead on unit count, avoid
     # letting nearby enemies force trades.  Move only if the step increases our
-    # distance from the closest local threat, and never step onto spawn.
+    # distance from the closest local threat.  Avoid spawn before the final
+    # wave; after turn 90 spawn tiles are no longer cleared and can be safe
+    # perimeter escape squares.
     threats = [e for e in enemy_units if unit.coords.walking_distance_to(e.coords) <= radius]
     if not threats:
         return None
@@ -159,7 +163,7 @@ def kite_from_nearby(state: State, unit: Obj, radius: int = 3) -> Optional[Direc
     dirs.sort(key=score, reverse=True)
     for d in dirs:
         dest = unit.coords + d
-        if is_free(state, dest) and not is_spawn_coord(dest):
+        if is_free(state, dest) and (allow_spawn or not is_spawn_coord(dest)):
             if min(dest.walking_distance_to(e.coords) for e in threats) > current_min:
                 reserved_moves.add(dest)
                 return d
@@ -234,7 +238,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                 allies_on_target = local_count(our_units, target.coords, 1)
                 if target.health <= allies_on_target:
                     return Action.attack(attack_dir)
-                d = retreat_from_adjacent(state, unit, adj)
+                d = retreat_from_adjacent(state, unit, adj, allow_spawn=True)
                 if d:
                     return Action.move(d)
                 return None
@@ -269,7 +273,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             clean_kill = (target.health <= allies_on_target and unit.health > len(adj))
             if clean_kill:
                 return Action.attack(attack_dir)
-            d = retreat_from_adjacent(state, unit, adj)
+            d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 90))
             if d:
                 return Action.move(d)
             return None
@@ -289,7 +293,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # simply avoid contact, while marching inward can bleed close leads.
     if ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
             (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2)):
-        d = kite_from_nearby(state, unit, 3)
+        d = kite_from_nearby(state, unit, 3, allow_spawn=(state.turn >= 90))
         if d:
             return Action.move(d)
         # Once we have a late unit-count lead, do not volunteer for any extra
@@ -315,7 +319,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     if state.turn >= 90 and len(our_units) == len(enemy_units):
         health_edge = sum(a.health for a in our_units) - sum(e.health for e in enemy_units)
         if 0 < health_edge < 25:
-            d = kite_from_nearby(state, unit, 3)
+            d = kite_from_nearby(state, unit, 3, allow_spawn=(state.turn >= 90))
             if d:
                 return Action.move(d)
             return None
