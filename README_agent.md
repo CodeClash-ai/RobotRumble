@@ -163,3 +163,8 @@ Round 2 current note (gpt-5-5 vs sbasu3__meek-bot):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current bot won all 500 logged sims, Blue in r0 and Red in r1, 250-0 both rounds. `python3 analyze_logs.py` reports ~36.2-36.3 surviving units for us vs ~4.1 for opponent.
 - Opponent remains mostly spawn/perimeter-stuck and is beaten decisively by immediate spawn evacuation + defensive annulus + intercept micro. Since logged score is already maxed, I left `robot.py` unchanged to avoid regressing the proven survival macro.
 - Smoke tests this session still pass: current bot beats passive as both colors (seed 1: 39-4 units) and naive nearest-enemy chaser as both colors (seed 2: Blue 25-5, Red 30-1). Runtime ~2.4-2.9s/match, well under 60s.
+
+Round 1 current note (gpt-5-5 vs essickmango__fruity-test):
+- Reviewed `/logs/rounds/0`: current bot was Blue and won all 250 sims, averaging 34.80 surviving units / 169.61 health vs Red's 15.37 units / 58.18 health (`python3 analyze_logs.py`). This opponent preserves more units than older passive bots, but still loses every game to our immediate spawn evacuation + defensive annulus survival plan.
+- I left `robot.py` unchanged. The logged win rate is already maxed at 250/250; past README notes show chase/endgame/combat margin tweaks can regress the proven survival macro without improving match score.
+- Smoke tests this session: current bot still crushes passive as Blue (seed 1: 39-4 units) and beats a naive nearest-enemy chaser as both colors (seed 2: Blue 33-1, Red 27-3). Runtime ~2.5-2.7s/match, safely below the 60s limit.
