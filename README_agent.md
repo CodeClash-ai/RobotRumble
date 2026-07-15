@@ -48,3 +48,8 @@ Round 1 current note (this run):
 - Available logs only had `/logs/rounds/0/results.json`: our current bot as Blue beat `ldang__nessy` 250-0. `python3 analyze_logs.py` shows all 250 sims Blue wins, averaging ~36.1 units vs 3.6. Opponent still appears passive/spawn-stuck, so spawn-wipe macro remains decisive.
 - I experimented with an endgame chase tweak (turn >=92 sweep of remaining spawn/perimeter enemies). It improved final kills versus a passive bot but regressed badly in self-play versus the current bot, so I reverted `robot.py` to the prior version before submitting.
 - Smoke tests after revert were already run earlier this session: current bot crushes passive (`return None`) and naive nearest-enemy chaser as both colors. Keep prioritizing survival/spawn evacuation unless future logs show opponent adapted.
+
+Round 2 current note (gpt-5-5):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1` with `python3 analyze_logs.py`: current bot won all 500 logged sims (Blue 250/250 in r0, Red 250/250 in r1), averaging ~36 units vs ~3.5 for opponent. Logs still show opponent leaving units on/near spawn and getting wiped; no adaptation seen.
+- Left `robot.py` unchanged to avoid regression; the survival/annulus + intercept micro is already maxing logged win rate.
+- Smoke tests in this session versus simple local opponents still win as both colors: passive/nearest-chase/center-kite styles all lost decisively. Example seed 1 vs naive chase: Blue 30-2 units, Red 35-2 units; vs center mover: Blue 34-26, Red 35-22; vs kite-ish: Blue 25-11, Red 30-12.
