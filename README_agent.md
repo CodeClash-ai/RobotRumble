@@ -2955,3 +2955,71 @@ flagged by prior sessions is a more fundamental architecture change
 (true lookahead/minimax over predicted enemy moves) — a much bigger
 undertaking, not recommended without a dedicated multi-round budget.
 Otherwise, continue the validate-and-confirm workflow each round.
+
+## Round 2 (this session, continuing gerenuk__gere-ape matchup)
+Opponent: `gerenuk__gere-ape` (continuing from Round 0-1, both logged in
+`/logs/rounds/0` and `/logs/rounds/1`). Recomputed win/loss+avg-units:
+- Round 0 (we were Red): won 233/250, 13 losses, 4 ties. avg final units
+  ~18.76 (us) vs ~10.72 (opponent), ~1.75x margin.
+- Round 1 (we were Blue): won 238/250, 10 losses, 2 ties. avg final units
+  18.75 (us) vs 10.68 (opponent), ~1.75x margin.
+
+Both rounds decisive round wins (93.2%/95.2% game win rate) but
+consistently in the "thinner margin" bucket (~1.75x both times, matching
+the prior session's finding almost exactly) — similar territory to
+`wolfsleuth__simple` (~1.6-1.7x, thinnest ever) but not as extreme.
+Spot-checked a loss (`sim_113.txt`, round 1): full 100 turns, ended
+13v18 units / 58v55 health, Red (opponent) ahead — a legitimately close
+symmetric endgame, no bug/stuck-unit/wasted-turn pattern found, same
+read as every previous "closer than usual" opponent documented earlier
+in this file. `grep -li "error|exception|traceback"` on round 1 sim
+logs → 0 matches, no crashes/exceptions.
+
+Verified `git diff HEAD -- robot.py` clean (no drift; tree already
+clean at session start — retreat logic (`RETREAT_ENABLED = True`) +
+`HEALTH_WEIGHT=0.6`, `FOCUS_BONUS=2.0`, `COORD_WEIGHT=0.05` tune from
+many previous sessions still intact, confirmed by reading `robot.py`
+directly). Ran a sanity match (`./rumblebot run term --results-only
+robot.py robot_v1_baseline.py --seed 1` → Blue won 66hp/22units vs
+9hp/2units, ~3.1s, no errors — byte-identical to every prior post-tune
+round's check, confirming engine/harness unchanged). Ran
+`tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40 --swap
+--workers 16` → **40/40 both as Blue and as Red** (unambiguous
+`{botname}_wins=N` labels) — consistent with every post-retreat-
+adoption round's full-sweep finding, no regression.
+
+No local copy of `gerenuk__gere-ape`'s source found on disk (checked
+`find / -iname "*gerenuk*"` outside `/logs/` → empty), same situation
+as almost every previous opponent, so no way to build/validate a
+targeted matchup-specific fix this session.
+
+**No code changes made.** Rationale unchanged from the established
+playbook: win rate remains solidly above 90% across both logged rounds
+this matchup (471/500 games, 23 losses, 6 ties combined), margin
+(~1.75x both rounds, consistent) is below the ~3x "fully dominant"
+threshold but the round has never been at risk (won both times
+decisively), and — per the prior session's exhaustive investigation —
+the "genuinely still-untried ideas" list is essentially **empty** for
+this general architecture: danger-avoidance family (2/2 tries
+neutral-or-negative — raw version regressed, ally-support-discounted
+version was a dead coin-flip at n=160), weight tuning
+(`HEALTH_WEIGHT`/`FOCUS_BONUS`/`COORD_WEIGHT`, triply-closed), BFS
+multi-step lookahead pathing (neutral at n=80), outnumbered-retreat
+generalization (neutral at n=30). Making further speculative changes
+without a validated gain and without opponent source to test against
+risks regressing the strategy that's won 60+ consecutive rounds against
+every other opponent identity. Confirm-and-stop remains lowest-risk/
+highest-EV this round.
+
+**For future teammates**: `gerenuk__gere-ape` consistently sits in the
+~1.75x margin bucket (2/2 rounds so far) — not the tightest ever seen
+(`wolfsleuth__simple` at ~1.6-1.7x still holds that distinction) but a
+real, reproducible "competent opponent" signal. If this opponent
+recurs a 3rd time with margin still not improving, or if margin trends
+even lower, the only remaining lever flagged by prior sessions is a
+more fundamental architecture change (true lookahead/minimax over
+predicted enemy moves, rather than incremental tweaks to the existing
+greedy-scoring architecture) — a much bigger undertaking, not
+recommended without a dedicated multi-round budget. Otherwise, continue
+the validate-and-confirm workflow each round; this opponent's win rate
+(93-95%) has never been in real jeopardy.
