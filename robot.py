@@ -419,7 +419,8 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     if state.turn >= 90 and len(our_units) == len(enemy_units):
         health_edge = sum(a.health for a in our_units) - sum(e.health for e in enemy_units)
         if 0 < health_edge < 25:
-            d = kite_from_nearby(state, unit, 3, allow_spawn=(state.turn >= 91))
+            tie_kite_radius = 6 if state.turn >= 95 else 3
+            d = kite_from_nearby(state, unit, tie_kite_radius, allow_spawn=(state.turn >= 91))
             if d:
                 return Action.move(d)
             # Holding a modest health edge avoids many late throwaways, but a
@@ -435,9 +436,9 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             # still likely; take the existing wounded-target nudge after safer
             # kiting/intercepts have failed.  Keep larger modest health edges
             # in pure preservation mode (the edward__flail loss was around
-            # +16 health), but use +1..+8 cases like the current tie logs to
+            # +16 health), but use +1..+12 cases like current close tie/loss logs to
             # try to turn a draw into a one-unit win.
-            if health_edge <= 8:
+            if health_edge <= 12:
                 d = late_desperation_step(state, unit)
                 if d:
                     return Action.move(d)
