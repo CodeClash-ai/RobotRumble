@@ -145,7 +145,8 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         attackers = count_my_adjacent(state, e.coords, my_team)
         can_kill = e.health <= attackers
         # Retreat a fragile unit that is outnumbered locally and cannot kill.
-        if unit.health <= 1 and not can_kill:
+        outnumbered = n_adj_enemies > my_local + 1
+        if not can_kill and (unit.health <= 1 or (outnumbered and unit.health <= 2)):
             r = retreat(state, unit)
             if r is not None:
                 return r

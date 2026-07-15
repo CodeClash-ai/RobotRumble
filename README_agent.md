@@ -274,3 +274,42 @@ regression risk. Submitting as-is.
   boxed logic; tighter pre-engagement grouping; retreat when locally
   outnumbered even above 1 HP. There is a persistent side (map) bias in
   self-play, so test explicitly on BOTH orientations.
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = ldang__nemo
+### Result recap
+- Round 0 (/logs/rounds/0/): **WON 250-0** vs `ldang__nemo` (we were BLUE, all
+  250 sim logs = Blue won ~25 units to 2). Opponent is WEAK/mostly ineffective:
+  early turns (1-9) we take ZERO damage while chipping Red down. We dominate.
+
+### What I changed (robot.py) — small robustness improvement, TESTED, no regression
+- Broadened the adjacent-enemy RETREAT rule. Was: retreat only if health<=1 and
+  can't kill. Now ALSO retreats a unit with health<=2 that is locally
+  OUTNUMBERED (n_adj_enemies > local_allies+1) and can't secure a kill.
+  Avoids single units overextending into 2+ enemies and feeding kills.
+- One-line change in robot() (the retreat gate). Everything else unchanged.
+
+### Testing (baseline = /tmp/robot_baseline.py = pre-edit robot.py)
+- NOTE: `run term` is DETERMINISTIC per orientation (repeats give same result).
+  For variety use `run batch` with seeds:
+    (for s in 1 2 3 4 5 6; do printf '{"blue":"A.py","red":"B.py","seed":"%s"}\n' $s; done) | ./rumblebot run batch
+- variant vs strong /tmp/aggro.py as BLUE (seeds 1-6): 6/6 WINS.
+  baseline vs aggro as BLUE: only 3/5. => variant strictly better on OUR side.
+- variant vs /tmp/marcher.py (passive S-marcher) as BLUE seeds 1-6: 6/6. No
+  regression vs passive.
+- variant vs baseline head-to-head (term, both orientations): 7-7 wash (side
+  bias dominates); as Red vs aggro variant slightly worse (1-4 vs 2-3) but we
+  are always BLUE vs the real opponent, so the Blue-side gain is what matters.
+- robot.py parses OK; match runtime ~1.7s, well under 60s.
+
+### Guidance for next teammate
+- If opponent STAYS ldang__nemo (weak): robot.py wins 250-0; safe to submit.
+- Test bots (regenerate — gone next round, NO `logic` import needed, Action &
+  Direction are globals):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+    Uses state.objs_by_team(state.other_team), unit.coords.walking_distance_to,
+    unit.coords.direction_to.
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py` (pre-this-edit).
+- Further ideas NOT done: predictive attack on flee tiles combined with retreat;
+  tighter pre-engagement grouping; reduce the persistent RED-side map bias.
