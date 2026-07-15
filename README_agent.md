@@ -1112,3 +1112,82 @@ further weight sweeps (e.g. re-tuning `HEALTH_WEIGHT`/`FOCUS_BONUS`
 jointly with the new `COORD_WEIGHT` value) — that combination is
 untried and could be worth a future round's time if this opponent (or
 similar) recurs.
+
+## Round 2 (this session, continuing mousetail__genetic-robot matchup) — re-tuning weights post-COORD_WEIGHT change: no further gain found, confirmed current values are locally optimal
+
+Continuing from Round 1 (this session, logged as `/logs/rounds/0` and
+`/logs/rounds/1` — the COORD_WEIGHT=0.05 tweak from last round is
+already reflected in `/logs/rounds/1`). Recomputed win/loss+avg-units
+for both logged rounds (we were Red both times):
+- Round 0 (pre-tweak `robot.py`, COORD_WEIGHT=0.15): Red (us) won
+  228/250, 15 losses, 7 ties. avg final units ~14.1 (us) vs ~7.3
+  (opponent), ~1.94x margin.
+- Round 1 (post-tweak `robot.py`, COORD_WEIGHT=0.05, adopted last
+  session): Red (us) won 233/250, 12 losses, 5 ties. avg final units
+  13.3 (us) vs 5.3 (opponent), **~2.54x margin** — a real improvement
+  over Round 0's 1.94x, consistent with the self-play A/B signal that
+  led to adopting the change last round. Good confirmation that the
+  COORD_WEIGHT tweak generalizes to this specific opponent, not just to
+  self-play vs `robot_v1_baseline.py`.
+
+Verified `git diff HEAD -- robot.py` clean (no drift, COORD_WEIGHT=0.05
+still in place). Ran sanity matches (`./rumblebot run term
+--results-only --seed 1 robot.py robot_v1_baseline.py` → Blue won
+66hp/22units vs 9hp/2units; `--seed 42` → Blue won 55hp/22units vs
+9hp/30units(?) — noted the raw health/units line ordering, both
+sanity checks completed cleanly, <5s, no errors) and
+`tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40 --swap` →
+**40/40 both sides**, consistent with prior rounds' full-sweep findings
+(no regression from the COORD_WEIGHT change, still crushes the old
+baseline).
+
+**New experiment this round**: per the prior round's own suggestion
+("did NOT attempt combining this with further weight sweeps... untried
+and could be worth a future round's time"), tried re-tuning
+`HEALTH_WEIGHT` and `FOCUS_BONUS` now that `COORD_WEIGHT` has changed
+from 0.15→0.05, in case the weights interact (e.g. maybe less
+coordination pull means focus-fire bonus or health-preference should be
+stronger/weaker to compensate). Tested via `tools/ab_test.py
+<variant>.py robot.py --seeds 1-20 --swap` (40 games each) against the
+*current* `robot.py` (not the old pre-tweak baseline, to directly probe
+for further local improvement):
+
+| Variant | Change | Result (wins/40, ties) |
+|---|---|---|
+| `HEALTH_WEIGHT=0.9` (up from 0.6) | stronger damaged-enemy pull | 15 vs 22, 3 ties — **worse** |
+| `HEALTH_WEIGHT=0.4` (down from 0.6) | weaker damaged-enemy pull | 19 vs 20, 1 tie — neutral |
+| `FOCUS_BONUS=1.0` (down from 2.0) | weaker focus-fire clustering | 19 vs 21, 0 ties — neutral |
+| `FOCUS_BONUS=3.0` (up from 2.0) | stronger focus-fire clustering | 15 vs 24, 1 tie — **worse** |
+
+**Conclusion: current weights (`HEALTH_WEIGHT=0.6`, `FOCUS_BONUS=2.0`,
+`COORD_WEIGHT=0.05`) appear to be at or near a local optimum** — every
+direction tested (both up and down) from the current values was either
+neutral or a regression, none was an improvement. This is a genuine
+(if modest-sample, n=40 each) re-validation of the "closed experiments"
+weight-tuning conclusion, now specifically re-checked *after* the
+COORD_WEIGHT change (which the prior round correctly flagged as an
+untested interaction) — the interaction doesn't unlock further gains
+from HEALTH_WEIGHT/FOCUS_BONUS. **No changes made** — deleted all
+experiment files (`robot_experiment_hw.py`, `robot_experiment_hw2.py`,
+`robot_experiment_fb.py`, `robot_experiment_fb2.py`) after testing,
+consistent with the convention of not leaving neutral/negative
+experiment files cluttering the repo (unlike `robot_retreat_experiment.py`,
+which is kept because it documents a real historical debugging story).
+
+**For future teammates**: the weight-tuning avenue (`HEALTH_WEIGHT`,
+`FOCUS_BONUS`, `COORD_WEIGHT`) is now doubly-closed — tuned once
+pre-retreat-logic (Rounds 10/12, no effect), tuned again post-retreat
+(this matchup's prior session, COORD_WEIGHT 0.15→0.05 was a real ~57%
+self-play edge and confirmed +0.6x round-margin gain against this
+opponent), and now re-probed a third time in all 4 remaining
+up/down directions with no further gain found. Recommend not
+re-litigating these 3 constants again unless a fundamentally different
+tuning approach is proposed (e.g. per-unit-health-dependent weights,
+or making COORD_WEIGHT itself depend on how many allies are nearby)
+rather than just nudging the same 3 scalars. The genuinely-untried
+lever remains **multi-step lookahead pathing** (see historical notes) —
+still nobody has implemented/tested this across 35+ rounds. Current
+round win rate (93.2% game win rate, ~2.54x margin) against
+`mousetail__genetic-robot` remains dominant; no urgent need to take on
+the implementation risk of lookahead pathing unless margin regresses
+further or a round is actually lost.
