@@ -3023,3 +3023,114 @@ greedy-scoring architecture) — a much bigger undertaking, not
 recommended without a dedicated multi-round budget. Otherwise, continue
 the validate-and-confirm workflow each round; this opponent's win rate
 (93-95%) has never been in real jeopardy.
+
+## Round 1 (this session) — new opponent `clay__diag-lattice`; CLOSEST MARGIN EVER RECORDED (~1.01x), root-caused win condition + snowball pattern, one quick weight-retune tried (regression, reverted)
+
+Opponent: `clay__diag-lattice` (new identity), logged as `/logs/rounds/0`.
+Result: **round win for sonnet-5** (we were Red), but score was
+sonnet-5=131, opponent=104, ties=15 (out of 250) — only **52.4% game
+win rate**, and avg final units ~16.05 (us) vs ~15.84 (opponent), a
+**~1.01x margin** — by far the closest matchup logged across this
+bot's entire ~60+ round history (previous record-holder was
+`wolfsleuth__simple` at ~1.6-1.7x). This is a genuine, still-a-win but
+much weaker performance than every other opponent seen so far, and
+worth flagging prominently for the next several teammates.
+
+### Key mechanical finding (new, not previously documented in this file):
+**the win condition is decided ONLY by final unit count, not health.**
+Traced `determine_winner_normal`/`determine_winner_from_units_count` in
+`logic/logic/src/lib.rs` (lines ~253-275): the game mode used here
+(`Normal`) picks the team with strictly more units alive at turn 100 as
+the winner (ties if equal) — **health totals shown in the display are
+purely informational and do not factor into who wins.** This means our
+bot's implicit strategy (prefer damaged enemies, retreat when lethal,
+focus-fire) is a reasonable proxy for "maximize net unit-count
+differential" but isn't explicitly optimizing for it — e.g. finishing
+off a nearly-dead enemy to secure a kill matters far more than dealing
+raw damage that doesn't result in a kill, and losing our own units
+(even at 1 HP, still not dead) costs us nothing until they actually die.
+This has presumably been true for the entire ~60-round history (nothing
+in the engine changed), but is worth writing down explicitly now that a
+close matchup makes it actually matter for tuning decisions.
+
+### Pattern found in reviewed losses (e.g. `sim_0.txt`, a blowout loss:
+final Health 81/21, Units 21/9, Blue/us): **a late-game snowball**, not
+an early-game problem. Tracked the `Units` column turn-by-turn: our unit
+count tracks the opponent's almost exactly (usually within 1) all the
+way through roughly turn 60-70 (e.g. turn ~60: 20 Blue/16 Red-us — already
+behind by 4, but stable), then **diverges sharply and rapidly** in the
+last ~30 turns (by turn 100: 21 Blue vs 9 Red-us — we lost more than half
+our remaining units in the endgame while the opponent's count barely
+dropped). This reads as a classic "losing engagement snowballs because
+losing units locally shifts local numeric superiority further in the
+loser's favor, accelerating further losses" dynamic — exactly the kind
+of scenario the (already twice-tried-and-found-neutral) "retreat when
+badly outnumbered" and "danger-avoidance" experiment families from
+previous sessions were aimed at, but apparently not aggressively enough,
+or this opponent triggers it more than others tested so far.
+
+### Quick experiment tried this round (regression, reverted, not adopted):
+Given very limited remaining step budget, tried the cheapest possible
+lever first: raising `COORD_WEIGHT` from 0.05 back toward 0.15 (more
+clustering pull, hypothesizing that tighter clustering might prevent the
+late-game numeric-disadvantage snowball by keeping our units grouped
+rather than letting them get picked off piecemeal). Quick A/B
+(`tools/ab_test.py robot_experiment_coord.py robot.py --seeds 1-15`,
+COORD_WEIGHT=0.15 variant as Blue vs current `robot.py` as Red):
+**4 wins vs 10 wins, 1 tie — a clear regression**, consistent with the
+"triply-closed" weight-tuning conclusion from many sessions ago (COORD_WEIGHT
+was already found to be a local optimum at 0.05; nudging it up hurts, as
+expected). Reverted immediately (deleted the experiment file), **no
+change made to `robot.py`**.
+
+### What's genuinely still worth trying for a future session with more budget:
+The late-game-snowball pattern is a **new, specific, reproducible
+symptom** (not just "margin is thinner") that the earlier
+danger-avoidance/retreat experiments were tested against *different*
+opponents where this exact failure mode may not have been as visible.
+Concrete next steps for whoever picks this up, in priority order:
+1. **Directly verify the win condition finding above changes any
+   tuning priorities** — e.g. should the "weakest adjacent enemy"
+   attack-target tie-break instead explicitly prioritize enemies at
+   *exactly* 1 HP (guaranteed kill this turn) over lower-health-but-not-
+   quite-dead ones, even above the team's focus target bonus? Currently
+   `adj_score` already sorts by raw health value (ascending) so 1-HP
+   targets already win that tie-break over higniher-HP ones — but it's
+   worth double-checking this is functioning as intended given how much
+   the win condition depends purely on kill secure vs deal-damage.
+2. **Re-attempt an outnumbered-retreat/danger-avoidance variant
+   specifically tuned to prevent the *late-game* snowball** — e.g. a
+   retreat condition that also considers *current global unit-count
+   deficit* (only retreat/avoid-engagement more aggressively once
+   already behind on total unit count, since that's when the snowball
+   risk is highest) rather than a static per-unit HP/adjacency
+   threshold as tried before. This is a genuinely new angle not yet
+   tested (previous retreat/danger-avoidance experiments were all
+   *unconditional* on the game's overall unit-count state).
+3. Get more sample matches specifically against this opponent (re-run
+   `tools/ab_test.py` is NOT useful here since we don't have their
+   source — only real logged rounds against `clay__diag-lattice` in
+   future sessions will show whether the margin/snowball pattern
+   persists or was seed-variance).
+
+### Housekeeping done this round:
+`git diff HEAD -- robot.py` confirmed clean (no drift) both before and
+after this session's one reverted experiment. Did NOT have remaining
+step budget to also run the standard sanity-match + `tools/ab_test.py
+robot.py robot_v1_baseline.py --seeds 1-40 --swap` regression check that
+every prior round runs — `robot.py` source is byte-for-byte unchanged
+from the version validated repeatedly across ~60 prior rounds, so risk
+of an undetected regression is low, but next teammate should run that
+check first thing next session per the usual workflow before doing
+anything else, since it was skipped this round in favor of spending the
+limited budget on investigating the close-margin opponent instead.
+
+**No code changes made to `robot.py` this round.** This is a "flag
+loudly, don't guess blindly" round: the margin is genuinely the
+thinnest ever seen, a real reproducible mechanical pattern (late-game
+snowball) was identified, but time ran out before a validated fix could
+be found. Future teammates: prioritize this matchup (`clay__diag-lattice`)
+above the routine validate-and-confirm workflow if it recurs — this is
+the strongest signal yet that a real architectural weakness (not just
+"a coincidentally more competent bot show up") might exist, specifically
+around late-game engagement snowballing once behind on unit count.
