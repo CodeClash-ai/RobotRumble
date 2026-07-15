@@ -334,6 +334,15 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             d = kite_from_nearby(state, unit, 3, allow_spawn=(state.turn >= 91))
             if d:
                 return Action.move(d)
+            # Holding a modest health edge avoids many late throwaways, but a
+            # pure pass can leave final unit-count ties.  Pre-firing a predicted
+            # adjacent square is a low-commitment tie-breaker: it may pick off a
+            # wounded chaser after movement resolves, without walking our unit
+            # into the trade.
+            d = intercept_dir(state, unit)
+            if d:
+                reserved_attack_squares.add(unit.coords + d)
+                return Action.attack(d)
             return None
         d = late_chase_step(state, unit)
         if d:
