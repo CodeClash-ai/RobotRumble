@@ -2526,3 +2526,60 @@ dominate on both sides.
 - term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
 - DEAD-ENDS (do NOT retry): reduce-OVERKILL, tighter early grouping,
   passive/retreat mid-game tweaks, adjacency-priority focus, even_game-tied.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = anton__om-om (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 205-20 w/ 25 TIES** vs
+  `anton__om-om` (we were BLUE). ~82% win. Competitive foe. ALL 20 losses are
+  CLOSE (margins -1 to -7, mostly -1/-2; e.g. sim_103 6-8, sim_151 5-6).
+### ROOT CAUSE (traced sim_103 turn-by-turn)
+- DOMINANT loss pattern = the TURN-90 SPAWN FLIP. sim_103: we were AHEAD
+  B9-R6 at turn 89; at the spawn (turn 89->90 transition) we went B9->8
+  (LOST 1 unit) while R went R6->9 (+3) -- flipping our lead. Then we traded
+  the remaining lead down 8->6 in turns 92-100 while R held at 8, ending 6-8.
+- Mechanic (lib.rs clear_spawn/spawn_units, re-verified): clear_spawn DELETES
+  any unit on a spawn tile (both teams); spawn_units spawns 1 blue+1 red per
+  spawn PAIR where BOTH the point AND its mirror are free. So spawns are
+  SYMMETRIC per free pair; our deficit comes from OUR units being wiped on
+  spawn tiles AND/OR blocking our own spawn pairs at the spawn turn.
+### Experiment tested (NOT shipped - REGRESSED, REVERTED)
+- /tmp/v_test.py: lowered the adjacent-retreat DISPERSE gate from turn>=90 to
+  turn>=88 (so ahead units spread to safe non-spawn tiles one turn sooner, to
+  survive the ~turn-90 spawn flip).
+  * v_test BLUE vs /tmp/aggro.py 4x: 10-9, TIE 8-8, 10-9, 9-6 (a TIE + smaller
+    margins). baseline BLUE vs aggro 4x (same session): 10-6, 13-11, 10-8, 12-9
+    (all wins, bigger margins). CLEAR REGRESSION - dispersing at turn 88-89
+    makes us passive and gives up kills, shrinking the margin. REJECTED.
+  * Consistent with ALL prior teammates: earlier/broader disperse & passive
+    tweaks lose aggression and regress the unit margin.
+### Verification this session
+- robot.py parses OK (ast.parse); `def robot(state: State, unit: Obj)` line 268.
+- robot.py BLUE vs /tmp/marcher.py (South marcher): WIN 22-4 (HP 110-20), 2.9s.
+- robot.py BLUE vs STRONG /tmp/aggro.py (nearest-chase+attack, stronger than
+  the real foe) 4x: 15-8, 14-10, 16-7, + the 4 above (all wins, solid margins).
+- robot.py RED vs aggro 2x: WIN 12-9, 16-7. Robust on BOTH orientations.
+- Runtime ~3s/match, well under 60s.
+### Decision: KEPT robot.py UNCHANGED (proven mature baseline, ~82% win as BLUE).
+The bot is highly evolved (focus-fire + multi-target squads + grouping +
+spawn-evac + endgame lock-in/disperse + favorable-fight override). The dominant
+loss (turn-90 spawn flip) resists safe fixes: dispersing earlier to survive it
+REGRESSES the margin (tested above). All other levers are documented DEAD-ENDS
+(reduce-OVERKILL, tighter early grouping, passive/retreat mid-game tweaks,
+adjacency-priority focus, even_game-tied). Changing risks regression for
+marginal upside vs an opponent we already dominate on both sides.
+### Guidance for next teammate
+- If opponent STAYS anton__om-om: submit robot.py as-is (~82% win as BLUE).
+  Do NOT retry earlier-disperse (tested, regressed) or the documented dead-ends.
+- The residual ~18% (20 losses + 25 ties) are the turn-90 spawn flip + close
+  combat trade-downs. A SAFE fix would need to survive the spawn flip WITHOUT
+  reducing turn-85-89 aggression - untried & hard. If you try: ensure our units
+  are OFF our own spawn tiles at turns ending 9/0 (evacuate_spawn already does
+  this if not securing a kill) AND don't block our own spawn pairs. TEST the
+  BLUE-side unit MARGIN vs /tmp/aggro.py (run 5x, non-deterministic); reject
+  anything that shrinks the margin or adds ties.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+- term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
