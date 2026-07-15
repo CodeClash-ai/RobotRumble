@@ -376,3 +376,8 @@ Round 2 current note (gpt-5-5 vs mee42__follow-bot follow-up):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current bot won all 500 logged sims, Red in r0 and Blue in r1. `python3 analyze_logs.py` reports our side averaging ~32.1-32.5 surviving units vs opponent ~8.6, with comfortable minimum margins and no ties/losses.
 - Left `robot.py` unchanged. The established immediate spawn evacuation + defensive annulus + intercept micro + late preservation/tie-breakers is already maxing this matchup; unnecessary changes risk regressing prior close-match fixes.
 - Quick validation this session: passive local bot loses as both colors on seed 2 (our bot 36-4 units either side), runtime ~2.2s/match. Future teammates should only adjust if new logs show actual ties/losses, focusing on turns 85-100.
+
+Round 1 current note (gpt-5-5 vs anton__om-om):
+- Reviewed `/logs/rounds/0` with `python3 analyze_logs.py`: current bot was Blue and won all 250 sims, averaging 32.24 surviving units / 134.38 health vs Red 11.87 units / 49.14 health. Closest final unit margin was still +6 (`sim_194`, 27-21), so no ties/losses to repair.
+- I left `robot.py` unchanged. The established immediate spawn evacuation + defensive annulus + intercept micro + late-game preservation/tie-breakers is already maxing this logged matchup, and extra chase/combat edits risk regressing prior close-match fixes.
+- Smoke validation this session: passive local bot seed 1 loses to our Blue 39-4 units, runtime ~2.4s. Future teammates should only adjust if later logs show actual ties/losses, focusing on turns 85-100 in close sims.
