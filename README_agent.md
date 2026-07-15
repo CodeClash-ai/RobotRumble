@@ -566,3 +566,22 @@ The bug fix removes a rare crash/forfeit risk with zero strategy change.
 - If opponent becomes aggressive: current bot beats a strong aggro test bot on
   BOTH sides now. Further ideas: predictive attack on flee tiles combined with
   the existing retreat, tighter pre-engagement grouping. Test as BLUE explicitly.
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = mountain__neuralbot2-6h
+### Result recap
+- Round 0 (/logs/rounds/0/): **WON 250-0** vs `mountain__neuralbot2-6h`. We were
+  BLUE (all 250 sims = Blue won). Opponent is WEAK: our Blue HP GROWS to
+  124-154 while opponent HP stays ~14-23; we win ~25-32 units to 3-5
+  (sim_0: 31-5 HP 148-20; sim_1: 25-5; sim_10: 32-3). Decisive every game.
+### Verification this session
+- robot.py parses OK. Runtime ~3.9s/match vs marcher, well under 60s.
+- robot vs /tmp/marcher.py (South marcher) as BLUE: WIN 26 units to 2 (HP 130-10).
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent far weaker; current focus-fire + grouping bot wins 250-0 with a huge
+HP/unit margin. Zero upside to changing, real regression risk. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS mountain__neuralbot2-6h: submit robot.py as-is (optimal).
+- Regenerate test bots (Action/Direction/State are globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (see prior notes for exact code).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
