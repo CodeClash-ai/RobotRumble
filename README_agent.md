@@ -1831,3 +1831,97 @@ clean execution.
   self-play testing — do not delete/modify it. Still gives `robot.py` a
   consistent, reproducible, side-independent edge (this round: 36-21-3
   combined across both sides, 30 seeds each direction, 60 games total).
+
+## Round 21 (this session — starting point was fresh /logs/rounds/0/ only, will produce /logs/rounds/1/)
+
+**Status check (first thing, per standing advice, 21st time):** Only
+`/logs/rounds/0/results.json` was present at session start. Opponent this
+series is `kalkin__artemis2` (note the "2" suffix — a *new* opponent
+identity distinct from the previous `kalkin__artemis` seen in rounds
+19/20, per git log `Rung 11/58 (kalkin__artemis, elo #48) — Round 2
+Update` being the most recent commit before this session but the actual
+round-0 log here already shows the new `kalkin__artemis2` name — likely
+the ladder advanced to a new rung between sessions). Result: **250/250
+sweep for sonnet-5** (sonnet-5 was Blue; `Blue wins 250, Red wins 0, ties
+0` via the standard win/loss snippet). Avg final units: us (Blue) ~15.84
+(min 7, max 26), opponent (Red) ~2.83 (min 0, max 6). Twenty-first
+consecutive total sweep documented in this file (across 13 differently-
+named opponent identities now, counting `kalkin__artemis2` separately from
+`kalkin__artemis`). Note: this round's ~5.6x unit-count margin and our own
+avg-units (~15.84) are both noticeably *lower* than the previous several
+rounds' numbers (our avg units had been climbing into the high-20s/low-30s
+range in rounds 15-20) — this is likely just seed/opponent variance rather
+than a real regression (opponent avg final units ~2.83 is actually *lower*
+than the ~5.5-5.6 seen in rounds 19/20, so if anything this looks like an
+easier matchup, just with lower absolute unit counts on both sides, maybe
+due to different spawn RNG or a shorter/different combat pattern this
+opponent triggers). Grepped all 250 `sim_*.txt` for
+`raceback|xception|panic` — zero hits, confirming clean execution.
+
+### What I did this round
+1. Confirmed `robot.py` is byte-identical to `git show HEAD:robot.py`
+   (explicit `diff` check, zero output) — no drift from the version
+   described in rounds 4-20 above (per-unit soft targeting blending
+   own-distance + target health + team coordination-distance +
+   focus-bonus; opportunistic always-attack-if-adjacent, weakest-first;
+   `direction_to` movement w/ full 4-direction sidestep fallback;
+   spawn-tile-escape when no enemies visible).
+2. Sanity-checked it still runs clean and fast: `./rumblebot run term
+   --results-only robot.py robot.py` (~0.9s wall-clock incl. ~99ms setup,
+   no exceptions, real combat: `Health 30 11 Units 8 3`).
+3. Used the persistent `tools/ab_test.py` harness (from Round 12) to
+   re-confirm `robot.py`'s edge over `robot_v1_baseline.py` over 30 seeds,
+   both sides (`--swap`): robot.py-as-Blue **19 wins / 9 losses / 2
+   ties**; robot.py-as-Red (swapped) **12 wins / 17 losses / 1 tie**.
+   Combined across both directions: **31 wins / 26 losses / 3 ties**
+   (~54% of decisive games) — on the lower end of, but still consistent
+   with, the long-running ~55-70% edge range over the round-0 baseline
+   reported across nearly every previous round (per rounds 12/13/19's
+   notes, per-direction small samples are noisy and the "swapped" side
+   often looks weaker in any given sample; a 60-game combined sample
+   landing at ~54% is unremarkable noise, not a regression signal). No
+   code changes made in response to this, consistent with the historical
+   pattern of this specific check being noisy at n=60.
+4. **No code changes made this round.** Same reasoning as most previous
+   rounds (2-20 in this numbering): 21 consecutive 250/250 sweeps across
+   13 different opponent names/identities, still overwhelming (~5.6x)
+   final-unit-count margin this round, zero runtime errors ever observed
+   across ~5250+ simulated games total, and every tunable knob in the bot
+   (all 3 weight constants — settled no-effect at large sample in Rounds
+   10 & 12 — overkill-avoidance targeting — Round 6, mild negative —
+   BFS-pathing — judged low-value in Round 5) has already been explored
+   with no robust improvement found. Validation-only round again.
+
+### Suggested next steps for future teammates
+- Standing advice unchanged (21st time writing this): check
+  `/logs/rounds/N/results.json` + final-unit-count margins FIRST thing
+  next round, before making changes. Use `tools/ab_test.py` (see Round 12
+  notes for usage) for any self-play A/B testing rather than recreating a
+  script from scratch.
+- **Opponent naming note**: this round's opponent (`kalkin__artemis2`) has
+  a "2" suffix distinct from the plain `kalkin__artemis` seen in rounds
+  19/20 — treat it as a new/different opponent identity in the ladder, not
+  a continuation, when computing trend lines in future notes (I've counted
+  it as opponent #13 in the "differently-named opponent" tally above,
+  separate from `kalkin__artemis`'s earlier #12).
+- All three tunable weight constants (`HEALTH_WEIGHT`, `FOCUS_BONUS`,
+  `COORD_WEIGHT`) remain settled/closed from Rounds 10 & 12's large-sample
+  tests (all ~50% i.e. no effect) — do not re-litigate without a
+  fundamentally different targeting idea.
+- Genuinely still-untried ideas (unchanged across ~21 rounds now):
+  multi-step (2-3 move) lookahead pathing for escaping dead-ends near the
+  map's wall corners (still low-value per Round 5's analysis); explicit
+  "retreat when badly outnumbered locally" logic for individual low-health
+  units (still untried, carries real regression risk against the current
+  "always attack if adjacent" philosophy that keeps winning decisively).
+  Neither has been necessary yet across 21 rounds and 13 opponent
+  identities, all crushed by 4x+ unit-count margins minimum.
+- `robot_v1_baseline.py` remains the frozen round-0 reference bot for A/B
+  self-play testing — do not delete/modify it. This round's A/B landed on
+  the lower end of the historical edge range (~54% combined over 60
+  games) — not concerning on its own (see reasoning above), but if a
+  future round's larger-sample A/B also comes back near-even or negative,
+  that would be worth a deeper look (e.g. re-verify `robot.py` hasn't
+  silently drifted, or consider whether `robot_v1_baseline.py` itself
+  needs refreshing as a reference point after ~20 rounds of no changes to
+  compare against).
