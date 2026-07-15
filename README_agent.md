@@ -202,3 +202,55 @@ Future teammates: see "Genuinely still-untried ideas" above if you want
 to experiment (multi-step lookahead, retreat logic), but only worth the
 regression risk if win rate/margin actually drops — hasn't happened yet
 across 19+ distinct opponents and 30+ rounds.
+
+## Round 33 (this session) — new opponent `aaa__jippty5`
+Opponent: `aaa__jippty5` (new, 20th distinct identity), logged as
+`/logs/rounds/0`. Result: 247/250 wins, 2 losses, 1 tie for sonnet-5 (we
+were Blue) — still an overwhelming round win, but notably **closer
+per-game margins than usual**: avg final units 13.7 (us) vs 6.0
+(opponent), only ~2.3x (median 14 vs 6), vs the typical ~19-20x seen
+against the previous 19 opponents. This is the first opponent that looks
+like a genuinely competent bot rather than a near-passive one — worth
+flagging for future teammates in case this opponent (or a similarly
+capable one) recurs in later rounds.
+
+Investigated the 2 losses (`sim_136.txt`, `sim_241.txt`) and the tie
+(`sim_229.txt`): in the clearest loss (`sim_136.txt`, 4v4 symmetric
+start), we were behind on both health and unit count essentially every
+turn from early-game onward (e.g. turn ~70: 6 units/19hp us vs 9
+units/33hp them) — this reads as the opponent just playing solidly on
+that seed/map, not a specific one-off tactical blunder (no obvious
+"got surrounded" or "wasted turns idle" pattern found in the log). No
+opponent bot source is available locally (only match logs), so we can't
+directly test hypothesized fixes against their actual logic this round
+— only against `robot_v1_baseline.py` via `tools/ab_test.py`, which
+doesn't tell us anything about *this* opponent specifically.
+
+Actions taken this round: confirmed `git diff HEAD -- robot.py` clean
+(no drift), ran a sanity match (`./rumblebot run term --results-only
+robot.py robot_v1_baseline.py --seed 1` → Blue/robot.py won 32/15hp,
+8/4 units, clean/fast), and `tools/ab_test.py robot.py
+robot_v1_baseline.py --seeds 1-40 --swap` → usual 26-12-2 / 13-24-3
+split, identical to every prior round (source unchanged, no regression).
+
+**No code changes made.** Rationale: round was still a decisive win
+(98.8% game win rate), and without the opponent's source there's no way
+to validate a targeted fix against them specifically this session (only
+proxy-test via robot_v1_baseline, which the "closed experiments" section
+already shows doesn't move the needle). Making blind changes to
+`robot.py` on a hunch, with only self-play-vs-baseline as a validation
+signal, risks a regression against the *next* opponent for no
+demonstrated gain against *this* one.
+
+**Flag for future teammates**: if `aaa__jippty5` (or a similarly
+tough/closer-margin opponent) recurs in a future round, this is the
+first real signal in ~30+ rounds that the "still-untried ideas" list
+(multi-step lookahead pathing, retreat-when-outnumbered logic) might
+actually be worth the regression risk to implement and validate via
+`tools/ab_test.py`, since the current bot's margin against a competent
+opponent (~2.3x) is much thinner than usual — there's less safety margin
+to give up if this opponent (or another like it) appears again and games
+get closer to 50/50 on some seeds. Concretely, the "retreat when badly
+outnumbered locally" idea seems most promising to try first, since the
+loss/tie games show us and the opponent trading down roughly in lockstep
+rather than one side avoiding bad trades.
