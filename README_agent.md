@@ -902,3 +902,76 @@ the entire series.
 - `robot_v1_baseline.py` remains the frozen round-0 reference bot for A/B
   self-play testing — do not delete/modify it. Still gives `robot.py` a
   consistent edge (this round: 7-4-1 over seeds 1-12).
+
+## Round 10 (this session — starting point was /logs/rounds/1/, will produce /logs/rounds/2/)
+
+**Status check (first thing, per standing advice, 10th time):** Re-verified
+`/logs/rounds/1/results.json` for this session's starting point. Opponent
+this series is `navster8__bash-brothers` (same name as round 9's notes
+above — this is round 1 of that same opponent-name series). Result:
+**250/250 sweep for sonnet-5** again (sonnet-5 was Blue; `Blue wins 250,
+Red wins 0, ties 0` via the standard win/loss snippet). Avg final units: us
+(Blue) ~28.37, opponent (Red) ~2.49. Tenth consecutive total sweep
+documented in this file (across 7 differently-named opponent identities).
+Grepped all 250 `sim_*.txt` for `raceback|xception|panic` — zero hits.
+
+### What I did this round
+1. Confirmed `robot.py` is byte-identical to the version described in
+   rounds 4-9 above. `git status --short` clean at session start — no
+   drift.
+2. Sanity-checked it still runs clean and fast (`./rumblebot run term
+   --results-only robot.py robot.py`, ~0.7-0.9s wall-clock, no exceptions,
+   real combat).
+3. **Ran a much bigger `HEALTH_WEIGHT` sweep than previous rounds managed**,
+   using a new parallelized A/B harness (`/tmp/run_ab.py`, `/tmp/run_ab2.py`
+   — NOT persisted to `/workspace`, recreate if needed; pattern: Python
+   `concurrent.futures.ThreadPoolExecutor` with `max_workers=16` to launch
+   many `./rumblebot run term` subprocesses at once, since this machine has
+   64 cores and each individual run is single-threaded and CPU-light — this
+   cut wall-clock roughly 10x vs sequential loops used in earlier rounds'
+   notes, e.g. 121 seeds in ~11s instead of ~110s). Recommend future
+   teammates reuse this pattern for any large-sample self-play testing —
+   it's the single most useful tooling addition from this round.
+   Tested `HEALTH_WEIGHT=1.0` vs the checked-in default (`0.6`) over a
+   combined **241 games** (seeds 1-60 both directions + seeds 100-220
+   one direction): final combined tally **112 wins / 109 wins / 20 ties**
+   (HW1.0 / HW0.6 / tie) — i.e. **~50.7% win rate, a dead coin flip**. This
+   finally gives a large-sample, low-noise answer to the question raised
+   in rounds 2/3/4/6's notes ("is HEALTH_WEIGHT=1.0 actually better, or was
+   the small-sample mild-positive trend just noise?") — **it was noise**.
+   Confirmed: do not change `HEALTH_WEIGHT` from `0.6`. This closes out the
+   multi-round open question on weight tuning with a definitive negative
+   result rather than another inconclusive small sample.
+4. **No code changes made this round.** 10 consecutive 250/250 sweeps
+   across 7 different opponent names, still no experiment (weight tuning
+   now tested at high sample size and confirmed no effect;
+   overkill-avoidance in round 6; BFS-pathing analysis in round 5) has
+   found a robust improvement. Validation-only round again, but with a
+   more conclusive weight-tuning result than previous attempts thanks to
+   the new parallelized harness.
+
+### Suggested next steps for future teammates
+- **Reuse the parallelized A/B harness** (recreate `/tmp/run_ab.py`'s
+  `ThreadPoolExecutor`-based pattern shown above if it's not on disk
+  anymore) for any future large-sample self-play testing — it's ~10x
+  faster wall-clock than sequential loops on this 64-core machine, letting
+  you get 200+ game samples in under 15s instead of needing to split work
+  across many separate `bash` tool calls.
+- `HEALTH_WEIGHT` tuning can now be considered **closed/settled** (241-game
+  sample, ~50.7%, i.e. no effect) — no need for future teammates to
+  re-litigate this specific constant. `FOCUS_BONUS`/`COORD_WEIGHT` have
+  only been tested at small samples in earlier rounds though, so those
+  remain technically open if someone wants to use the new harness to
+  settle them too (low priority, same reasoning as always: no opponent
+  seen so far has been strong enough for these marginal gains to matter).
+- Standing advice unchanged (10th time writing this): check
+  `/logs/rounds/N/results.json` + final-unit-count margins FIRST thing
+  next round. If the current opponent (`navster8__bash-brothers` as of
+  this writing) or any future one starts contesting unit count seriously,
+  that's the trigger to revisit genuinely untried ideas: multi-step (2-3
+  move) lookahead pathing for escaping dead-ends; explicit "retreat when
+  badly outnumbered locally" logic for individual low-health units.
+- `robot_v1_baseline.py` remains the frozen round-0 reference bot for A/B
+  self-play testing — do not delete/modify it. `robot.py` still beats it
+  cleanly in quick spot-checks this round (e.g. `Health 15 23 Units 3 6`
+  as Red vs baseline as Blue).
