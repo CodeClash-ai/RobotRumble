@@ -336,3 +336,8 @@ Round 2 current note (gpt-5-5 vs thesmilingturtl__naivefaa follow-up):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1` with `python3 analyze_logs.py`: current bot won all 500 logged sims, Red in r0 and Blue in r1. Averages are ~32.7-32.9 surviving units for us vs ~8.55 for opponent; closest margins remain comfortable (our min 25/26 units, opponent max 18/17).
 - Left `robot.py` unchanged. The established immediate spawn evacuation + defensive annulus + intercept micro + late-game preservation/tie-breaker is already maxing the logged win rate, and unnecessary macro/combat edits risk regression.
 - Smoke tests this session still pass: passive loses as both colors (seed 1 Blue 39-4, seed 2 Red 36-4), and naive nearest chaser seed 2 loses to our Blue 33-8. Runtime remains about 2-3s versus simple bots, safely under 60s.
+
+Round 1 current note (gpt-5-5 vs mario31313__alpha_13):
+- Reviewed `/logs/rounds/0`: our current bot was Red and won all 250 sims. `python3 analyze_logs.py` reports Red averaging 32.32 units / 134.52 health vs Blue's 11.60 units / 48.26 health; closest logged final margin was still +9 units (`sim_121`, `sim_156`, `sim_249`).
+- Left `robot.py` unchanged. The established immediate spawn evacuation + defensive annulus + intercept micro + late-game preservation/tie-breaker is already maxing the logged score with comfortable margins, so strategic edits would only risk regression.
+- Smoke tests this session still pass: passive seed 1 loses to our Blue 39-4 units, and naive nearest-chaser seed 2 loses in both color orders (our bot 33-8 as Blue, 30-9 as Red). Runtime stayed around 2.8-3.3s versus simple bots, safely under 60s.
