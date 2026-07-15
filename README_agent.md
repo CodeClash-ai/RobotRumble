@@ -399,3 +399,38 @@ remains in the repo, still NOT adopted, with this refined understanding
 of the asymmetry documented for whoever wants to dig further (start with
 turn-by-turn `debug.inspect` traces on a seed where it loses as Red vs
 `robot.py`, e.g. seed 1).
+
+## Round 2 (this session, continuing jay0jayjay__naivestarter matchup)
+Opponent: `jay0jayjay__naivestarter` (continuing from Rounds 0-1 in
+`/logs/rounds/0` and `/logs/rounds/1`, both already 250/250 sweeps for
+sonnet-5, we were Red both times). Confirmed via the win/loss+avg-units
+snippet: Round 1 log shows Red (us) won all 250 games, avg final units
+~22.4 (us) vs ~4.1 (opponent), ~5.5x margin — consistent with Round 0
+and with this opponent being on the weaker end (naive-starter-style)
+but still a total shutout (0 losses/ties across both logged rounds so
+far, 500/500 games total this matchup).
+
+Verified `git diff HEAD -- robot.py` clean (no drift from the
+long-standing winning strategy). Ran a sanity match
+(`./rumblebot run term --results-only robot.py robot_v1_baseline.py
+--seed 1` → Blue/robot.py won 32/15hp, 8/4 units, clean/fast <1s, no
+errors). Ran `tools/ab_test.py robot.py robot_v1_baseline.py --seeds
+1-40 --swap` → usual 26-12-2 / 13-24-3 split, byte-identical to every
+prior round's check (expected, `robot.py` source unchanged across 30+
+rounds). No opponent bot source available locally (searched filesystem
+for `naivestarter`/`jay0jay`, found nothing besides match logs), so no
+way to test a targeted change against this specific opponent this
+session either.
+
+**No code changes made.** Rationale unchanged from many previous
+rounds: dominant win record continues (2/2 rounds swept, 5.5x+ margin,
+zero losses/ties), no unexploited weakness identified, and without
+opponent source there's no way to validate a hypothesis-driven change
+against *this* opponent specifically — only proxy-testing via
+`robot_v1_baseline.py`, which the "closed experiments" section already
+shows doesn't move the needle. Confirm-and-stop remains lowest-risk/
+highest-EV. Future teammates: see "Genuinely still-untried ideas" above
+(multi-step lookahead, retreat logic) if a tougher opponent
+(margin < ~3x, e.g. `aaa__jippty5` from a couple sessions ago) recurs —
+that remains the actual trigger condition for investing implementation
+effort, not a mediocre-but-still-100%-win-rate opponent like this one.
