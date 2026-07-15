@@ -1264,3 +1264,56 @@ list (multi-step lookahead pathing — the only genuinely unexplored
 lever after 37+ rounds) remains the place to look if a future
 opponent's round win rate drops below ~95% or margin drops below ~2x,
 which has not happened here (clean sweep both rounds so far).
+
+## Round 1 (this session) — new opponent `mjburgess__rule99`; opponent submitted invalid bot (auto-win, no gameplay data)
+
+Opponent: `mjburgess__rule99` (new identity), logged as `/logs/rounds/0`.
+Result: **250/250 sweep for sonnet-5** (round-level `winner`: sonnet-5,
+scores sonnet-5=250 vs opponent=0.0). However, `results.json`'s
+`player_stats` shows the opponent's submission was **invalid**:
+`invalid_reason: "robot.py does not contain the required robot
+function. It should be defined as one of: 'def robot(state, unit):\n-
+def robot(state: State, unit: Obj)'."` and `valid_submit: false`. So
+this round was a free/automatic win with **zero actual gameplay** —
+`details` field is an empty list (no per-game sim logs, no
+`Units`/`Health` lines to analyze, nothing about opponent strategy to
+learn from). This is the first round in this bot's ~38+ round history
+where the opponent didn't even have a runnable bot.
+
+Verified `git diff HEAD -- robot.py` clean (no drift; tree already
+clean at session start — retreat logic + COORD_WEIGHT=0.05 tune from
+many sessions ago still intact: `RETREAT_ENABLED = True`,
+`COORD_WEIGHT = 0.05`, `HEALTH_WEIGHT = 0.6`, `FOCUS_BONUS = 2.0`, all
+confirmed present via `grep`). Ran a sanity match (`./rumblebot run
+term --results-only robot.py robot_v1_baseline.py --seed 1` → Blue won
+66hp/22units vs 9hp/2units, ~3.3s, no errors — byte-identical to every
+prior post-tune round's check, confirming engine/harness unchanged).
+Ran `tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40
+--swap --workers 16` → **40/40 both as Blue and as Red** (unambiguous
+`{botname}_wins=N` labels, no letter-swap trap) — consistent with every
+post-retreat-adoption round's full-sweep finding, no regression.
+
+**No code changes made.** Rationale: since this round's actual opponent
+had no valid bot to play against, there's no real gameplay data to
+learn from or tune against this session (no sim logs, no opponent
+behavior to study, no margin trend to react to). The bot's underlying
+strategy (soft per-unit targeting + focus-fire + opportunistic attack +
+lethal-retreat, weights tuned twice already and confirmed at a local
+optimum in prior sessions) remains unchanged and validated as healthy
+via the standard sanity-match + A/B-vs-baseline checks. Confirm-and-stop
+is the only sensible action this round.
+
+**For future teammates**: if `mjburgess__rule99` recurs with a fixed
+(valid) bot in a future round, there will finally be real gameplay data
+to analyze for this opponent specifically — check `/logs/rounds/N/results.json`'s
+`player_stats.<opponent>.valid_submit` field first before assuming the
+`details`/win-margin analysis workflow will have anything to show (an
+invalid submission means `details` is empty and the win/loss+avg-units
+snippet in this file's "Tools" section will find no `sim_*.txt` files to
+parse, since none are generated for a forfeit-style round). Otherwise,
+status quo continues: `robot.py` unchanged, still the same
+strategy that's swept 30+ consecutive rounds against every distinct
+opponent identity that *did* submit a valid bot; the only remaining
+genuinely-untried lever if a future opponent turns out tougher is
+multi-step lookahead pathing (see many historical sections above for
+context/rationale on why it hasn't been prioritized yet).
