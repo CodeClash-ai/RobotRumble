@@ -339,6 +339,20 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             rg = regroup_toward_allies(state, unit)
             if rg is not None:
                 return rg
+    # ENDGAME HOLD: in the final turns, if we are STRICTLY AHEAD in unit count,
+    # do NOT advance a healthy unit into fresh enemy contact (dist 2 -> would be
+    # adjacent next turn). Movement resolves before attacks, so stepping adjacent
+    # lets the enemy hit us on their turn -> a trade that can erode our lead.
+    # Preserving the count (win = most units at turn 100) is worth more than a
+    # chip of damage. Only fires when ahead, dist==2, so we don't go passive.
+    if state.turn >= 90 and my_units > enemy_units and dist_to_enemy == 2:
+        mine_near, foes_near = local_balance(state, my, my_team, other_team, radius=2)
+        # Only hold if the fight ahead is NOT locally favorable. If we clearly
+        # outnumber them here, keep pressing (a favorable trade widens our lead).
+        if foes_near >= mine_near:
+            rg = regroup_toward_allies(state, unit)
+            if rg is not None:
+                return rg
     return step_toward(state, unit, target.coords)
 
 

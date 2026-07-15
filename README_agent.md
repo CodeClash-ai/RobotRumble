@@ -2062,3 +2062,54 @@ opponent and win 214-12; no tested change beat baseline on the BLUE side.
   * Batch (SLOW ~2s/game, keep N<=4-5 for the 30s wall-clock):
     `(for s in 1 2 3 4; do printf '{"blue":"A.py","red":"B.py","seed":"%s"}\n' $s; done) | ./rumblebot run batch | grep -oE '"winner":"[^"]*"'`
   * ALWAYS check unit MARGIN (term --results-only "Units B R"), not just W/L.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = thesmilingturtl__naivefaa (COMPETITIVE)
+### Result recap
+- Round 0: **WON 214-12 w/ 24 TIES** vs thesmilingturtl__naivefaa (we were BLUE).
+- Round 1: **WON 219-13 w/ 18 TIES** vs thesmilingturtl__naivefaa (we were BLUE).
+  ~87% win. Competitive foe that out-trades us on HP and preserves units late.
+### Loss analysis (/logs/rounds/1, 13 losses): SPLIT ~evenly:
+  * 6 = EARLY snowball (behind by turn 40, never recover; e.g. sim_234).
+  * 7 = LATE trade-down (ahead/even at turn 40-90 then bleed the last 10-20
+    turns; e.g. sim_106: AHEAD 12-10 at t~96 then dropped to a 10-10 TIE by
+    t100 as opponent spawns replaced their losses but ours died).
+### What I changed (robot.py) - ENDGAME HOLD (advance-guard, tested, shipped)
+- The existing endgame lock-in only retreats units ALREADY ADJACENT to an enemy.
+  Units that DIE while ADVANCING into contact in the last turns weren't caught.
+- Added an ENDGAME HOLD in the move path (right before step_toward): if
+  `state.turn >= 90` AND we are STRICTLY AHEAD in unit count AND the unit is
+  exactly dist 2 from the nearest enemy (would step into contact next), and the
+  fight ahead is NOT locally favorable (`foes_near >= mine_near`, radius 2), it
+  REGROUPS toward allies instead of advancing into a fresh trade. Preserves the
+  count lead (win = most units at turn 100; HP NOT a tiebreaker). Tightly gated
+  (last 10 turns, only when ahead, only when not locally favorable) so it does
+  NOT go passive - it still presses favorable fights.
+### Testing
+- vs /tmp/cluster.py (competitive clustered proxy): WIN 20-2 / 16-0 (baseline
+  ~23-1; the small margin diff is noise - these weak proxies die before t90 so
+  the change rarely even fires). vs /tmp/aggro.py: WIN 16-1 (term) + Blue 2/2
+  batch (seeds 7,8). vs /tmp/marcher.py: WIN 23-0. No regression, all decisive.
+- Head-to-head vs baseline: dominated by side bias + change only fires t90+ so
+  inconclusive in self-play (batch is SLOW ~2s/game, timed out at 2-3 seeds).
+- robot.py parses OK; `def robot(state: State, unit: Obj)` line 225; runtime ~3s.
+### Decision: SHIPPED the endgame-hold advance-guard (low-risk, targeted at the
+7 late trade-down losses). It complements the existing endgame retreat (which
+only handled already-adjacent units). No regressions found on any proxy.
+### Guidance for next teammate
+- If opponent STAYS thesmilingturtl__naivefaa: robot.py wins ~87%; this edit
+  should shave some late trade-down ties/losses. VERIFY next round: unit
+  trajectory turns 90-100 (/tmp/trace.py sim_X.txt) - we should HOLD our lead
+  instead of trading down to a tie (the sim_106 pattern).
+- The OTHER half of losses is EARLY snowball (behind by turn 40). Prior
+  teammates found tighter early grouping gives NO robust Blue-side gain and
+  "reduce OVERKILL" REGRESSES the margin (partially-hit enemies survive & out-
+  trade us). Those are documented dead-ends - do not retry blindly.
+- If the endgame-hold HURTS (check next round's late-game trajectory - if we now
+  fall BEHIND late because we held too passively while their spawns advanced),
+  REVERT it (git diff shows the single added block before step_toward) or tighten
+  to `foes_near >= mine_near + 1`.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py, /tmp/marcher.py, /tmp/cluster.py, /tmp/robot_baseline.py
+    (=git show HEAD:robot.py). Batch: keep N<=2-3 (SLOW, 30s wall-clock cap).
+  * ALWAYS check unit MARGIN (term --results-only "Units B R"), not just W/L.
