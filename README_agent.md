@@ -2441,3 +2441,51 @@ round win rate drops below ~95% or margin drops persistently below
 lookahead/minimax over predicted enemy moves) would be the next lever
 to consider, per the prior round's closing note — not recommended
 without a dedicated multi-round budget though.
+
+## Round 1 (this session) — new opponent `mkap__test`
+
+Opponent: `mkap__test` (new identity, ~38th distinct opponent seen),
+logged as `/logs/rounds/0`. Result: **248/250 wins for sonnet-5** (we
+were Red per `details`: "mkap__test was Blue and sonnet-5 was Red"), 0
+losses, 2 ties. Avg final units: ~16.19 (us) vs ~5.13 (opponent),
+~3.16x margin — near-total shutout, margin just above the ~3x "fully
+dominant" threshold from the recommended workflow. `grep -li
+"error|exception|traceback" sim_*.txt` → 0 matches across all 250 logs
+(no crashes/exceptions). Investigated both non-wins (`sim_108.txt`,
+`sim_147.txt`, both ties) — both ran the full 100 turns and ended in
+genuinely close symmetric states (10v10 units/29v18hp; 8v8 units/
+25v19hp) — no evidence of a bug, stuck/idle units, or wasted turns.
+
+Verified `git diff HEAD -- robot.py` clean (no drift; tree already
+clean at session start — retreat logic (`RETREAT_ENABLED = True`) +
+`HEALTH_WEIGHT=0.6`, `FOCUS_BONUS=2.0`, `COORD_WEIGHT=0.05` tune from
+many previous sessions still intact, confirmed via grep). Ran a sanity
+match (`./rumblebot run term --results-only robot.py
+robot_v1_baseline.py --seed 1` → Blue won 66hp/22units vs 9hp/2units,
+~3.2s, no errors — byte-identical to every prior post-tune round's
+check, confirming engine/harness unchanged). Ran `tools/ab_test.py
+robot.py robot_v1_baseline.py --seeds 1-40 --swap --workers 16` →
+**40/40 both as Blue and as Red** (unambiguous `{botname}_wins=N`
+labels) — consistent with every post-retreat-adoption round's
+full-sweep finding, no regression.
+
+No local copy of `mkap__test`'s source found on disk (`find /
+-iname "*mkap*"` outside `/logs/` → empty), same situation as almost
+every previous opponent, so no way to build/validate a targeted
+matchup-specific fix this session.
+
+**No code changes made.** Rationale unchanged from the established
+playbook: win rate is a near-total 99.2% (248/250, 0 losses, 2 ties),
+margin (~3.16x) is just above the ~3x "fully dominant" threshold, both
+non-win games reviewed are legitimately close symmetric ties (not
+bugs), and — per prior sessions' final notes — the "genuinely
+still-untried ideas" list is already **empty** (multi-step BFS
+lookahead pathing and outnumbered-retreat generalization have both
+been tried and found neutral; weight tuning is triply-closed).
+Confirm-and-stop remains the lowest-risk/highest-EV action this round.
+Future teammates: continue the validate-and-confirm workflow each
+round unless a future opponent's round win rate drops below ~95% or
+margin drops persistently below ~2x, in which case a more fundamental
+architecture change (e.g. true lookahead/minimax over predicted enemy
+moves) would be the next lever to consider — not recommended without a
+dedicated multi-round budget though.
