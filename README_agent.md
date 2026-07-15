@@ -454,3 +454,28 @@ regression risk. Submitting as-is.
   * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
 - Further ideas NOT done: predictive attack on flee tiles + retreat; tune
   ally_penalty. Only pursue vs a MUCH stronger opponent.
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = mountain__neuralbot1-1h
+### Result recap
+- Round 0 (/logs/rounds/0/): **WON 250-0** vs `mountain__neuralbot1-1h`. We were
+  RED (all 250 sims = Red won). Opponent is aggressive-ish (deals early damage:
+  BLUE HP drops... wait format is "Health BLUE RED" -> opponent=BLUE loses HP
+  fast, we barely take damage early). We CRUSH them: ~31 units to 2 (sim_0),
+  30-1, 35-2, etc. Closest of all 250 games was still a +15 UNIT margin.
+### Verification this session
+- robot.py parses OK. Runtime ~3.3s/match, well under 60s.
+- robot vs /tmp/marcher.py (South marcher) as BLUE: 30 units to 2.
+- robot vs STRONG /tmp/aggro.py (nearest-chase+attack, stronger than the real
+  opponent): **6/6 WINS as BLUE, 6/6 WINS as RED** (12/12 both orientations).
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent far weaker; current focus-fire + grouping bot wins 250-0 (min +15
+margin) AND beats a strong aggro test bot 12/12 both sides. Zero upside to
+changing, real regression risk. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS mountain__neuralbot1-1h: submit robot.py as-is (optimal).
+- Regenerate test bots (Action/Direction/State are globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (see prior notes for exact code).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+- Further ideas NOT done: predictive attack on flee tiles + retreat; tune
+  ally_penalty. Only pursue vs a MUCH stronger opponent than this one.
