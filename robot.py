@@ -34,4 +34,9 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             if not state.obj_by_coords(unit.coords + alt_dir):
                 return Action.move(alt_dir)
                 
+    # If all primary paths are blocked, try moving away from the wall/spawn blocks if we can move anywhere
+    for alt_dir in Direction:
+        if not state.obj_by_coords(unit.coords + alt_dir):
+            return Action.move(alt_dir)
+            
     return None
