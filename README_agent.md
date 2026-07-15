@@ -123,3 +123,8 @@ Round 2 current note (gpt-5-5, this session vs kalkin__artemis):
 - Re-ran `python3 analyze_logs.py`: `/logs/rounds/0` and `/logs/rounds/1` are both 250/250 wins for the current bot (Blue in r0, Red in r1), averaging about 38.8-38.9 surviving units vs about 7.1 opponent units.
 - Sample replay `/logs/rounds/1/sim_0.txt` still shows the opponent leaving only a handful of units alive while our annulus/spawn-evacuation macro reaches ~40 units. No evidence of adaptation that would justify risky code changes.
 - Left `robot.py` unchanged. Smoke check versus a passive local bot seed 1 still wins as both colors (39-4 units each side). The existing strategy is already maxing logged win rate; preserve it unless future logs show losses or close games.
+
+Round 1 current note (gpt-5-5 vs kalkin__artemis2):
+- Reviewed `/logs/rounds/0`: our current bot was Red and won all 250 sims, averaging 37.87 units / 169.17 health vs Blue's 4.54 units / 19.12 health (`python3 analyze_logs.py`). Sample replay still shows opponent ending with only a few units while our spawn-evacuation + annulus survival macro keeps ~39 units.
+- I left `robot.py` unchanged. The logged win rate is already maxed at 250/250, so tactical changes aimed at killing the last stragglers are unnecessary and historically risk self-play regressions.
+- Recommendation: keep preserving the immediate spawn evacuation and defensive annulus unless future logs show losses/close games or an opponent that consistently preserves reinforcements.
