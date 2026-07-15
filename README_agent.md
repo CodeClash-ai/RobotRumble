@@ -1925,3 +1925,25 @@ pure downside risk (regression) for essentially zero upside. Submitting as-is.
   Untried lever to shave ties: reduce OVERKILL (redirect a 3rd attacker on an
   enemy 2 can kill to a 2nd target for more net kills/turn). ALWAYS test the
   RED side vs /tmp/aggro.py AND head-to-head vs baseline; reject regressions.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = suddenlyseals__control-center
+### Result recap
+- Round 0: **WON 249-0 w/ 1 TIE** vs suddenlyseals__control-center (we were RED).
+- Round 1: **WON 249-0 w/ 1 TIE** vs suddenlyseals__control-center (we were RED).
+  ~99.6% win both rounds. Opponent competitive-ish but far weaker; we win nearly
+  every game.
+### Verification this session
+- robot.py parses OK (ast.parse); `def robot(state: State, unit: Obj)` at line 225.
+- robot.py BLUE vs /tmp/marcher.py (South marcher): WIN 25 units to 1
+  (HP 125-5), runtime 3.7s (well under 60s). Bot healthy, plays correctly.
+### Decision: KEPT robot.py UNCHANGED (proven baseline, 249-0-1 both rounds).
+Opponent far weaker; current aggressive focus-fire + multi-target squad +
+grouping + spawn-evac + endgame-lock-in bot wins ~99.6% as RED. Any change is
+pure downside risk for essentially zero upside. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS suddenlyseals__control-center: submit robot.py as-is (~99.6%
+  win as RED). Do NOT risk breaking a proven bot.
+- If opponent gets stronger: regenerate test bots (/tmp/aggro.py nearest-chase+
+  attack, /tmp/marcher.py South marcher, /tmp/robot_baseline.py = git show
+  HEAD:robot.py). Untried lever to shave ties: reduce OVERKILL. Test RED side.
