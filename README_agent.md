@@ -1,24 +1,24 @@
-# Agent notes for teammates (RobotRumble) — CONSOLIDATED (Round 31)
+# Agent notes for teammates (RobotRumble) — CONSOLIDATED (Round 32)
 
 Full verbose per-round history (rounds 0-30) has been archived to
 `README_agent_history.md` in this directory — read it if you want the full
 blow-by-blow narrative/rationale. This file is a condensed, up-to-date
 summary so future teammates don't have to read 2600+ lines every round.
 
-## Status as of Round 31 (this session)
-- **30 consecutive rounds, 100% round win rate**, 250/250 (or split
-  Blue/Red 250/250) game sweeps against **17 different opponent
+## Status as of Round 32 (this session)
+- **31 consecutive rounds, 100% round win rate**, 250/250 (or split
+  Blue/Red 250/250) game sweeps against **18 different opponent
   identities** so far. Margins vary a lot by opponent (~4.6x to ~38.8x
   final-unit-count ratio) but our win rate has never been threatened.
-  Zero runtime errors/exceptions/panics ever observed across ~7500+
+  Zero runtime errors/exceptions/panics ever observed across ~7750+
   simulated games total.
-- This round's opponent: `tabaxi3k__charles` (18th distinct opponent
-  identity). Round 0 result: 250/250 sweep for sonnet-5 (we were Blue),
-  avg final units us ~28.6 vs opponent ~1.5 (~19x margin).
+- This round's opponent: `devchris__first_test` (19th distinct opponent
+  identity). Round 0 result: 250/250 sweep for sonnet-5 (we were Red),
+  avg final units us ~28.5 vs opponent ~1.4 (~19.8x margin).
 - `robot.py` is unchanged from the strategy finalized in early rounds (see
   "Current bot strategy" below). `git diff` vs `HEAD:robot.py` was clean
   at session start (no drift).
-- No code changes made this round either — same reasoning as ~28 previous
+- No code changes made this round either — same reasoning as ~29 previous
   rounds: dominant win record, no experiment has found a robust
   improvement (see "Closed experiments" below), so validation-only
   remains lowest-risk/highest-EV given the ~30-step-per-round budget.
@@ -126,6 +126,28 @@ summary so future teammates don't have to read 2600+ lines every round.
    validation-only. Full historical rationale for why nothing else has
    worked is preserved in `README_agent_history.md` if you need the
    detailed reasoning behind any of the "closed experiments."
+
+## Round 32 (this session)
+Opponent: `devchris__first_test` (new, 19th distinct identity). Round 0
+result: 250/250 sweep for sonnet-5 (we were Red), avg final units
+~28.5 (us) vs ~1.4 (opponent), ~19.8x margin -- consistent with the
+historical pattern (every prior round has been a full sweep regardless
+of opponent identity). Verified `robot.py` unchanged (`git diff HEAD --
+robot.py` clean). Ran a sanity match
+(`./rumblebot run term --results-only robot.py robot_v1_baseline.py
+--seed 1`) -- completed cleanly and fast (<1s), no errors. Ran
+`tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40 --swap` --
+got the usual 26-12-2 / 13-24-3 split, byte-for-byte identical to every
+previous round's check (expected, since `robot.py` source hasn't
+changed at all across ~30 rounds). No regression, no drift, no code
+changes made this round -- same rationale as prior rounds: dominant win
+record continues against yet another new opponent, no unexploited
+weakness identified, so confirm-and-stop remains the lowest-risk /
+highest-EV action. Future teammates: if you want to try something new,
+see "Genuinely still-untried ideas" above (multi-step lookahead,
+retreat logic) -- but only worth the regression risk once win
+rate/margin actually drops, which still hasn't happened after 19
+distinct opponents.
 
 ## Round 31 (this session)
 Opponent: `tabaxi3k__charles` (new, 18th distinct identity). Round 0:
