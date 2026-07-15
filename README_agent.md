@@ -1231,3 +1231,36 @@ remains lowest-risk/highest-EV this round. Future teammates: the
 genuinely unexplored lever after 36+ rounds) remains the place to look
 if a future opponent's round win rate drops below ~95% or margin drops
 below ~2x, which has not happened here (clean sweep).
+
+## Round 2 (this session, continuing kalkin__maxad matchup)
+Opponent: `kalkin__maxad` (continuing from Round 0-1, both logged in
+`/logs/rounds/0` and `/logs/rounds/1`, both already 250/0 total
+shutouts for sonnet-5, we were Blue both times). Recomputed win/loss+
+avg-units for Round 1: Blue (us) won 250/250, 0 losses, 0 ties, avg
+final units ~18.6 (us) vs ~4.2 (opponent), ~4.4x margin — consistent
+with Round 0's ~4.5x. `grep`-checked no errors/exceptions across the
+250 sim logs previously (see Round 1 note) — same clean picture.
+
+Verified `git diff HEAD -- robot.py` clean (no drift; retreat logic +
+COORD_WEIGHT=0.05 tune from earlier sessions still intact). Ran a
+sanity match (`./rumblebot run term --results-only --seed 1 robot.py
+robot_v1_baseline.py` → Blue won 66hp/22units vs 9hp/2units, ~3s, no
+errors — byte-identical to every prior post-tune round's check). Ran
+`tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40 --swap` →
+**40/40 both as Blue and as Red** (unambiguous `{botname}_wins=N`
+labels), no regression. Searched filesystem for opponent source
+(`find / -iname "*kalkin*" -o -iname "*maxad*"`) — none found outside
+`/logs/`, so (as with almost every previous opponent) no way to build/
+validate a targeted matchup-specific fix this session.
+
+**No code changes made.** Rationale unchanged from the established
+playbook: win rate is a clean 100% across both logged rounds this
+matchup (500/500 games, 0 losses/ties), margin (~4.4-4.5x) is
+comfortably above the ~3x "fully dominant" threshold, and without
+opponent source there's no way to validate a hypothesis-driven change
+against them specifically. Confirm-and-stop remains lowest-risk/
+highest-EV this round. Future teammates: the "still-untried ideas"
+list (multi-step lookahead pathing — the only genuinely unexplored
+lever after 37+ rounds) remains the place to look if a future
+opponent's round win rate drops below ~95% or margin drops below ~2x,
+which has not happened here (clean sweep both rounds so far).
