@@ -1,91 +1,113 @@
-from enum import Enum, auto
 from typing import *
 
+# Round-1 strategy: survival wins Normal mode.  The engine deletes units still
+# on spawn tiles before reinforcements at turns 11,21,...; the default/opponent
+# seen in logs never leaves spawn and therefore ties at 4-4 forever.  This bot
+# immediately steps every robot off the spawn ring, then forms a loose interior
+# annulus, attacks adjacent enemies, and only chases very nearby targets.
 
-class Quadrant(Enum):
-    One = auto()
-    Two = auto()
-    Three = auto()
-    Four = auto()
-
-    @staticmethod
-    def from_coords(coords: Coords) -> "Quadrant":
-        if coords.x <= MAP_SIZE // 2:
-            if coords.y <= MAP_SIZE // 2:
-                return Quadrant.Two
-            else:
-                return Quadrant.Three
-        else:
-            if coords.y <= MAP_SIZE // 2:
-                return Quadrant.One
-            else:
-                return Quadrant.Four
-
-
-target_ids: Dict[Quadrant, Optional[str]] = {
-    Quadrant.One: None,
-    Quadrant.Two: None,
-    Quadrant.Three: None,
-    Quadrant.Four: None,
-}
-
-
-def total_distance_for_units(units: List[Obj], target: Obj) -> float:
-    return sum([unit.coords.distance_to(target.coords) for unit in units])
+CENTER = Coords(9, 9)
+DIRECTIONS = [Direction.North, Direction.East, Direction.South, Direction.West]
+reserved_moves: Set[Coords] = set()
 
 
 def init_turn(state: State) -> None:
-    global target_ids
+    global reserved_moves
+    reserved_moves = set()
 
-    for (q, id) in target_ids.items():
-        if id and not state.obj_by_id(id):
-            target_ids[q] = None
 
-    allies = state.objs_by_team(state.our_team)
+def in_bounds(c: Coords) -> bool:
+    return 0 <= c.x < MAP_SIZE and 0 <= c.y < MAP_SIZE
+
+
+def is_free(state: State, c: Coords) -> bool:
+    return in_bounds(c) and c not in reserved_moves and state.obj_by_coords(c) is None
+
+
+def enemy_at(state: State, c: Coords) -> Optional[Obj]:
+    obj = state.obj_by_coords(c)
+    if obj and obj.team == state.other_team:
+        return obj
+    return None
+
+
+def adjacent_enemy_direction(state: State, unit: Obj) -> Optional[Direction]:
+    choices = []
+    for d in DIRECTIONS:
+        e = enemy_at(state, unit.coords + d)
+        if e:
+            choices.append((e.health, d))
+    if choices:
+        choices.sort(key=lambda t: t[0])
+        return choices[0][1]
+    return None
+
+
+def nearest_enemy(state: State, unit: Obj) -> Optional[Obj]:
     enemies = state.objs_by_team(state.other_team)
-    for q in target_ids:
-        if not target_ids[q]:
-            q_allies = [ally for ally in allies if Quadrant.from_coords(ally.coords) == q]
-            q_enemies = [enemy for enemy in enemies if Quadrant.from_coords(enemy.coords) == q]
-
-            if q_enemies and q_allies:
-                closest_enemy = min(q_enemies, key=lambda enemy: total_distance_for_units(q_allies, enemy))
-                target_ids[q] = closest_enemy.id
+    if not enemies:
+        return None
+    return min(enemies, key=lambda e: (unit.coords.walking_distance_to(e.coords), e.health))
 
 
-robot_state: Dict[str, dict] = {}
+def best_step_toward(state: State, unit: Obj, target: Coords) -> Optional[Direction]:
+    current_dist = unit.coords.walking_distance_to(target)
+    primary = unit.coords.direction_to(target)
+    dirs = list(DIRECTIONS)
+    dirs.sort(key=lambda d: (0 if d == primary else 1,
+                             (unit.coords + d).walking_distance_to(target)))
+    for d in dirs:
+        dest = unit.coords + d
+        if is_free(state, dest) and dest.walking_distance_to(target) < current_dist:
+            reserved_moves.add(dest)
+            return d
+    return None
+
+
+def step_to_annulus(state: State, unit: Obj) -> Optional[Direction]:
+    # Stay off the spawn ring and distribute around radius ~7 from center.  This
+    # prevents traffic jams and keeps most units away from perimeter spawn wipes.
+    dirs = list(DIRECTIONS)
+    dirs.sort(key=lambda d: (abs((unit.coords + d).walking_distance_to(CENTER) - 7),
+                             (unit.coords + d).walking_distance_to(CENTER)))
+    for d in dirs:
+        dest = unit.coords + d
+        if is_free(state, dest) and not dest.is_spawn():
+            reserved_moves.add(dest)
+            return d
+    return None
 
 
 def robot(state: State, unit: Obj) -> Optional[Action]:
-    past_coords: Optional[Coords] = robot_state.setdefault(unit.id, {}).get("past_coords")
-    robot_state[unit.id]["past_coords"] = unit.coords
-    
-    id = target_ids[Quadrant.from_coords(unit.coords)]
-    if id:
-        target = state.obj_by_id(id)
-        if target:
-            debug.inspect(target)
-            direction = unit.coords.direction_to(target.coords)
+    # Combat micro: focus low-health adjacent enemies.
+    d = adjacent_enemy_direction(state, unit)
+    if d:
+        return Action.attack(d)
 
-            if unit.coords.distance_to(target.coords) == 1:
-                # we're right next to them
-                return Action.attack(direction)
-            else:
-                move_target = state.obj_by_coords(unit.coords + direction)
-                if not move_target:
-                    return Action.move(direction)
-                else:
-                    directions = [direction.rotate_cw, direction.rotate_ccw]
-                    destinations = [unit.coords + direction for direction in directions]
-                    if target.coords.distance_to(destinations[0]) < target.coords.distance_to(destinations[1]) \
-                            and not state.obj_by_coords(destinations[0]) \
-                            and past_coords != destinations[0]:
-                        return Action.move(directions[0])
-                    elif not state.obj_by_coords(destinations[1]) \
-                            and past_coords != destinations[1]:
-                        return Action.move(directions[1])
-                    else:
-                        return None
-        else:
-            raise Exception('Id points to nonexistent target')
+    # Macro priority: leave spawn immediately.  direction_to(CENTER) reliably
+    # moves inward on the circular spawn ring.
+    if unit.coords.is_spawn():
+        d = best_step_toward(state, unit, CENTER)
+        if d:
+            return Action.move(d)
 
+    # If we are still too close to the wall, continue moving inward.
+    if unit.coords.walking_distance_to(CENTER) > 8:
+        d = best_step_toward(state, unit, CENTER)
+        if d:
+            return Action.move(d)
+
+    # Take local fights, but do not over-chase perimeter bait.
+    enemy = nearest_enemy(state, unit)
+    if enemy and unit.coords.walking_distance_to(enemy.coords) <= 3 and not enemy.coords.is_spawn():
+        d = best_step_toward(state, unit, enemy.coords)
+        if d:
+            return Action.move(d)
+
+    # If too clustered in the center, spread back out to the defensive annulus.
+    if unit.coords.walking_distance_to(CENTER) < 6:
+        d = step_to_annulus(state, unit)
+        if d:
+            return Action.move(d)
+
+    return None
