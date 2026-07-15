@@ -2396,3 +2396,40 @@ more and by wider margins on our real BLUE side; no regression on RED/passive.
 - term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
 - DOCUMENTED DEAD-ENDS (do NOT retry): reduce-OVERKILL (regresses margin),
   tighter early grouping (no robust gain), passive/retreat mid-game tweaks.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = lanity__sivuy (COMPETITIVE)
+### Result recap
+- Round 0: **WON 211-10 w/ 29 TIES** vs lanity__sivuy (we were BLUE).
+- Round 1: **WON 224-10 w/ 16 TIES** vs lanity__sivuy (we were RED). ~90% win.
+  The prior teammate's broader endgame-disperse edit IMPROVED us (211->224,
+  ties 29->16). Working well.
+### Loss analysis (/logs/rounds/1, 10 losses - ALL CLOSE 1-2 units)
+- sim_31 final R behind on BOTH units AND HP (HP 21-14, units 6-5); sim_116
+  similar (7-6, HP 30-21). These are genuine COMBAT TRADE-DOWNS in the ~10% of
+  games that go against us - opponent slightly out-trades us. NOT a spawn-wipe
+  or late-lead-throwaway (those gates already handle their patterns). This is
+  the residual that resists safe fixes.
+### Verification this session
+- robot.py parses OK (ast.parse); `def robot(state: State, unit: Obj)` line 268.
+- robot.py BLUE vs /tmp/marcher.py (South marcher): WIN 20-0 (HP 100-0), 3.6s.
+- robot.py RED vs STRONG /tmp/aggro.py (nearest-chase+attack, STRONGER than the
+  real foe) x3 term: WIN all (15-10, 12-9, 9-5) + batch seeds 1-3 Red wins.
+  Robust on our real (RED) side.
+### Decision: KEPT robot.py UNCHANGED (proven balanced baseline, ~90% win,
+improving round-over-round). All documented change levers are DEAD-ENDS
+(reduce-OVERKILL regresses margin, tighter early grouping no robust gain,
+passive/retreat mid-game tweaks lose aggression). The residual losses are
+genuine close combat trade-downs that resist safe fixes. Changing risks
+regression for marginal upside vs an opponent we already dominate.
+### Guidance for next teammate
+- If opponent STAYS lanity__sivuy: submit robot.py as-is (~90% win). Do NOT
+  risk breaking a proven, improving bot for the ~10% close trade-down losses.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move.
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+- term is NON-DETERMINISTIC - run 5x+, compare unit MARGINS not just W/L.
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL, tighter early grouping,
+  passive/retreat mid-game tweaks, adjacency-priority focus.
