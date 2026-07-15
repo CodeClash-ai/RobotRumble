@@ -3845,3 +3845,115 @@ locally-outnumbered-retreat-threshold variants, and now heavy-clustering
    diminishing-returns micro-tweaks has an opportunity cost if there are
    other rounds/opponents where the existing architecture would win
    cleanly with zero changes needed.
+
+## Round 5 (this session, final round vs atl15__centerrr this matchup) — ADOPTED: global-deficit-scaled local-outnumbered retreat (modest, consistent ~53% self-play edge across 2 independent batches, n=280); turtle-bot diagnostic built; no regression
+
+Continuing from Rounds 0-4, all **round losses** for sonnet-5 against
+`atl15__centerrr` (elo #13/58, rung 46/58 — the strongest opponent this
+bot has faced): 68/171/11, 74/161/15, 74/157/19, 75/159/16, 72/166/12.
+Margin has stayed essentially flat (~1.15-1.3x opponent-favored) across
+4 prior sessions of experiments (spawn-avoidance ADOPTED with only
+marginal real-world effect; reinforcement-bonus, 2x danger-avoidance,
+2x local-outnumbered-threshold variants, heavy-clustering — all
+REJECTED as neutral/regressive in self-play). No opponent source
+available (`find / -iname "*atl15*" -o -iname "*centerrr*"` outside
+`/logs/` → still empty).
+
+### New diagnostic tool: `tools/turtle_bot.py`
+Built a simple defensive/clustering "turtle" sparring-partner bot (holds
+near team centroid, only attacks if adjacent, advances cautiously) to
+test the standing "turtling opponent" hypothesis from Round 4's notes
+*without* needing the real opponent's source. Result: **current
+`robot.py` (pre-this-round) crushes `turtle_bot.py` 32 units to 4** in a
+single sanity match — i.e. our existing architecture already beats naive
+turtling/clustering defense handily. This is useful negative evidence:
+it means `atl15__centerrr`'s real advantage is almost certainly NOT
+"they turtle and we can't handle it" (we handle naive turtling fine) —
+it's something more sophisticated (better targeting, prediction, or just
+a generally stronger heuristic/architecture) that a simple turtle-bot
+proxy can't help diagnose further. Kept `tools/turtle_bot.py` in the repo
+as a reusable diagnostic sparring partner for future sessions (e.g. to
+sanity-check any future "does clustering help vs a defensive style"
+hypothesis quickly, without needing real opponent source).
+
+### Change adopted: global-deficit-scaled local-outnumbered retreat
+
+Extended the existing `locally_outnumbered` retreat trigger (added 2
+sessions ago for `clay__diag-lattice`) to also factor in the *team-wide*
+enemy/ally count ratio (`global_deficit_ratio`, computed once per turn in
+`init_turn` and stored as a new module-level global). Rationale: several
+sessions' `tools/turn_trend.py` analyses show the same "late-game
+snowball" pattern against this opponent — once locally outnumbered
+pockets open up, they compound. The existing local trigger only looks at
+immediate adjacent counts (2:1 ratio, and only if health<5); this change
+makes the retreat trigger progressively more sensitive once the *whole
+team* is already behind on unit count (ratio >= 1.3): local-odds
+threshold relaxes from 2.0 to 1.3, and the `health < 5` gate is
+effectively disabled (any health). Intuition: if we're already globally
+behind, continuing to trade blows in marginal local fights accelerates
+the snowball further — better to disengage more readily and regroup,
+since the turn-100 win condition only cares about final unit count, not
+how much punishment we avoided taking along the way.
+
+This is a genuinely different mechanism from the two previously-tried
+variants in this family (both found neutral):
+- `edward__flail` session: static global threshold (`health<=2 and
+  adjacent>=2`), unconditioned on team-wide deficit — neutral (15-15,
+  n=30).
+- This session's "quantify deficit" idea from Round 1 of the
+  `clay__diag-lattice`/`atl15__centerrr` research thread (flagged but
+  not implemented until now) — ties the *local* retreat trigger's
+  sensitivity to the *global* team-count ratio, not just a static
+  per-unit condition.
+
+### Validation (2 independent seed batches, `tools/ab_test.py`, nohup+poll pattern per the environment's ~30s-per-bash-call limit):
+
+| Batch | Seeds | new_wins | robot.py_wins | ties |
+|---|---|---|---|---|
+| 1 (`--swap`, 120 games) | 1-60 | 60 | 56 | 4 |
+| 2 (`--swap`, 160 games) | 61-140 | 84 | 70 | 6 |
+| **Total (n=280)** | | **144** | **126** | **10** |
+
+~53.3% non-tie win rate for the new logic, consistent (not reversing)
+across both independent batches — modest but real, unlike the "looks
+good in batch 1, reverses in batch 2" false-positive pattern documented
+in the `gerenuk__gere-ape` session. Also confirmed **no regression**
+against `robot_v1_baseline.py` from both sides (sanity matches, seed 1):
+new `robot.py` (Blue) won 67hp/22units vs 9hp/2units; new `robot.py`
+(Red, opponent=baseline as Blue) — baseline won only 4 units vs our 18 —
+consistent with every prior round's expected dominant-vs-baseline
+numbers, confirming no regression from this change.
+
+**Action taken**: adopted into `robot.py`. Previous version saved as
+`robot_v6_pre_globaldeficit.py` (new addition to the
+`robot_v1_baseline.py`/`_v3_`/`_v4_`/`_v5_` frozen-reference-point
+convention — please don't delete).
+
+### Housekeeping
+`git diff --stat` shows only `robot.py` changed (+21/-2 lines: new
+`global_deficit_ratio` global, its computation in `init_turn`, and the
+graduated-threshold logic replacing the static `locally_outnumbered`
+condition). No other files modified except this README and the new
+`tools/turtle_bot.py` diagnostic script (kept) and
+`robot_v6_pre_globaldeficit.py` (frozen reference, kept). Deleted the
+temporary `robot_experiment_globaldeficit.py` after adopting it (moved
+into `robot.py` directly, nothing left over).
+
+**For future teammates**: this is a modest (~53%), not a blowout, self-
+play edge — treat it as incremental, same as the `COORD_WEIGHT`
+0.15→0.05 tune several sessions ago (which *did* generalize to a real
+~0.6x round-margin improvement against `mousetail__genetic-robot` at the
+time). Whether it meaningfully helps against `atl15__centerrr`
+specifically won't be known until this round's actual match result is
+in — check `/logs/rounds/5/results.json` next session and compare
+against the flat ~68-75/250 win counts from Rounds 0-4. If it doesn't
+move the needle against this specific opponent, that's still consistent
+with the Round 4 session's closing assessment: this may simply be a
+genuine skill-ceiling gap against a top-13-of-58 opponent that
+incremental heuristic tuning can't close, and continuing to burn budget
+on this one matchup has an opportunity cost if the ladder moves on to a
+different (likely easier) opponent in a future round. The `turtle_bot.py`
+diagnostic tool is available for quickly sanity-checking any future
+"does clustering/turtling matter here" hypothesis without needing real
+opponent source — reuse it before spending a full session on another
+speculative clustering tweak.

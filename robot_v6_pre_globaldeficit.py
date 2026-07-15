@@ -42,7 +42,6 @@ from typing import *
 # ---- Global team state (persists across turns) ----
 focus_target_id: Optional[str] = None
 robot_state: Dict[str, dict] = {}
-global_deficit_ratio: float = 1.0  # enemies/allies count ratio, updated each turn in init_turn
 
 # Tunable weights for the per-unit soft targeting score (lower score = more
 # attractive target). See module docstring for rationale.
@@ -77,12 +76,9 @@ def init_turn(state: State) -> None:
     allies = state.objs_by_team(state.our_team)
     enemies = state.objs_by_team(state.other_team)
 
-    global global_deficit_ratio
     if not enemies or not allies:
         focus_target_id = None
-        global_deficit_ratio = 1.0
         return
-    global_deficit_ratio = len(enemies) / max(1, len(allies))
 
     # Drop the old target if it died.
     if focus_target_id and not state.obj_by_id(focus_target_id):
@@ -181,25 +177,10 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # pattern (see README_agent.md's clay__diag-lattice section) where
         # units that are locally outnumbered keep fighting anyway and bleed
         # out faster than the numerically-superior side.
-        # Scale the outnumbered-retreat trigger by how badly we're doing
-        # globally (team-wide enemy/ally count ratio, see
-        # `global_deficit_ratio` in init_turn): when we're already behind
-        # overall, become more conservative about trading blows locally
-        # (lower the local-odds-ratio threshold, and drop the health<5
-        # requirement), since continuing to fight losing local battles
-        # while globally behind is exactly the "snowball" pattern that
-        # keeps costing us round losses against tougher opponents (see
-        # README_agent.md's atl15__centerrr sessions).
-        if global_deficit_ratio >= 1.3:
-            local_ratio_threshold = 1.3
-            health_gate = 999  # effectively disabled
-        else:
-            local_ratio_threshold = 2.0
-            health_gate = 5
         locally_outnumbered = (
             len(adjacent_enemies) >= 2
-            and len(adjacent_enemies) >= local_ratio_threshold * (len(adjacent_allies) + 1)
-            and unit.health < health_gate
+            and len(adjacent_enemies) >= 2 * (len(adjacent_allies) + 1)
+            and unit.health < 5
         )
         if RETREAT_ENABLED and (len(adjacent_enemies) >= unit.health or locally_outnumbered):
             best_dir = None
