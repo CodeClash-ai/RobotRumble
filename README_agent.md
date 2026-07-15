@@ -185,3 +185,100 @@ modulo RNG). This was purely a readability fix, not a strategy change.
 - No opponent source code is visible to us (only our own bot + match logs),
   so opponent-strategy inference has to come from reading `sim_*.txt` board
   snapshots turn-by-turn, not from reading their code.
+
+## Round 1 update (this round)
+
+Opponent this series is `happysquid__test` (round 0 log: `/logs/rounds/0/`,
+250/250 win for us, avg ~24.8 vs ~2.3 final units -- see the win/loss
+snippet from the previous section, still works: run it from
+`/logs/rounds/0/`).
+
+Since we don't have a copy of the opponent's code and round 0 was a total
+sweep, the most useful thing to validate changes against locally is our own
+previous version. I saved the round-0 winning bot as
+`robot_v1_baseline.py` (untouched copy) specifically so future rounds can
+A/B test new ideas against it before submitting. Recommended pattern:
+
+```
+cd /workspace && python3 -c "
+import subprocess, re
+new_wins=old_wins=ties=0
+for s in range(1,21):
+    out = subprocess.run(['./rumblebot','run','term','--results-only','--seed',str(s),
+                           'robot.py','robot_v1_baseline.py'], capture_output=True, text=True).stdout
+    m = re.search(r'Units (\d+) (\d+)', out)
+    b,r = int(m.group(1)), int(m.group(2))
+    if b>r: new_wins+=1
+    elif r>b: old_wins+=1
+    else: ties+=1
+print(new_wins, old_wins, ties)
+"
+```
+Run it with the args swapped too (`robot_v1_baseline.py robot.py`) to check
+for side/spawn bias (blue vs red spawn corners aren't symmetric turn-order
+wise, though the map itself is point-symmetric) -- don't trust a single
+side's results. Also: each `rumblebot run term` invocation takes ~0.7-0.9s,
+so keep loops to <=20-25 iterations per shell command or the tool call will
+time out at 30s wall-clock; split larger sweeps across multiple commands.
+
+### What changed: per-unit soft targeting (was: one hard global target)
+
+Previously *every* robot walked straight at the single team-wide
+`focus_target_id` no matter how far away it was, only deviating to attack
+if an enemy happened to be adjacent along the way. This wastes movement: if
+the team's global target is on the other side of the map but there's a
+much closer (or nearly-dead) enemy nearby, units would ignore it until
+literally adjacent.
+
+New `_pick_personal_target()` gives each unit its own scored target choice
+every turn, blending three signals (lower score = more attractive):
+  - `unit.coords.distance_to(e.coords)` -- this unit's own proximity (was
+    previously not a factor in *movement* target choice at all, only in
+    initial pick of the shared global target).
+  - `e.health * HEALTH_WEIGHT` -- prefer already-damaged enemies (each kill
+    needs exactly 5 hits regardless of who lands them, so a 1-HP enemy is
+    just as valuable a target for a far unit as for a close one).
+  - `total_distance_for_units(allies, e) * COORD_WEIGHT` + a flat
+    `-FOCUS_BONUS` if `e.id == focus_target_id` -- keeps a mild pull toward
+    team consensus so we don't completely lose the "concentrate fire" benefit,
+    it's just no longer an absolute mandate.
+`init_turn`'s global-target selection also now folds in `e.health` (prefers
+picking an already-weak enemy as the team's shared focus, not just the
+closest-on-average one).
+
+Adjacent-enemy attack logic (opportunistic, always-attack-if-adjacent) and
+the sidestep movement fallback are UNCHANGED from round 0's version.
+
+### Validation
+
+A/B tested new `robot.py` vs the untouched `robot_v1_baseline.py` (round 0's
+winning bot) over 20 fixed seeds (1-20), both sides:
+  - new-as-Blue vs baseline-as-Red: **13 wins / 5 losses / 2 ties**
+  - baseline-as-Blue vs new-as-Red: new bot (Red) **13 wins / 6 losses / 1 tie**
+So the change is a consistent, side-independent improvement (~65% win rate)
+over the round-0 bot in mirror-matchup self-play. This is obviously not a
+guarantee of improvement against `happysquid__test` specifically (we don't
+have their code), but since round 0's bot already went 250-0 against them,
+beating an even *stronger* version of our own bot in a controlled A/B is a
+reasonable signal that this is a net positive, low-risk change (no new
+crash surface: only the target-scoring math changed, control flow is
+otherwise identical to the well-tested round-0 version).
+
+Tunable constants (`HEALTH_WEIGHT`, `FOCUS_BONUS`, `COORD_WEIGHT`) are all
+in the module-level of `robot.py` if a future teammate wants to sweep them;
+I only tried the one set of values above (didn't have step budget left to
+grid-search this round). A natural next experiment: sweep `COORD_WEIGHT`
+higher/lower and re-run the same 20-seed A/B harness above to see if more or
+less "clustering pull" helps further.
+
+### Ideas for future rounds (still open)
+- Grid-search the three weight constants above using the same A/B harness.
+- Real BFS/A* pathfinding around the diamond map's wall corners (still just
+  greedy `direction_to` + 1-step sidestep; can oscillate in tight clumps).
+- Since `happysquid__test` never moved at all in round 0, we still don't
+  have any evidence of what a *fighting* opponent looks like against us --
+  re-run the win/loss analysis on `/logs/rounds/1/` (this round's results)
+  first thing next round, before assuming the opponent is still passive.
+- `Action.heal` is confirmed a no-op in `Normal` game mode (see round 2's
+  notes above) -- don't bother unless you've confirmed matches run in
+  `NormalHeal` mode.
