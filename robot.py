@@ -96,15 +96,18 @@ def count_allies_near(state, coords, my_team):
 
 
 def retreat(state, unit):
-    """Move away from the nearest enemy to a free tile."""
+    """Move away from the nearest enemy, breaking ties by moving TOWARD allies
+    (regroup) so fragile units stay in formation instead of scattering."""
     other = state.other_team
     enemies = state.objs_by_team(other)
     if not enemies:
         return None
     my = unit.coords
     ne = min(enemies, key=lambda e: my.walking_distance_to(e.coords))
+    cur_d = my.walking_distance_to(ne.coords)
+    allies = [u for u in state.objs_by_team(unit.team) if u.id != unit.id]
     best = None
-    best_d = -1
+    best_key = None
     for d in DIRECTIONS:
         nxt = my + d
         if blocked_tile(state, nxt):
@@ -112,10 +115,16 @@ def retreat(state, unit):
         if state.obj_by_coords(nxt) is not None:
             continue
         dd = nxt.walking_distance_to(ne.coords)
-        if dd > best_d:
-            best_d = dd
+        if dd <= cur_d:
+            continue  # only tiles that actually increase distance from enemy
+        ally_pen = sum(nxt.walking_distance_to(a.coords) for a in allies
+                       if nxt.walking_distance_to(a.coords) <= 5)
+        # farther from enemy is better (negate), then closer to allies
+        key = (-dd, ally_pen)
+        if best_key is None or key < best_key:
+            best_key = key
             best = d
-    if best is not None and best_d > my.walking_distance_to(ne.coords):
+    if best is not None:
         return Action.move(best)
     return None
 

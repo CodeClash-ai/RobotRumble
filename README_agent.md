@@ -1375,3 +1375,54 @@ addresses the root loss pattern (too-slow kills -> opponent snowballs on spawns)
   second cluster. TEST BLUE side vs /tmp/aggro.py AND head-to-head vs baseline;
   reject anything that drops the BLUE win rate. Passive/retreat changes
   consistently REGRESS - avoid them.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = aayyad__testbot (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 220-18** with **12 TIES** vs
+  `aayyad__testbot` (we were RED). Opponent is COMPETITIVE (trades damage and
+  preserves units in close games). ~88% win rate.
+### Failure-mode analysis (from sim logs)
+- TWO loss patterns:
+  1) EARLY SNOWBALL blowouts (sim_127 17-8, sim_9 13-5, sim_54 14-6): we get
+     out-NUMBERED by turn ~15 (e.g. 8-5) and never recover; opponent snowballs
+     via spawns to 15-19 units.
+  2) LATE TRADE-DOWN of a lead/even game (sim_10 lost 9-8: at turn ~88 we were
+     11-11, then dropped 11->10->9->8 in the last turns while Blue held). Many
+     ties are EQUAL units, us AHEAD on HP (HP is NOT a tiebreaker - win = most
+     units at turn 100).
+### What I changed (robot.py) - REGROUP-AWARE RETREAT (tested, shipped)
+- Rewrote retreat(): was "move to the free tile FARTHEST from nearest enemy"
+  (this SCATTERS fragile units, a failure flagged by many prior teammates).
+  Now: among tiles that INCREASE distance from the nearest enemy, pick the one
+  that ALSO minimizes distance to allies (regroup key = (-dist_from_enemy,
+  ally_penalty)). Fragile units back off TOWARD the group, staying useful and
+  in formation instead of running off alone to die.
+- Everything else (focus-fire, grouping, boxed-priority attack, the various
+  retreat GATES) unchanged. The gates already existed; this makes the retreat
+  MOVE itself smarter.
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- Regenerated test bots: /tmp/aggro.py (nearest-chase+attack, STRONGER than
+  real opponent), /tmp/marcher.py (South marcher), /tmp/robot_baseline.py.
+  /tmp/batch.sh BLUE RED NSEEDS (keep NSEEDS<=6-8; batch is slow, ~2s/game,
+  30s wall-clock cap per command).
+- regroup(RED) vs aggro(BLUE) seeds 1-8: 7W 1T (baseline RED vs aggro 6/6).
+- regroup(BLUE) vs aggro(RED) seeds 1-6: 6/6 WINS (balanced, like baseline).
+- regroup(RED) vs baseline(BLUE) seeds 1-12: **7W-5L** (slight edge on OUR real
+  side, RED). Seeds 1-6 3-3, seeds 7-12 4-2.
+- regroup(RED) vs marcher: WIN 31-1. No regression vs passive.
+- robot.py parses OK; runtime ~1.6s/match, well under 60s.
+- CAVEAT: term seed-0 (deterministic) as BLUE ties aggro (baseline also close);
+  single-seed edge case, we play RED vs the real opponent (win term seed-0 RED).
+### Decision: SHIPPED regroup retreat (low-risk, slight edge on our RED side,
+no regressions vs aggro/marcher). Targets the "scatter to death" failure mode.
+### Guidance for next teammate
+- If opponent STAYS aayyad__testbot: robot.py wins ~220+/250; safe to submit.
+- The bigger untapped lever is the EARLY SNOWBLL (pattern 1): keep units GROUPED
+  in turns 5-20 so we don't get out-numbered early. Prior teammates found broad
+  grouping/passivity tweaks REGRESS on one side - test BOTH orientations vs
+  /tmp/aggro.py AND head-to-head vs /tmp/robot_baseline.py; reject anything that
+  drops below the baseline on the RED side (we are RED vs this opponent).
+- Regenerate test bots (Action/Direction/State are globals, no logic import):
+  * /tmp/aggro.py, /tmp/marcher.py, /tmp/robot_baseline.py (= git show HEAD:robot.py),
+    /tmp/batch.sh (see above).
