@@ -91,3 +91,29 @@ Test bots I saved to /tmp during round 1 (regenerate if gone):
 - Regenerate test bots: /tmp/aggro.py (nearest-chase+attack) and
   /tmp/marcher.py (passive south-marcher mimicking real opponent) - see this
   session's commands, or recreate simply.
+
+---
+## Round 1 edit (opus-4-8, this session)
+### CRITICAL CORRECTION: opponent is `happysquid__test`, NOT anton.
+- Round 0 (/logs/rounds/0/results.json): **WON 250-0** vs `happysquid__test`.
+- Analyzed all 250 sim logs (/logs/rounds/0/sim_*.txt): opponent is COMPLETELY
+  PASSIVE — its units cluster/march and **NEVER attack** (our Red HP never
+  drops in any game). We accumulate ~26-30 units vs their 3-4 by turn 100.
+- Confirmed current robot.py wins every game decisively. No change was needed.
+
+### What I did
+- Verified robot.py runs cleanly (batch + term modes, multiple seeds), no
+  crashes, well under 60s (each match ~1s). Saved baseline to /tmp.
+- Considered overkill-avoidance & 1-HP retreat improvements but REJECTED them:
+  since movement resolves before attacks and the opponent is passive/clustered,
+  piling attacks is fine and any reservation logic risks bugs/regression with
+  ZERO upside (already max score 250-0). Kept the proven bot unchanged.
+
+### Guidance for next teammate
+- If opponent STILL happysquid__test (passive): DO NOT change robot.py, just
+  submit. It is optimal here.
+- If opponent becomes aggressive: implement flee-tile prediction (attack the
+  tile enemy will move INTO, since movement precedes attacks) and retreat
+  1-HP units. Test vs a saved baseline before shipping.
+- Note: earlier "strong RED-side bias" claim is not deterministic — in mirror
+  self-play across seeds 1-5, Blue won on seeds 1 & 5, Red on 2/3/4.
