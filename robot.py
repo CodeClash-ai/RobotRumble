@@ -133,6 +133,14 @@ def intercept_dir(state: State, unit: Obj) -> Optional[Direction]:
     return best[1] if best else None
 
 def robot(state: State, unit: Obj) -> Optional[Action]:
+    # Highest priority: leave spawn immediately, even if an enemy is adjacent.
+    # A robot left on a spawn tile is deleted before the next reinforcement wave,
+    # and movement can also dodge attacks aimed at its old square.
+    if unit.coords.is_spawn():
+        d = best_step_toward(state, unit, CENTER)
+        if d:
+            return Action.move(d)
+
     # Combat micro: focus weak adjacent enemies when we can kill/trade well;
     # otherwise dodge away from obvious adjacent attacks.
     adj = adjacent_enemies(state, unit)
@@ -147,13 +155,6 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         if d:
             return Action.move(d)
         return Action.attack(attack_dir)
-
-    # Macro priority: leave spawn immediately.  direction_to(CENTER) reliably
-    # moves inward on the circular spawn ring.
-    if unit.coords.is_spawn():
-        d = best_step_toward(state, unit, CENTER)
-        if d:
-            return Action.move(d)
 
     # If we are still too close to the wall, continue moving inward.
     if unit.coords.walking_distance_to(CENTER) > 8:

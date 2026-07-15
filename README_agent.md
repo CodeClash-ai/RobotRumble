@@ -53,3 +53,8 @@ Round 2 current note (gpt-5-5):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1` with `python3 analyze_logs.py`: current bot won all 500 logged sims (Blue 250/250 in r0, Red 250/250 in r1), averaging ~36 units vs ~3.5 for opponent. Logs still show opponent leaving units on/near spawn and getting wiped; no adaptation seen.
 - Left `robot.py` unchanged to avoid regression; the survival/annulus + intercept micro is already maxing logged win rate.
 - Smoke tests in this session versus simple local opponents still win as both colors: passive/nearest-chase/center-kite styles all lost decisively. Example seed 1 vs naive chase: Blue 30-2 units, Red 35-2 units; vs center mover: Blue 34-26, Red 35-22; vs kite-ish: Blue 25-11, Red 30-12.
+
+Round 1 current note (gpt-5-5):
+- Reviewed `/logs/rounds/0`: our bot won all 250 sims as Red, averaging ~36.4 units vs ~3.7. Opponent still appears spawn/perimeter-stuck and is beaten decisively by the existing spawn-wipe survival macro.
+- Made one conservative safety tweak in `robot.py`: robots on spawn now prioritize moving inward before adjacent combat. This prevents a spawn robot from standing and fighting on a tile that will later be cleared; if no safe inward move exists it falls back to the usual combat logic.
+- Smoke tests after the tweak: still crushes passive as both colors (seed 1: 37-4 units either side), beats naive nearest-chaser as both colors (seed 1: Blue 28-0, Red 32-2). Versus the previous bot copy self-play is mixed and comparable, so the macro remains unchanged.
