@@ -20,21 +20,25 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     if not enemies:
         return None
 
-    # Find the closest enemy
-    closest_enemy = min(enemies, key=lambda e: unit.coords.walking_distance_to(e.coords))
+    # Focus fire on the weakest reachable enemy if possible, or closest overall
+    # Let's find the enemy that has the lowest health among those close to us
+    closest_enemy = min(enemies, key=lambda e: (unit.coords.walking_distance_to(e.coords), e.health))
     direction = unit.coords.direction_to(closest_enemy.coords)
     
-    # Try to move towards the enemy
+    # To avoid stepping on other allies, check if the cell is occupied
     move_target = state.obj_by_coords(unit.coords + direction)
     if not move_target:
         return Action.move(direction)
     else:
-        # Try alternate directions (cw, ccw)
-        for alt_dir in [direction.rotate_cw, direction.rotate_ccw]:
+        # Instead of just rotating cw/ccw randomly, let's see which direction gets us closer to the enemy
+        alt_dirs = [direction.rotate_cw, direction.rotate_ccw]
+        # Sort alternative directions by how close they bring us to the enemy
+        alt_dirs.sort(key=lambda d: (unit.coords + d).walking_distance_to(closest_enemy.coords))
+        for alt_dir in alt_dirs:
             if not state.obj_by_coords(unit.coords + alt_dir):
                 return Action.move(alt_dir)
                 
-    # If all primary paths are blocked, try moving away from the wall/spawn blocks if we can move anywhere
+    # If all primary paths are blocked, try moving anywhere
     for alt_dir in Direction:
         if not state.obj_by_coords(unit.coords + alt_dir):
             return Action.move(alt_dir)
