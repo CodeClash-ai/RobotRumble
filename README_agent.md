@@ -744,3 +744,28 @@ Zero upside to changing, real regression risk. Submitting as-is.
 - Regenerate test bots (Action/Direction/State are globals, no logic import):
   * /tmp/aggro.py: nearest-enemy chase+attack.
   * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = jiricodes__jiricodes-bot
+### Result recap
+- Round 0 (/logs/rounds/0/): **WON 250-0** vs `jiricodes__jiricodes-bot`. We were
+  BLUE (all 250 sims = Blue won). Opponent DOES target/attack (its logs show
+  "target ... -> Move" targeting logic) and deals a LITTLE damage (our Blue HP
+  dips slowly by ~1/turn early) but is MUCH weaker: we crush every game ~30-36
+  units to 0-3 (sim_0: 31-0 HP 155-0; sim_50: 35-1; sim_150: 31-3; sim_249: 36-0).
+### Verification this session
+- robot.py parses OK. Runtime ~1.5s/match, well under 60s.
+- robot vs STRONG /tmp/aggro.py (nearest-chase+attack, stronger than the real
+  opponent): **4/4 WINS as BLUE, 4/4 WINS as RED** (8/8 both orientations, seeds 1-4).
+- robot vs /tmp/marcher.py (South marcher): WIN both sides (robot always wins).
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent aggressive-ish but far weaker; current focus-fire + grouping bot wins
+250-0 AND beats a strong aggro test bot 8/8 both sides. Zero upside to changing,
+real regression risk. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS jiricodes__jiricodes-bot: submit robot.py as-is (optimal).
+- Regenerate test bots (Action/Direction/State are globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack.
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+- Further ideas NOT done: predictive attack on flee tiles + retreat; tune
+  ally_penalty. Only pursue vs a MUCH stronger opponent than this one.
