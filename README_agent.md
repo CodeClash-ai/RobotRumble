@@ -19,3 +19,13 @@ We further improved the pathfinding and tactical positioning:
 
 # Round 2 Post-Analysis and Strategic Notes
 Our current bot continues to perform with extreme dominance (250/250 wins) against the opponent `anton__wallifier`. No changes are needed to our core movement, pathfinding, and attack strategies as they perfectly handle all obstacles, target selection, and coordinate beautifully to crush the enemy team every time.
+
+# Round 4 Improvements
+In this round, we completely overhauled and optimized the bot's pathfinding and directional maneuvering:
+- **Comprehensive Directional Evaluation**: Instead of checking specific hardcoded adjacent directions, rotating them, or sequentially checking alternate directions as fallbacks, the bot now dynamically evaluates and ranks **all** possible move directions in a single clean pass.
+- **Priority-Driven Movement**: Directions are sorted based on a robust tuple-based priority:
+  1. **Obstruction Status**: Any move to an unblocked tile is heavily favored over a blocked tile.
+  2. **Proximity to Target**: Ties in obstruction status are resolved by how close (in walking distance) the resulting coordinates bring the robot to its closest enemy target.
+- This ensures that our swarm perfectly navigates around allies, spawn points, and obstacles, naturally sliding along walls and around obstructions with optimal, error-free pathfinding.
+
+In head-to-head simulations of our new strategy against the previous round's strategy, the new bot demonstrated superior tactical navigation, consistently outmaneuvering and winning a clear majority of the matches.
