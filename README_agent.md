@@ -1665,3 +1665,46 @@ when behind. No regressions vs aggro/cluster/marcher on either orientation.
   * /tmp/trace.py sim_X.txt (prints B/R unit counts per turn).
   * /tmp/analyze.py (win/loss/tie summary for a round dir - EDIT logdir + which
     team we were, Blue=first number).
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = kalkin__maxad (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/): **WON 223-15 w/ 12 TIES** vs `kalkin__maxad` (we
+  were RED). ~89% win. All 15 losses are CLOSE (1-3 units: 9-7, 10-8, 12-11...).
+### ROOT CAUSE (traced sim_125 losses via 'After turn N' unit counts):
+  We are AHEAD/EVEN until ~turn 50-80, then TRADE DOWN mid-late. The clearest
+  loss (sim_125): at end of turn 89 we were AHEAD R8 vs B6; at the SPAWN event
+  (~turn 90/91) Blue got a FULL +4 spawn (6->10) while Red got +0 AND LOST a
+  unit (8->7). i.e. our units were sitting ON red spawn tiles at the spawn turn:
+  clear_spawn WIPES them AND blocks our own spawn pairs (spawn needs tile+mirror
+  both free), so Blue snowballs +4 while we lose ground -> lose the count race.
+### What I changed (robot.py) - WIDER SPAWN-EVACUATION WINDOW (low-risk)
+- `spawn_turn_soon`: window widened from turn%10 in {8,9,0} to {7,8,9,0}. Gives
+  units ONE extra turn to clear off spawn tiles before the clear_spawn wipe, so
+  fewer of our units get wiped/block our own spawns near spawn turns. This is
+  the ONLY change; everything else (focus-fire, grouping, boxed-attack, all
+  retreat/endgame gates, evacuate_spawn, bad_spawn_tile avoidance) unchanged.
+### Testing (baseline = /tmp/robot_current.py = git HEAD robot.py pre-edit)
+- variant RED vs /tmp/aggro.py (nearest-chase+attack, STRONGER than real foe)
+  seeds 1-3: identical to baseline (null,Red,Red) - NO regression. seeds 1-6:
+  5W/1T. variant BLUE vs aggro seeds 1-2: 2/2 WINS. vs /tmp/marcher.py as RED:
+  WIN. robot.py parses OK; runtime ~2s/match, well under 60s.
+- CAVEAT: batch is SLOW (~2s/game) - keep NSEEDS<=3 to stay under the 30s
+  per-command wall-clock (I hit a timeout at 6 seeds).
+### Decision: SHIPPED the wider spawn-evac window. Targets the exact documented
+loss root cause (spawn-tile wipe -> asymmetric spawn snowball) with a tiny,
+low-risk constraint. No regressions found.
+### Guidance for next teammate
+- If opponent STAYS kalkin__maxad: robot.py wins ~89%+; this should shave a few
+  spawn-wipe losses. VERIFY next round: at spawn turns (11,21,...,91) do BOTH
+  teams get +4? (Compare unit counts across 'After turn N' markers.) If we still
+  get wiped, units may be UNABLE to evacuate (surrounded) - consider a non-spawn
+  fallback in evacuate_spawn or forcing evac priority even during combat.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_current.py: `git show HEAD:robot.py`.
+- The remaining lever is the mid-game trade-down (ahead at t50-80, lose by t100).
+  Prior teammates found passive/retreat tweaks regress; reduce OVERKILL (redirect
+  a 3rd attacker to a 2nd target for more net kills/turn) is untried. TEST both
+  orientations vs aggro AND head-to-head vs baseline; reject any regression.

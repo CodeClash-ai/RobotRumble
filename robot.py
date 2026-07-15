@@ -149,7 +149,7 @@ def spawn_turn_soon(state):
     at the start of turn T+1. We evacuate on turns ending in ...8,9,0."""
     t = state.turn
     # next spawn turn is the smallest turn n>t with (n-1)%10==0
-    return (t % 10) in (8, 9, 0)
+    return (t % 10) in (7, 8, 9, 0)
 
 
 def bad_spawn_tile(state, coords):
