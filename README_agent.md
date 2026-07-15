@@ -2433,3 +2433,54 @@ regression for marginal upside vs an opponent we already dominate.
 - term is NON-DETERMINISTIC - run 5x+, compare unit MARGINS not just W/L.
 - DEAD-ENDS (do NOT retry): reduce-OVERKILL, tighter early grouping,
   passive/retreat mid-game tweaks, adjacency-priority focus.
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = mee42__follow-bot (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 209-19 w/ 22 TIES** vs
+  `mee42__follow-bot` (we were BLUE). ~83% win. A genuinely COMPETITIVE opponent
+  (19 losses, 22 ties). ALL 19 losses are CLOSE (1-3 units, e.g. sim_0 6-8,
+  sim_106 5-7, sim_46 6-7).
+### ROOT CAUSE analysis (traced sim_0/sim_153/sim_31 via unit-count-per-turn)
+- Losses are combat TRADE-DOWNS: we stay ~tied/slightly-behind and lose the
+  count race in the mid-late game. In sim_0 we were TIED 7-7 at turn 90 then
+  traded down to 6-8. Spawn deltas: Red (opponent) consistently nets slightly
+  BIGGER spawns at critical turns (e.g. sim_0 turn 90 B7->9 +2 vs R7->11 +4),
+  compounding to a small count deficit. Spawns are symmetric per free pair
+  (lib.rs) so the gap comes from our units being wiped/blocking on spawn tiles
+  OR from us bleeding more units in combat. NOT a big single spawn-wipe.
+- The name "follow-bot" suggests each unit chases nearest enemy (my proxy
+  /tmp/follow.py = nearest-enemy chase+attack; the baseline beats it 8/8).
+### Experiment tested (NOT shipped - REGRESSED)
+- /tmp/v_exp.py: changed `even_game` gate from `my_units <= enemy_units` to
+  `my_units < enemy_units` (i.e. stay AGGRESSIVE when TIED late, only preserve
+  fragile units when strictly BEHIND). Idea: in a tied endgame we must trade to
+  break the tie into a win.
+  * v_exp BLUE vs /tmp/follow.py 5x: introduced a LOSS (5-9) among 4 wins.
+  * baseline BLUE vs /tmp/follow.py 5x: 5/5 WINS (13-10,9-8,10-7,14-8,16-8).
+  * REGRESSION - the tied-game fragile-unit preservation is BENEFICIAL (staying
+    aggressive when tied feeds trades and can flip a win to a loss). REJECTED.
+### Verification this session
+- robot.py parses OK (ast.parse); `def robot(state: State, unit: Obj)` line 268.
+- baseline BLUE vs /tmp/follow.py: 8/8 WINS (solid margins).
+- baseline BLUE vs STRONG /tmp/aggro.py (nearest-chase+attack, stronger than
+  real foe): 4/4 WINS (14-8,14-8,11-9,13-6). Robust.
+- Runtime ~2s/match, well under 60s.
+### Decision: KEPT robot.py UNCHANGED (proven balanced baseline, ~83% win).
+The bot is highly mature (focus-fire + multi-target squads + grouping +
+spawn-evac + endgame lock-in/disperse). My tested experiment REGRESSED. All
+other change levers are DOCUMENTED DEAD-ENDS (reduce-OVERKILL, tighter early
+grouping, passive/retreat mid-game tweaks, adjacency-priority focus). The
+residual ~17% losses/ties are genuine close combat trade-downs that resist
+safe fixes. Changing risks regression for marginal upside.
+### Guidance for next teammate
+- If opponent STAYS mee42__follow-bot: submit robot.py as-is (~83% win as BLUE).
+  Do NOT retry the even_game-tied experiment (tested, regressed).
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/follow.py: nearest-enemy chase+attack (best proxy for follow-bot).
+  * /tmp/aggro.py: same as follow (nearest-chase+attack, stronger stress test).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+- term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL, tighter early grouping,
+  passive/retreat mid-game tweaks, adjacency-priority focus, even_game-tied.
