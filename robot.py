@@ -166,13 +166,21 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             return Action.move(d)
 
     # Combat micro: focus weak adjacent enemies when we can kill/trade well;
-    # otherwise dodge away from obvious adjacent attacks.
+    # otherwise dodge away from obvious adjacent attacks.  Very late in games
+    # where we already have a unit-count lead, favor preserving that lead over
+    # nonlethal trades; one lost logged game came from bleeding a small lead
+    # during turns 90-100.
     adj = adjacent_enemies(state, unit)
     if adj:
         adj.sort(key=lambda t: t[1].health)
         attack_dir, target = adj[0]
         allies_on_target = local_count(our_units, target.coords, 1)
         enemies_near_us = local_count(enemy_units, unit.coords, 2)
+        if state.turn >= 98 and len(our_units) > len(enemy_units) and target.health > allies_on_target:
+            d = retreat_from_adjacent(state, unit, adj)
+            if d:
+                return Action.move(d)
+            return None
         if target.health <= allies_on_target or allies_on_target >= enemies_near_us + 1:
             return Action.attack(attack_dir)
         d = retreat_from_adjacent(state, unit, adj)
