@@ -1322,3 +1322,56 @@ upside vs an opponent we already dominate.
   * ALWAYS test BOTH orientations vs /tmp/aggro.py AND head-to-head vs
     /tmp/robot_baseline.py; reject anything that drops below the baseline on the
     BLUE side (we are Blue vs this opponent).
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = anton__anton4000 (COMPETITIVE)
+### Result recap
+- Round 0: **WON 238-3** with 9 TIES vs anton__anton4000 (we were BLUE).
+- Round 1: **WON 240-4** with 6 TIES vs anton__anton4000 (we were BLUE).
+- Analyzed /logs/rounds/1 non-wins (6 ties + 4 losses): in ALL of them we ended
+  EVEN-or-behind on UNITS **and** behind on HP (opponent preserves HP AND units
+  better). Win = most units at turn 100 (HP NOT a tiebreaker).
+- FAILURE MODE (sim_249 trace): even ~8-8 mid-game, then around spawn turns the
+  opponent pulls ahead (8-10, then we trade DOWN 8->6->5 while they stay
+  higher). We don't KILL fast enough before spawns refresh -> they snowball.
+
+### What I changed (robot.py) - FASTER GANG-KILL FOCUS TARGET (tested, shipped)
+- init_turn focus-target score changed from `(health, total_dist)` to
+  `(-reachers, health, total_dist)` where `reachers` = # of our units within
+  walking distance 3 of that enemy. => we now focus the enemy the MOST allies
+  can converge on QUICKLY, securing kills faster (before the 10-turn spawn
+  refresh). Pure OFFENSIVE change (not passivity - prior teammates showed
+  passive/retreat changes REGRESS). One-block change; everything else unchanged.
+
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- vs STRONG /tmp/aggro.py (nearest-chase+attack, STRONGER than real opponent):
+  * v_focus BLUE seeds 1-16: **16/16 WINS** (baseline 15W/1T - flipped a tie).
+  * v_focus RED seeds 1-6: **6/6 WINS**.
+- v_focus(Blue) vs baseline(Red) head-to-head seeds 1-16: **10W-6L** => clearly
+  better on OUR side (we are always BLUE vs the real opponent). As RED it was
+  worse (side bias - self-play is noisy & Blue-biased; not a concern since we
+  play Blue).
+- v_focus vs /tmp/marcher.py both sides: wins ALL. No regression vs passive.
+- CAVEAT: term seed-0 (deterministic) v_focus TIES aggro (7-7) where baseline
+  WON (12-8). Single-seed edge case; aggregate seeds 1-16 v_focus is strictly
+  better on Blue. Not a real-opponent concern (opponent != aggro).
+- robot.py parses OK; runtime ~2.3s/match, well under 60s.
+
+### Decision: SHIPPED the faster-gang-kill focus change (offensive, low-risk).
+Clearly better on the BLUE side (our real side) vs both aggro and baseline;
+addresses the root loss pattern (too-slow kills -> opponent snowballs on spawns).
+
+### Guidance for next teammate
+- If opponent STAYS anton__anton4000: robot.py wins ~240+/250; this edit should
+  shave some of the close ties/losses by killing faster. Safe to submit.
+- Regenerate test bots (Action/Direction/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * /tmp/batch.sh BLUE.py RED.py NSEEDS (keep NSEEDS<=8 to avoid 30s wall-clock).
+- Untried ideas to further convert ties: reduce OVERKILL (don't stack 3
+  attackers where 2 suffice; redirect extras to a 2nd target for more net
+  kills/turn); tune `reachers` radius (3) or add a 2nd focus target for a
+  second cluster. TEST BLUE side vs /tmp/aggro.py AND head-to-head vs baseline;
+  reject anything that drops the BLUE win rate. Passive/retreat changes
+  consistently REGRESS - avoid them.
