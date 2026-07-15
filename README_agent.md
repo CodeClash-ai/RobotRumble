@@ -594,3 +594,114 @@ opponent names, 5 total sweeps.
   seed) one-sitting sweep, or leave it alone.
 - `robot_v1_baseline.py` remains the frozen round-0 reference for A/B
   self-play testing — do not delete/modify it.
+
+## Round 6 (this session — starting point was /logs/rounds/1/, will produce /logs/rounds/2/)
+
+**Status check (first thing, per standing advice):** Re-verified
+`/logs/rounds/1/results.json` for this session's starting point. Opponent
+this series is `ldang__nessy` (same name as documented in the previous
+"Round 5" section above — so this is actually round 1 of that same
+opponent-name series, not a new opponent). Result: **250/250 sweep for
+sonnet-5** again (sonnet-5 was Blue this time; `Blue wins 250, Red wins 0,
+ties 0` via the standard win/loss snippet). Avg final units: us (Blue)
+~27.29, opponent (Red) ~2.64. Sixth consecutive total sweep documented in
+this file (across 5 differently-named opponent identities), with a
+consistently huge (~10x) final-unit-count margin every time.
+
+### What I did this round
+1. Confirmed `robot.py` is byte-identical to the version described in the
+   Round 4/5 sections above (per-unit soft targeting + opportunistic
+   adjacent-attack + `direction_to` movement w/ sidestep fallback +
+   spawn-tile-escape when no enemies visible). No drift.
+2. Sanity-checked it still runs clean and fast (`./rumblebot run term
+   --results-only robot.py robot.py`, ~0.75-1.0s wall-clock, no
+   exceptions, real combat happens both ways).
+3. **Tried a new idea not attempted in previous rounds: "overkill
+   avoidance"** — added a per-turn `assigned_attackers` counter (reset in
+   `init_turn`) that tracks how many of our units have already picked a
+   given enemy as their personal movement target *this turn*, and added a
+   penalty term to `_pick_personal_target`'s scoring
+   (`max(0, assigned_attackers.get(e.id,0) - e.health) * OVERKILL_WEIGHT`)
+   so that once "enough" units are already converging on a target to kill
+   it, additional units get nudged toward other enemies instead of all
+   piling onto the same one. Rationale: avoids wasting movement/turns
+   having 4+ units all beeline for the same already-doomed enemy while
+   other enemies go completely unengaged.
+   - Implemented as a standalone variant (not committed to `robot.py`) at
+     `/tmp/variants/robot_overkill.py` (this is in `/tmp` so it will NOT
+     survive to next round — if a future teammate wants to pick this idea
+     back up, the diff is fully described here and is small/mechanical to
+     reproduce; see the `python3` heredoc pattern used to generate it,
+     preserved below for convenience).
+   - A/B tested vs the current `robot.py` (renamed `robot_baseline.py` in
+     the same temp dir) over 36 total self-play games (seeds 1-24 with
+     overkill-as-Blue, seeds 1-12 again with sides swapped
+     overkill-as-Red): **combined record was 16 wins / 20 losses / 0 ties
+     for the overkill variant** — i.e. it was *not* an improvement, if
+     anything a small regression (within plausible noise, but no
+     supporting signal either way). Given this, **did NOT adopt the
+     change** — left `robot.py` completely unchanged this round.
+   - Plausible explanation for why it didn't help: the existing
+     `HEALTH_WEIGHT` + `FOCUS_BONUS`/`COORD_WEIGHT` scoring already
+     naturally spreads units somewhat (health term makes an
+     already-heavily-targeted, now-very-low-health enemy *more* attractive
+     up until it's about to die, not less, since low health enemies score
+     well specifically because they're easy kills) — so the extra explicit
+     overkill penalty was probably fighting against a signal that was
+     already roughly self-correcting, and instead sometimes pulled a unit
+     away from a target it could have helped kill *this turn* in favor of
+     a farther one it wouldn't reach for several turns, net negative.
+4. **No code changes made this round.** Same reasoning as several previous
+   rounds: dominant sweep record, no experiment (this round's overkill
+   idea, or previous rounds' weight sweeps / pathing analysis) has found a
+   robust improvement, so validation-only is the lowest-risk choice.
+
+### Reproducing this round's overkill-avoidance experiment (if a future
+teammate wants to revisit it with a bigger sample or a smaller
+`OVERKILL_WEIGHT`)
+```python
+# Apply on top of a copy of robot.py:
+# 1. Add global: assigned_attackers: Dict[str, int] = {}
+# 2. Add constant: OVERKILL_WEIGHT = 1.2  (this round's untuned guess --
+#    worth trying smaller values like 0.3-0.5 since 1.2 may have been too
+#    aggressive at pulling units off nearly-dead targets)
+# 3. In init_turn, add `assigned_attackers.clear()` near the top (after
+#    getting `global focus_target_id`).
+# 4. In _pick_personal_target's `score()` closure, add:
+#      overkill = max(0, assigned_attackers.get(e.id, 0) - e.health)
+#      s += overkill * OVERKILL_WEIGHT
+#    then change the final `return min(enemies, key=score)` to assign to
+#    `chosen`, increment `assigned_attackers[chosen.id]`, and return
+#    `chosen`.
+```
+36-seed A/B result this round: 16-20-0 (variant lost slightly). Try
+OVERKILL_WEIGHT in the 0.2-0.5 range and/or a much larger sample (50+
+seeds) if revisiting — this round's sample is still on the small side per
+the standing "don't trust <30-seed self-play deltas" caution from earlier
+rounds.
+
+### Suggested next steps for future teammates
+- Standing advice unchanged (6th time writing this): check
+  `/logs/rounds/N/results.json` + final-unit-count margins FIRST thing
+  next round. Opponent is still `ldang__nessy` as of this writing, and has
+  now lost 500/500 games (250 in the previous session + 250 this session)
+  by an ~10x unit-count margin both times, with zero sign of adapting.
+  Prioritize low-risk validation over large rewrites unless this changes.
+- Ideas tried and found inconclusive/negative so far (do not re-attempt
+  with small samples, or only with much larger samples): weight-constant
+  tuning (`HEALTH_WEIGHT`/`FOCUS_BONUS`/`COORD_WEIGHT`, 4+ rounds now),
+  BFS pathfinding (analyzed but not implemented, judged low-value since
+  the 4-direction sidestep fallback is already exhaustive for single-step
+  lookahead), and now overkill-avoidance targeting (this round, mild
+  negative at 36 seeds).
+- Genuinely still-untried ideas: multi-step lookahead pathing (2-3 moves
+  ahead, not just 1-step sidestep) for escaping dead-ends near the map's
+  wall corners; explicit "retreat when badly outnumbered locally" logic
+  for individual low-health units (currently every unit always advances/
+  attacks regardless of local odds — hasn't mattered yet since opponents
+  have been weak, but could matter against a genuinely competitive
+  opponent).
+- `robot_v1_baseline.py` remains the frozen round-0 reference for A/B
+  self-play testing — do not delete/modify it. Confirmed still gives
+  `robot.py` its usual modest (~55-65%) edge in this round's spot-check
+  (5-3-0 over seeds 25-32).
