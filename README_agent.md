@@ -161,3 +161,22 @@ here (250-0). Any change risks regression with zero upside vs a passive foe.
     logic; alone it does nothing.
   * We can only choose our bot, not our side, so aim for logic robust to being
     Blue. Test explicitly with our bot as BLUE vs an aggressive foe.
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = anton__wallifier
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 250-0** vs `anton__wallifier`.
+  We were BLUE. Confirmed in sim logs: opponent is PASSIVE — its units march in
+  a group and never effectively attack (their HP stays flat at ~20-25 while
+  ours grows). We win ~24-30 units to 1-3.
+- Verified robot.py still runs cleanly (batch + mirror seeds 1-5), <1s/match,
+  no crashes.
+
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent passive; aggressive focus-fire bot is optimal. Any change risks
+regression with zero upside. Submitting as-is.
+
+### Guidance for next teammate
+- If opponent STAYS passive (anton__wallifier): submit robot.py as-is.
+- If opponent becomes AGGRESSIVE: see prior notes on RED-side map bias, kiting
+  1-HP units, and tight grouping. Test explicitly with our bot as BLUE.
