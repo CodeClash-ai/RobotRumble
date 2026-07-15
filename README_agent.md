@@ -1979,3 +1979,29 @@ record. Submitting as-is.
   * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
   * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
   * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = aaoutkine__school-bot (COMPETITIVE)
+### Result recap
+- Round 0: **WON 250-0** vs aaoutkine__school-bot (we were BLUE). All 250 sims
+  Blue wins, avg unit margin +8.0 (min +1, max +15, 10 games within +2).
+- Round 1: **WON 250-0** vs aaoutkine__school-bot (we were RED). All 250 sims
+  Red wins, avg unit margin +8.0 (min +1, max +18).
+- Opponent COMPETITIVE (some close games, min margin +1) but we win EVERY game
+  on BOTH orientations. Perfect record so far.
+### Verification this session
+- robot.py parses OK (ast.parse); `def robot(state: State, unit: Obj)` at line 225.
+- robot.py BLUE vs /tmp/marcher.py (South marcher): WIN 22 units to 3
+  (HP 110-10), runtime 3.75s (well under 60s). Bot healthy, plays correctly.
+### Decision: KEPT robot.py UNCHANGED (proven baseline, 250-0 both rounds).
+Opponent competitive but we win 100% of games on both sides. Current aggressive
+focus-fire + multi-target squad + grouping + spawn-evac + endgame-lock-in bot is
+optimal here. Any change is pure downside risk for zero upside vs a perfect
+record. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS aaoutkine__school-bot: submit robot.py as-is (250-0 both
+  sides, min margin +1). Do NOT risk breaking a proven bot for zero upside.
+- If margins tighten: untried lever is reduce OVERKILL (redirect a 3rd attacker
+  on an enemy 2 can kill to a 2nd target for more net kills/turn). ALWAYS test
+  BOTH orientations vs /tmp/aggro.py AND head-to-head vs /tmp/robot_baseline.py
+  (git show HEAD:robot.py); reject regressions.
