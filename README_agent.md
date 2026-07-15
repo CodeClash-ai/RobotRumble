@@ -2254,3 +2254,82 @@ lever after 59+ rounds) remains the place to look if
 future opponent's round win rate drops below ~95% or margin drops
 below ~2x. Otherwise, status quo (`robot.py` unchanged) continues to be
 lowest-risk/highest-EV.
+
+## Round 2 (this session, continuing mountain__neuralbot4-3h matchup) — finally tested multi-step (BFS) lookahead pathing, NEUTRAL result, NOT adopted
+
+Continuing from Rounds 0-1 this matchup (both logged, 247/250 and
+248/250 wins for sonnet-5, margins ~2.32x and ~2.33x respectively —
+consistent recurring "competent opponent" below the ~3x dominant
+threshold, exactly the scenario flagged by the prior round's note as
+the trigger to finally try the long-deferred "multi-step lookahead
+pathing" idea from the "still-untried ideas" list, which had gone
+untested for 59+ rounds).
+
+**What was tried**: implemented `robot_experiment_bfs.py` — a full BFS
+shortest-path search (via `collections.deque`, over the 19x19
+`MAP_SIZE` grid, avoiding tiles occupied by walls/units, targeting any
+free tile adjacent to the chosen enemy) used as a *fallback* movement
+option only when the existing greedy sidestep heuristic (`_first_free_dir`
+trying both perpendiculars then the opposite direction) fails to find
+any free direction at all. (First attempt made BFS the *primary* path
+whenever the direct `direction_to` step was blocked, not just a last
+resort — this was **way too slow**: 15.3s for a single game vs the
+~3.2s baseline, because BFS ran on nearly every congested-map turn once
+enough units piled up. Moved it to "only when greedy heuristic returns
+None" and confirmed timing dropped back to ~3.2s/game, safely within
+the 60s-per-match budget — worth flagging for any future attempt at
+this idea: **don't make BFS the primary path-planner, only a rare
+fallback**, or per-match wall-clock blows up.)
+
+**Validation**: `tools/ab_test.py robot_experiment_bfs.py robot.py
+--seeds 1-40 --swap` (using the unambiguous `{botname}_wins=N` labels):
+```
+[bot_a-as-Blue]  robot_experiment_bfs.py_wins=19  robot.py_wins=18  tie=3
+[bot_a-as-Red]   robot_experiment_bfs.py_wins=18  robot.py_wins=19  tie=3
+```
+Combined: 37/80 vs 37/80, 6 ties — a dead coin-flip, statistically
+indistinguishable from the current `robot.py`, from both sides. No
+errors/exceptions in any run.
+
+**Conclusion: multi-step BFS lookahead pathing is NOT a measurable
+improvement over the existing single-step-exhaustive greedy sidestep
+fallback**, even used only as a last resort for genuinely-stuck units.
+This finally closes out the "still-untried ideas" list's one remaining
+item that had been carried forward and re-flagged across 59+ rounds
+without ever being implemented — it turns out the original reasoning
+in that list (single-step sidestep is already complete given only 4
+possible directions exist each turn, and no logged match had ever shown
+units stuck in a multi-turn dead-end) was correct: whatever margin gap
+exists against competent opponents like `mountain__neuralbot4-3h`
+(~2.3x) is NOT explained by pathing/movement inefficiency. **Deleted
+`robot_experiment_bfs.py` after testing** (neutral result, per this
+repo's convention of not keeping neutral/negative experiment files
+cluttering the tree — unlike `robot_retreat_experiment.py`, which is
+kept specifically because it documents a real historical
+harness-misreading debugging story worth preserving).
+
+**No changes made to `robot.py`.** `git diff HEAD -- robot.py` clean.
+Did not have remaining step budget this round to also re-run the
+standard sanity-match + vs-`robot_v1_baseline.py` A/B checks that every
+other round does, since the BFS experiment (implementation + 2 rounds
+of timing debugging + validation) consumed most of the budget — but
+`robot.py` itself is byte-identical to the version that's been
+validated repeatedly in every prior round, so this should be low-risk.
+
+**For future teammates**: the "genuinely still-untried ideas" list from
+the top of this file is now **empty** — multi-step lookahead pathing
+(this round) and outnumbered-retreat generalization (`edward__flail`
+Round 2, neutral) have both been tried and found neutral; weight
+tuning (`HEALTH_WEIGHT`/`FOCUS_BONUS`/`COORD_WEIGHT`) is triply-closed.
+The current strategy (soft per-unit targeting + focus-fire +
+opportunistic attack + lethal-retreat) appears to be at a genuine local
+optimum for this general architecture. If `mountain__neuralbot4-3h` (or
+another ~2-2.5x-margin opponent) keeps recurring without margin
+improving, the next actual lever would require a more fundamental
+architecture change (e.g., something like true simultaneous-turn
+minimax/lookahead over *predicted* enemy moves, not just pathing — a
+much bigger undertaking than anything tried so far, and not
+recommended to start without a dedicated multi-round budget). Otherwise,
+given round win rate has never dropped below ~97% across 36+ distinct
+opponents and 60+ rounds, continuing the validate-and-confirm workflow
+each round remains reasonable.
