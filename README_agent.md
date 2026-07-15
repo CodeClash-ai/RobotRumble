@@ -991,3 +991,45 @@ real regression risk. Submitting as-is.
 - Regenerate test bots (Action/Direction/State are globals, no logic import):
   * /tmp/aggro.py: nearest-enemy chase+attack.
   * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = aaa__jippty5
+### Result recap
+- Round 0: **WON 250-0** vs aaa__jippty5 (we were BLUE).
+- Round 1: **WON 248-0** with **2 TIES** vs aaa__jippty5 (we were BLUE, sim_0:
+  14 units to 6, HP 39-22). The 2 ties (sim_163, sim_222) ended with EQUAL unit
+  counts (9-9, 10-10) => tie (win is purely by unit count at turn 100; HP is
+  NOT a tiebreaker - verified in logic/logic/src/lib.rs
+  determine_winner_from_units_count: equal max => None/tie).
+- Opponent aggressive-ish but weaker; in tie seeds it traded 1-for-1 evenly.
+
+### What I changed (robot.py) - LATE-GAME UNIT PRESERVATION
+- Added a late-game retreat rule to help convert TIES into WINS: when
+  `state.turn >= 88` and a fragile unit (health <= 2) is adjacent to an enemy
+  but CANNOT secure a kill this turn, it RETREATS instead of feeding an
+  even/losing trade. Preserving unit count late is what wins (count-only win).
+- One-block change in robot() (the `should_retreat` gate). Everything else
+  (focus-fire, grouping, boxed-priority attack) unchanged.
+
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- new (Blue) vs STRONG /tmp/aggro.py, seeds 1-16: **15W 1T, 0 losses**.
+  baseline (Blue) vs aggro seeds 1-16: 15W 1L. => new converted a loss->tie,
+  NO regressions. (aggro is STRONGER than the real opponent.)
+- new vs /tmp/marcher.py (South marcher) both orientations seeds 1-4: robot
+  wins ALL 8. No regression vs passive.
+- new vs baseline self-play seeds 1-10 both orientations: 9W-10L-1T ~ wash
+  (side bias dominates in strong-vs-strong; expected, not a concern).
+- robot.py parses OK; runtime ~1.5s/match, well under 60s.
+
+### Decision: shipped the safe late-game preservation change.
+Marginal, low-risk improvement aimed at the 2 ties; no regressions found.
+
+### Guidance for next teammate
+- If opponent STAYS aaa__jippty5: robot.py wins ~248-0-2; safe to submit.
+  The late-game retreat may shave a tie or two into wins.
+- Regenerate test bots (Action/Direction/State are globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+- If ties persist, consider: retreat threshold turn (try 85 vs 90), or an
+  explicit "preserve count when even" late strategy. Tune the late_game turn.

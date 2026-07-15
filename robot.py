@@ -146,7 +146,16 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         can_kill = e.health <= attackers
         # Retreat a fragile unit that is outnumbered locally and cannot kill.
         outnumbered = n_adj_enemies > my_local + 1
-        if not can_kill and (unit.health <= 1 or (outnumbered and unit.health <= 2)):
+        # Late-game: preserve unit count (win = most units at turn 100). If a
+        # fragile unit (<=2 HP) can't secure a kill this turn, retreat instead
+        # of feeding an even/losing trade near the end.
+        late_game = state.turn >= 88
+        should_retreat = (
+            unit.health <= 1
+            or (outnumbered and unit.health <= 2)
+            or (late_game and unit.health <= 2)
+        )
+        if not can_kill and should_retreat:
             r = retreat(state, unit)
             if r is not None:
                 return r
