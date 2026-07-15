@@ -226,7 +226,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # must be evacuated.  After the last spawn (turn 90+) there is no turn
         # 101 clear, so perimeter robots are often safer counting as survivors
         # than marching into late trades.
-        if state.turn < 90:
+        if state.turn < 91:
             d = best_step_toward(state, unit, CENTER)
             if d:
                 return Action.move(d)
@@ -273,7 +273,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             clean_kill = (target.health <= allies_on_target and unit.health > len(adj))
             if clean_kill:
                 return Action.attack(attack_dir)
-            d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 90))
+            d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 91))
             if d:
                 return Action.move(d)
             return None
@@ -285,6 +285,18 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             return Action.move(d)
         return Action.attack(attack_dir)
 
+    # Before the final reinforcement/clear resolves, do not let the late-ahead
+    # preservation rule freeze perimeter robots that still need to get safely
+    # off the wall/spawn ring.  Recent close logs against kalkin__maxad show
+    # large pre-final-spawn leads flipping at the final wave, consistent with
+    # too many bodies being left near clearable spawn tiles.  Once turn >= 91
+    # the final wave has arrived in engine turn numbering and preserving
+    # bodies takes priority again.
+    if state.turn < 91 and unit.coords.walking_distance_to(CENTER) > 8:
+        d = best_step_toward(state, unit, CENTER)
+        if d:
+            return Action.move(d)
+
     # If ahead in the final stretch, preserve the unit-count lead by kiting
     # nearby enemies instead of volunteering for trades.  With a 2+ unit
     # cushion, start after turn 85; with a one-unit lead, wait until turn 90.
@@ -293,7 +305,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # simply avoid contact, while marching inward can bleed close leads.
     if ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
             (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2)):
-        d = kite_from_nearby(state, unit, 3, allow_spawn=(state.turn >= 90))
+        d = kite_from_nearby(state, unit, 3, allow_spawn=(state.turn >= 91))
         if d:
             return Action.move(d)
         # Once we have a late unit-count lead, do not volunteer for any extra
@@ -319,7 +331,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     if state.turn >= 90 and len(our_units) == len(enemy_units):
         health_edge = sum(a.health for a in our_units) - sum(e.health for e in enemy_units)
         if 0 < health_edge < 25:
-            d = kite_from_nearby(state, unit, 3, allow_spawn=(state.turn >= 90))
+            d = kite_from_nearby(state, unit, 3, allow_spawn=(state.turn >= 91))
             if d:
                 return Action.move(d)
             return None
