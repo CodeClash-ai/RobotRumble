@@ -2556,3 +2556,62 @@ execution across the entire series.
   consistent, reproducible, side-independent edge (this round: 50-25-5
   combined across both sides, 40 seeds each direction, 80 games total —
   identical to previous rounds' numbers since nothing changed).
+
+## Round 30 (this session — starting point had /logs/rounds/0/ AND /logs/rounds/1/
+already present, will produce /logs/rounds/2/)
+
+**Status check:** Both `/logs/rounds/0/` and `/logs/rounds/1/` already
+present at session start. Opponent this series is `essickmango__fruity-test`
+(same identity as the previous round's notes — round 0 and round 1 here are
+both part of that same opponent-name series, matching git log `Rung
+16/58 (essickmango__fruity-test, elo #43) — Round 1 Update`). Both rounds:
+**250/250 sweep for sonnet-5** (round 0: sonnet-5 Blue; round 1: sonnet-5
+Red). Recomputed round 1 directly: 250 Red(us) wins / 0 Blue(opponent)
+wins / 0 ties, avg final units us ~17.59, opponent ~3.33 (~5.3x margin) —
+in the normal historical range (~4.6x-38.8x across rounds 19-29).
+Thirtieth consecutive total sweep documented in this file (across 17
+differently-named opponent identities). No error/exception/traceback/panic
+strings found in any `sim_*.txt`.
+
+### What I did this round
+1. Confirmed `robot.py` has zero diff from `git show HEAD:robot.py`
+   (`git status --short` clean) — no drift from the version described in
+   rounds 4-29 above.
+2. Sanity-checked it still runs clean and fast: `./rumblebot run term
+   --results-only robot.py robot.py` and `... robot.py
+   robot_v1_baseline.py` — both ~1.0-1.3s wall-clock, no exceptions, real
+   combat both times.
+3. Ran `tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40
+   --swap`: robot.py-as-Blue **26/12/2**; robot.py-as-Red (swapped)
+   **24/13/3** — identical numbers to every previous round's check since
+   nothing in either bot file has changed (fully deterministic given fixed
+   seeds). No regression.
+4. **No code changes made this round.** Same reasoning as ~28 previous
+   validation-only rounds: 30 consecutive 250/250 sweeps across 17
+   opponent identities, all crushed by 4.6x+ margins minimum, zero runtime
+   errors ever observed across ~7500+ simulated games total, and every
+   tunable knob in the bot has already been explored with no robust
+   improvement found (see Rounds 6, 10, 12 for the closed experiments).
+
+### Suggested next steps for future teammates
+- Standing advice unchanged: check `/logs/rounds/N/results.json` +
+  final-unit-count margins FIRST thing next round, before making changes.
+  Use `tools/ab_test.py` for any self-play A/B testing.
+- Given the very long unbroken streak (30 rounds, 17 opponents, 100% round
+  win rate, all with margins well above 4x), this file's per-round
+  validation notes have become extremely repetitive/verbose. **Suggestion
+  for future teammates: if the next several rounds continue this same
+  pattern, consider consolidating this history into a single concise
+  "status: still dominant, see git log for opponent history" summary at
+  the top of this file instead of appending another multi-paragraph
+  section, to keep the file manageable.** Only write a detailed new
+  section again if something actually changes (opponent wins a game,
+  margin drops below ~3x, or a real code change is made).
+- Still-untried, still-available levers if a future teammate wants to
+  experiment (unchanged from Round 28/29 notes): multi-step lookahead
+  pathing (judged low-value in Round 5); "retreat when badly outnumbered"
+  logic for individual units (untried, real regression risk). Both remain
+  unnecessary given the current dominance, but are there if a genuinely
+  tough opponent ever appears.
+- `robot_v1_baseline.py` remains the frozen round-0 reference bot for A/B
+  self-play testing — do not delete/modify it.
