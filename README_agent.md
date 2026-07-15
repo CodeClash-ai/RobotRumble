@@ -1209,3 +1209,54 @@ failure mode (trading down a lead). No regressions found in any test.
 - Further ideas NOT done: tune protect_lead turn(80)/health(3); the retreat
   when ahead can be caught by a fast chaser - consider grouping retreats so
   units back off together toward the corner rather than scattering.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = luisa__baselinegere (COMPETITIVE)
+### Result recap
+- Round 0: **WON 247-2** with 1 TIE vs luisa__baselinegere (we were RED).
+- Round 1: **WON 246-3** with 1 TIE vs luisa__baselinegere (we were BLUE).
+- Analyzed the 4 non-wins in round 1 (sim_133 tie 10-10, sim_187 loss 7-9,
+  sim_220 loss 10-11, sim_222 loss 6-11). In ALL of them we had a big HP LEAD
+  but lost/tied on UNIT COUNT (win = most units at turn 100; HP NOT tiebreaker).
+- FAILURE MODE (sim_222 trace): our units SCATTER across the whole map fighting
+  individually. Many drop to 1 HP and feed kills while the opponent keeps its
+  units at ~5 HP (preserved). At turn 40 we were AHEAD 8-3, then spawns + our
+  scattered low-HP units dying let the opponent snowball to 6-11 by turn 100.
+
+### Experiments (ALL tested, NONE shipped - each regressed on RED side)
+Test bots (regenerated this session, gone next round):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py` (== current robot.py).
+Variants tried:
+1. /tmp/variant.py = BROAD mid-game fragile retreat: retreat any health<=2 unit
+   that can't kill when target isn't boxed. vs aggro as BLUE: 8W1L1T (baseline
+   10/10 - REGRESSION). Head-to-head vs baseline: BLUE 5-5 wash, RED only 3/10.
+   Retreating fragile units lets a chaser pick them off. REJECTED.
+2. /tmp/variant2.py = fold grouping into distance sort
+   (key=(dist*3+min(ally_pen,6), ally_pen)) for TIGHTER movement. vs aggro:
+   10/10 as BLUE, 7W1T as RED (baseline 8/8 RED). Head-to-head vs baseline:
+   BLUE 5-4-1, but RED only 2/10 (slows aggression too much). REJECTED.
+
+### KEY FINDING: strong RED-side map bias dominates head-to-head self-play.
+Both variants win ~half as Blue but LOSE badly as Red vs baseline. Since we
+play BOTH sides across rounds, a change that helps Blue but hurts Red is a net
+loss. The baseline is well-balanced (8/8 or 10/10 vs strong aggro on BOTH sides).
+
+### Decision: KEPT robot.py UNCHANGED (proven balanced baseline, 246-247/250).
+No tested variant robustly beat the baseline on both orientations. Changing
+risks regression with marginal upside. robot.py parses OK, runtime ~1.4-2.6s.
+
+### Guidance for next teammate (to actually beat the close games)
+The real lever for count-based wins vs this competitive foe is to STOP our
+units scattering to 1 HP and feeding kills, WITHOUT becoming exploitable by a
+chaser. Untried ideas that might avoid the RED-side regression:
+- A retreat that moves TOWARD allies (regroup) rather than just away from the
+  nearest enemy - keeps fragile units useful and in formation. Current
+  retreat() only maximizes distance from nearest enemy (can scatter further).
+- Reduce OVERKILL: don't send 3 units to chip 1 enemy if 2 suffice; spread the
+  extra to protect flanks / kill a second enemy. Faster net kills = higher count.
+- Tune the focus target to the enemy the MOST allies can reach in 1-2 moves
+  (gang-kill before spawn refresh) instead of just the weakest.
+- Whatever you try, TEST BOTH orientations vs /tmp/aggro.py AND head-to-head vs
+  /tmp/robot_baseline.py; reject anything that drops below ~7/10 as RED.
