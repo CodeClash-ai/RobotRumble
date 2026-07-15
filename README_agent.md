@@ -1607,3 +1607,61 @@ count-race losses. Strictly-safe constraint; no regression found.
 - Further ideas: units may occasionally get STUCK (step_toward returns None if
   its only free tile is a spawn tile pre-spawn) - acceptable (staying safe), but
   could add a non-spawn fallback. Reduce OVERKILL for more net kills/turn.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = mousetail__genetic-robot (COMPETITIVE)
+### Result recap
+- Round 0: **WON 218-22 w/ 10 TIES** vs mousetail__genetic-robot (we were RED).
+- Round 1: **WON 209-24 w/ 17 TIES** vs mousetail (we were BLUE). ~87% win.
+- Analyzed /logs/rounds/1 non-wins (24 losses + 17 ties). Most losses are
+  CLOSE (1-unit: sim_106 11-12, sim_175 11-12, sim_133 9-10, etc).
+### ROOT CAUSE (traced trajectories via /tmp/trace.py):
+  We are AHEAD or TIED at turn ~85-96, then TRADE DOWN in the FINAL turns
+  (97-100) and lose the count race. e.g. sim_175: B15 R13 at t80 -> final
+  B11 R12. sim_106: B12 R11 at t85 -> final B11 R12. We throw away a late
+  lead by making even 1-for-1 trades in the last ~10 turns while the opponent
+  preserves units. Win = MOST units at turn 100 (HP NOT a tiebreaker).
+### What I changed (robot.py) - ENDGAME LOCK-IN (tested, shipped)
+- Added `count_enemy_adjacent()` helper.
+- New `endgame` retreat gate in should_retreat (turn >= 90):
+  * If STRICTLY AHEAD in unit count: retreat ANY unit (any HP) adjacent to an
+    enemy that it cannot secure a kill on this turn AND whose target is NOT
+    boxed (i.e. a real trade, not a guaranteed free hit). Locks in the lead.
+  * If TIED: only retreat when the fight is NOT locally favorable
+    (local_favorable = my attackers on target > enemy units adjacent to me).
+    If locally favorable we still attack (a favorable trade can push us AHEAD).
+  * Never fires when BEHIND (we must trade to catch up).
+- One added clause `or (endgame and not boxed_here)`; everything else unchanged.
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- vs STRONG /tmp/aggro.py (nearest-chase+attack, STRONGER than real opponent):
+  * NEW BLUE batch seeds 1-5: 5/5 WINS. term seed-0: TIE 11-11
+    (BASELINE seed-0 as Blue LOST 7-10 -> NEW converted loss->tie AND preserved
+    more units 11 vs 7). Direct proof the endgame lock-in helps close games.
+  * NEW RED batch seeds 1-5: 4W 1T (NO losses). Balanced both sides.
+- NEW vs /tmp/cluster.py (defensive rally+attack, mimics competitive foe):
+  BLUE won 22-2 (baseline 19-1) - more of OUR units preserved at turn 100.
+  Wins on both orientations vs cluster.
+- NEW vs /tmp/marcher.py (South marcher): crush both sides (32-2, 26-3). No
+  regression vs passive.
+- robot.py parses OK; runtime ~1.9s/match, well under 60s.
+### Decision: SHIPPED the endgame lock-in (offensive-preserving, low-risk).
+Targets the EXACT documented loss pattern (throw away a late lead -> tie/loss).
+Only fires turn>=90 when ahead/tied, never abandons a boxed kill, never fires
+when behind. No regressions vs aggro/cluster/marcher on either orientation.
+### Guidance for next teammate
+- If opponent STAYS mousetail__genetic-robot: robot.py wins ~87%+; this edit
+  should convert several of the close late-lead ties/losses into wins. VERIFY
+  in next round's sim logs: check unit trajectory turns 90-100 (/tmp/trace.py
+  sim_X.txt) - we should now HOLD our lead instead of trading down.
+- Tuning knobs: endgame turn threshold (90 - try 88 if still trading down late),
+  the tied-game local_favorable rule. If losses shift EARLIER, the lever is the
+  mid-game trade-down (protect_lead turn>=80 / big_lead turn>=75 gates).
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/cluster.py: defensive rally + attack-adjacent (mimics competitive foe).
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * /tmp/batch.sh BLUE RED N (N<=5 to stay under 30s wall-clock; batch ~2s/game).
+  * /tmp/trace.py sim_X.txt (prints B/R unit counts per turn).
+  * /tmp/analyze.py (win/loss/tie summary for a round dir - EDIT logdir + which
+    team we were, Blue=first number).

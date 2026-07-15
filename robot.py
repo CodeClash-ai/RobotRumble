@@ -63,6 +63,16 @@ def count_my_adjacent(state, coords, my_team):
     return n
 
 
+def count_enemy_adjacent(state, coords, other_team):
+    """How many enemy units are adjacent to `coords` (threats to this tile)."""
+    n = 0
+    for d in DIRECTIONS:
+        o = unit_at(state, coords + d)
+        if o is not None and o.team == other_team:
+            n += 1
+    return n
+
+
 def init_turn(state: State) -> None:
     global _focus_target_id, _planned_moves
     _planned_moves = {}
@@ -247,6 +257,21 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # is boxed (guaranteed free hit). Win = most units at turn 100, so a
         # preserved lead is worth more than a chip of damage.
         big_lead = state.turn >= 75 and my_units >= enemy_units + 3
+        # ENDGAME LOCK-IN: in the final turns, count is decided. If we are AHEAD
+        # or TIED, refuse ANY trade that isn't a guaranteed kill (attack whiffs
+        # when enemy flees, but we still take return damage next turn / feed a
+        # trade). Retreat healthy units too - a preserved unit at turn 100 wins
+        # the count race. Losses traced: we held a 1-2 unit lead at turn ~90 then
+        # traded it away 1-for-1 in the last 10 turns to a tie/loss.
+        # When strictly ahead, lock in the lead (retreat non-kill trades).
+        # When TIED, only retreat if this fight is NOT locally favorable (we
+        # don't have more attackers on the target than it has adjacent allies) -
+        # otherwise a favorable trade can push us AHEAD, which wins the count.
+        local_favorable = attackers > count_enemy_adjacent(state, my, other_team)
+        endgame = state.turn >= 90 and (
+            my_units > enemy_units
+            or (my_units == enemy_units and not local_favorable)
+        )
         boxed_here = enemy_boxed(state, e, my_team)
         should_retreat = (
             unit.health <= 1
@@ -255,6 +280,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             or (even_game and unit.health <= 2)
             or (protect_lead and unit.health <= 3 and not boxed_here)
             or (big_lead and unit.health <= 4 and not boxed_here)
+            or (endgame and not boxed_here)
         )
         if not can_kill and should_retreat:
             r = retreat(state, unit)
