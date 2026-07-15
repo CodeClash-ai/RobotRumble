@@ -200,3 +200,41 @@ regression risk. Submitting as-is.
 - If opponent STAYS passive: submit robot.py as-is (optimal).
 - If opponent becomes AGGRESSIVE: see prior notes (RED-side map bias, kite
   1-HP units, tight grouping). Test with our bot explicitly as BLUE.
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = ldang__nessy (AGGRESSIVE!)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 250-0** vs `ldang__nessy`. We
+  were BLUE. UNLIKE prior opponents, ldang__nessy IS AGGRESSIVE — it deals
+  damage (our blue units drop in ALL 250 games) but we still win decisively
+  (~26 units to 3). So our aggressive focus-fire bot already beats it.
+
+### What I changed (robot.py) — small robustness improvement, no regression
+- Added `retreat()` + `count_allies_near()` helpers.
+- New attack rule: a 1-HP unit that is adjacent to an enemy and CANNOT secure a
+  kill this turn now RETREATS (moves to the free tile farthest from nearest
+  enemy) instead of feeding a free kill. Otherwise still attacks the weakest
+  adjacent enemy (unchanged aggressive core).
+- Simplified the old attack block (removed dead "predict"/boxed branching that
+  always returned attack anyway).
+
+### Testing (baseline saved to /tmp/robot_baseline.py this session)
+- Built /tmp/aggro.py = pure nearest-enemy chase+attack bot (STRONGER than the
+  real opponent; a good stress test). CORRECT API:
+    tgt=min(enemies,key=lambda e:unit.coords.walking_distance_to(e.coords))
+    Action.attack(d) if adjacent else Action.move(unit.coords.direction_to(...))
+- BASELINE bot vs aggro: LOST 0/5 as Blue (aggro out-damages us).
+- NEW bot vs aggro: WON 2/5 as Blue, 3/5 (+1 tie) as Red. Clear improvement.
+- NEW vs BASELINE: net 6-4 across both orientations (side bias present) — new is
+  slightly better, NO regression.
+- NEW vs passive marcher (South): wins ALL, both sides. No regression vs passive.
+- Match runtime ~0.85s, well under 60s.
+
+### Guidance for next teammate
+- If opponent STAYS ldang__nessy: current robot.py wins 250-0; safe to submit.
+- Aggro test bot still beats us ~half the time — the bot could be stronger vs a
+  truly aggressive foe. Ideas NOT yet done: tighter grouping before engaging,
+  predictive attack on flee tiles COMBINED with retreat, avoid single units
+  overextending into 2+ enemies (retreat if outnumbered locally, not just 1-HP).
+- Regenerate test bots: /tmp/aggro.py, /tmp/marcher.py, /tmp/robot_baseline.py
+  (= `git show HEAD:robot.py` before this commit).

@@ -80,6 +80,42 @@ def init_turn(state: State) -> None:
     _focus_target_id = min(enemies, key=score).id
 
 
+
+def count_allies_near(state, coords, my_team):
+    """Allies within walking distance 2 (loose grouping)."""
+    n = 0
+    for u in state.objs_by_team(my_team):
+        wd = coords.walking_distance_to(u.coords)
+        if 0 < wd <= 2:
+            n += 1
+    return n
+
+
+def retreat(state, unit):
+    """Move away from the nearest enemy to a free tile."""
+    other = state.other_team
+    enemies = state.objs_by_team(other)
+    if not enemies:
+        return None
+    my = unit.coords
+    ne = min(enemies, key=lambda e: my.walking_distance_to(e.coords))
+    best = None
+    best_d = -1
+    for d in DIRECTIONS:
+        nxt = my + d
+        if blocked_tile(state, nxt):
+            continue
+        if state.obj_by_coords(nxt) is not None:
+            continue
+        dd = nxt.walking_distance_to(ne.coords)
+        if dd > best_d:
+            best_d = dd
+            best = d
+    if best is not None and best_d > my.walking_distance_to(ne.coords):
+        return Action.move(best)
+    return None
+
+
 def robot(state: State, unit: Obj) -> Optional[Action]:
     other_team = state.other_team
     my_team = state.our_team
@@ -92,19 +128,18 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # 1) If an enemy is adjacent, decide whether to attack now.
     adj = adjacent_enemies(state, my, other_team)
     if adj:
-        # Prefer weakest adjacent enemy.
+        n_adj_enemies = len(adj)
+        my_local = count_allies_near(state, my, my_team)
+        # Retreat a fragile unit that is outnumbered locally (avoid feeding kills)
+        # unless it can secure a kill this turn.
         d, e = min(adj, key=lambda de: de[1].health)
-        # Attack is guaranteed value if:
-        #  - enemy will likely die this turn (health <= number of my units
-        #    adjacent that can attack it), OR
-        #  - enemy is at 1 HP (worth trying), OR
-        #  - enemy is cornered / heavily surrounded so it can't flee freely.
         attackers = count_my_adjacent(state, e.coords, my_team)
-        if e.health <= attackers or e.health <= 1 or enemy_boxed(state, e, my_team):
-            return Action.attack(d)
-        # Otherwise the healthy enemy will likely move away before our attack
-        # lands. Still attack if we have no better move (stay engaged), because
-        # staying adjacent pressures them and blocks retreat lanes.
+        can_kill = e.health <= attackers
+        if unit.health <= 1 and not can_kill and n_adj_enemies >= 1:
+            r = retreat(state, unit)
+            if r is not None:
+                return r
+        # Attack the weakest adjacent enemy (aggressive: always trade or better).
         return Action.attack(d)
 
     # 2) Move toward focus target if reachable, else nearest weak enemy.
