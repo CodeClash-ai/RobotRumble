@@ -839,3 +839,66 @@ panic strings found across all 250 `sim_*.txt` files.
 - `robot_v1_baseline.py` remains the frozen round-0 reference bot for A/B
   self-play testing — do not delete/modify it. Still gives `robot.py` a
   consistent edge (this round: 7-4-1 over seeds 1-12).
+
+## Round 9 (this session — starting point was /logs/rounds/0/, will produce /logs/rounds/1/)
+
+**Status check (first thing, per standing advice, 9th time):** Re-verified
+`/logs/rounds/0/results.json` for this session's starting point. Opponent
+this series is `navster8__bash-brothers` (7th differently-named opponent
+across the rounds documented in this file). Result: **250/250 sweep for
+sonnet-5** (sonnet-5 was Blue; `Blue wins 250, Red wins 0, ties 0` via the
+standard win/loss snippet). Avg final units: us (Blue) ~28.86, opponent
+(Red) ~2.40. Ninth consecutive total sweep documented in this file (across
+7 differently-named opponent identities, every single one crushed by
+~10x+ final-unit-count margins). Grepped all 250 `sim_*.txt` for
+`raceback|xception|panic` — zero hits, confirming clean execution across
+the entire series.
+
+### What I did this round
+1. Confirmed `robot.py` is byte-identical to the version described in
+   rounds 4-8 above (per-unit soft targeting blending own-distance +
+   target health + team coordination-distance + focus-bonus;
+   opportunistic always-attack-if-adjacent, weakest-first; `direction_to`
+   movement w/ full 4-direction sidestep fallback; spawn-tile-escape when
+   no enemies visible). `git status --short` was clean at session start —
+   no drift.
+2. Sanity-checked it still runs clean and fast: `./rumblebot run term
+   --results-only robot.py robot.py` (~0.7s wall-clock, no exceptions,
+   real combat: `Health 27 17 Units 7 4`).
+3. Re-ran the standard `robot.py` vs `robot_v1_baseline.py` self-play A/B
+   (new-as-Blue) over seeds 1-12: **7 wins / 4 losses / 1 tie** — same
+   ~55-65% edge over the round-0 baseline reported consistently across
+   every previous round. No regression.
+4. **No code changes made this round.** Same reasoning as most previous
+   rounds (2-8 in this numbering): 9 consecutive 250/250 sweeps across 7
+   different opponent names, consistently huge (~10x+) final-unit-count
+   margins, zero runtime errors ever observed across ~2000+ simulated
+   games total, and every previous attempt at finding a robust improvement
+   (weight-constant tuning across 4+ rounds, overkill-avoidance targeting
+   in round 6, BFS-pathing analysis in round 5) has come back inconclusive
+   or mildly negative. Validation-only round again.
+
+### Suggested next steps for future teammates
+- Standing advice unchanged (9th time writing this): check
+  `/logs/rounds/N/results.json` + final-unit-count margins FIRST thing
+  next round, before making changes. Keep doing cheap validation
+  (self-play A/B vs `robot_v1_baseline.py`, error-string grep across
+  `sim_*.txt`) and only invest heavily in new strategy ideas if an
+  opponent actually starts contesting unit count — that has not happened
+  even once across 9 rounds / 7 opponent names so far.
+- If this pattern *ever* breaks (opponent wins units, or final-unit-count
+  margin shrinks well below ~5x), that's the trigger to revisit the
+  still-untried ideas list: multi-step (2-3 move) lookahead pathing for
+  escaping dead-ends near the map's wall corners; explicit "retreat when
+  badly outnumbered locally" logic for individual low-health units. Both
+  remain untried since no opponent so far has been strong enough to make
+  them matter.
+- Ideas tried and found inconclusive/negative across multiple past rounds
+  (do not re-attempt with small samples; either commit to 50+ seed
+  one-sitting sweeps, or leave alone): weight-constant tuning
+  (`HEALTH_WEIGHT`/`FOCUS_BONUS`/`COORD_WEIGHT`), overkill-avoidance
+  targeting (round 6), BFS/multi-step pathfinding (analyzed multiple
+  times, judged low-value).
+- `robot_v1_baseline.py` remains the frozen round-0 reference bot for A/B
+  self-play testing — do not delete/modify it. Still gives `robot.py` a
+  consistent edge (this round: 7-4-1 over seeds 1-12).
