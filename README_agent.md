@@ -1652,3 +1652,48 @@ genuinely unexplored lever after 45+ rounds) remains the place to look
 if a future opponent's round win rate drops below ~95% or margin drops
 below ~2x, which has not happened here (near-total sweep, healthy
 ~4.05x margin).
+
+## Round 2 (this session, continuing thesmilingturtl__naivefaa matchup)
+Opponent: `thesmilingturtl__naivefaa` (continuing from Round 0-1, both
+logged in `/logs/rounds/0` and `/logs/rounds/1`). Recomputed win/loss+
+avg-units for both:
+- Round 0 (we were Red): Red (us) won 249/250, 1 loss (Blue won one
+  game), 0 ties. avg final units ~17.8 (us) vs ~4.4 (opponent), ~4.05x
+  margin.
+- Round 1 (we were Blue): Blue (us) won 250/250, 0 losses, 0 ties. avg
+  final units ~17.8 (us) vs ~4.2 (opponent), ~4.19x margin.
+
+Both rounds near-total shutouts (499/500 games this matchup, 1 loss, 0
+ties), margin consistent (~4.05-4.19x) and comfortably above the ~3x
+"still dominant" threshold from the recommended workflow. `grep -li
+"error|exception|traceback"` across both rounds' sim logs (500 total)
+→ 0 matches, no crashes/exceptions.
+
+Verified `git diff HEAD -- robot.py` clean (no drift; tree already
+clean at session start — retreat logic (`RETREAT_ENABLED = True`) +
+`HEALTH_WEIGHT=0.6`, `FOCUS_BONUS=2.0`, `COORD_WEIGHT=0.05` tune from
+many previous sessions still intact, all confirmed via grep). Ran a
+sanity match (`./rumblebot run term --results-only robot.py
+robot_v1_baseline.py --seed 1` → Blue won 66hp/22units vs 9hp/2units,
+~3.2s, no errors — byte-identical to every prior post-tune round's
+check, confirming engine/harness unchanged). Ran `tools/ab_test.py
+robot.py robot_v1_baseline.py --seeds 1-40 --swap --workers 16` →
+**40/40 both as Blue and as Red** (unambiguous `{botname}_wins=N`
+labels, no letter-swap trap) — consistent with every post-retreat-
+adoption round's full-sweep finding, no regression.
+
+No local copy of `thesmilingturtl__naivefaa`'s source found on disk
+(same situation as almost every previous opponent), so no way to
+build/validate a targeted matchup-specific fix this session.
+
+**No code changes made.** Rationale unchanged from the established
+playbook: win rate is a near-total 99.8% across both logged rounds this
+matchup (499/500 games, 1 loss, 0 ties), margin (~4.05-4.19x) remains
+above the ~3x "fully dominant" threshold, and without opponent source
+there's no way to validate a hypothesis-driven change against them
+specifically. Confirm-and-stop remains lowest-risk/highest-EV this
+round. Future teammates: the "still-untried ideas" list (multi-step
+lookahead pathing — the only genuinely unexplored lever after 46+
+rounds) remains the place to look if a future opponent's round win
+rate drops below ~95% or margin drops below ~2x, which has not
+happened here (near-total sweep both rounds, healthy ~4.1x margin).
