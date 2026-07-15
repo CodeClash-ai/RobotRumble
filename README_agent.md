@@ -2172,3 +2172,37 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   mitch keeps ~14-24 survivors at 5hp — proxies that die fast are useless to tune
   against). Test black-magic must stay 15-8/21-9 (FLEER_MODE off). DO NOT touch
   the non-FLEER branch (it's a tuned local optimum vs all other opponents).
+
+## ROUND 3 SESSION (opus-4-8, mitch84__crw_preempt) [4th occurrence] — CODE CHANGED: STRONGER FLEER PRESERVATION (robot_bm10.py)
+- Opponent = mitch84__crw_preempt (SPREAD+RETREAT HP-preserving fleer — OUR BIGGEST
+  WEAKNESS). History: R0 (bm8) 18-220-12, R1 11-234-5, R2 (bm9) 16-220-14. CATASTROPHIC.
+- ROOT CAUSE (verified /logs/rounds/2/sim_0,1,10,100): in EVERY losing sim we end with
+  BOTH fewer units AND less total health (e.g. sim_0 16u/66hp vs us 11u/35hp). So our
+  units DIE in trades while theirs stay high-HP (fleeing preserves it). bm9's 2-ply
+  preservation (promote s2[0] then s[0]=kills) helped only marginally (18->16).
+- CHANGE ADOPTED (robot.py == robot_bm10.py): rewrote the FLEER_MODE eval tuple to
+  prioritize unit preservation harder:
+    (s2[0]=net units after 2ply, my2=OUR surviving units after 2ply, s[0]=net now/kills,
+     s2[2]=health after 2ply, s[1]=surround, s[3]=distance, s[4]=hunt)
+  Key adds vs bm9: (2) explicit OUR-own-survival term my2=len(fs2) so we NEVER move a
+  unit into a cell the follow-up enemy tick would kill; (4) health-after-2ply promoted
+  above positional terms to preserve HP for the attrition war. Surround (which pushes
+  damaged units INTO melee to be chipped) demoted below survival+health.
+- SAFETY: FLEER_MODE = (enemy spread>6.0 AND avg enemy HP>4.3), set in init_turn.
+  Stays OFF vs black-magic (a FIGHTER, HP drops <4.3 in combat) => NON-FLEER branch
+  UNCHANGED. Verified vs builtin-bots/black-magic.js (we=Blue) seeds 1-3: WIN 26-5,
+  29-2, 16-5 (no regression; identical to bm9 non-fleer play). Bot runs cleanly in
+  FLEER_MODE vs a proxy (no crash), runtime ~38s/match (<60s).
+- UNVERIFIED vs ACTUAL opponent: still CANNOT build a faithful crw_preempt proxy — my
+  /tmp fleer_proxy.js (cluster+retreat) dies 38-5; real mitch keeps 14-24 survivors.
+  But the change is PRINCIPLED (stronger unit+HP preservation gated to the fleer case)
+  and provably safe elsewhere, so it can only help or be neutral vs the fleer.
+- Backups: robot_bm9.py (prev), robot_bm10.py (== new robot.py).
+- NEXT TEAMMATE: if STILL losing crw_preempt (likely — this is a nudge, not a cure),
+  the fundamental fix is COORDINATED PINCERS (1 unit can't catch a fleer; need 2+
+  converging from opposite sides to corner+kill) OR driving fleers into map corners/
+  edges where they can't escape. My proxies all die too fast to tune against — the
+  real blocker is building a FAITHFUL crw_preempt proxy (keeps ~14-24 units at 5hp).
+  Consider: study /logs/rounds/*/sim_*.txt board evolution to reverse-engineer mitch's
+  exact flee/cluster rule, then encode it as a JS proxy. DO NOT touch the non-FLEER
+  branch (tuned local optimum vs all other opponents; beats black-magic 24-0-0 Blue).
