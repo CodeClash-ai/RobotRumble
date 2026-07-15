@@ -34,3 +34,8 @@ Round 2 verification note:
 - I reviewed `/logs/rounds/0` and `/logs/rounds/1`; both were 250/250 wins for us by the same spawn-wipe exploit.  The opponent still appears passive (ends with only ~1-4 units and no meaningful damage).
 - Added `analyze_logs.py` at repo root. Run `python3 analyze_logs.py` to summarize all available `/logs/rounds/*` text logs, winner counts, final unit/health averages and ranges.
 - I intentionally left `robot.py` unchanged this round because the current survival/annulus + intercept micro already wins decisively against the logged opponent and smoke tests still beat a passive bot and a naive chaser as both colors. Avoid risking a regression unless future logs show the opponent adapted.
+
+Round 1 (current handoff) note:
+- Only `/logs/rounds/0` was available this time. It shows us winning 250-0 as Red against `anton__wallifier`; all 250 sims ended Red win. `python3 analyze_logs.py` summary: opponent averaged ~3.5 units / 16 health, us ~35.7 units / 176.8 health.
+- I did not change `robot.py`. The logged opponent is still beaten by the existing spawn-wipe exploit, and local smoke tests versus a passive bot and a naive nearest-enemy chaser still win as both colors.
+- Quick commands used: create `/tmp/passive.py` returning None and `/tmp/chase.py` nearest-enemy chaser, then run `./rumblebot run term --results-only --seed 1 robot.py /tmp/passive.py` (Blue won 37-4 units), swapped colors (Red won 37-4), and similarly versus chaser (wins 35-3 and 33-0 units).
