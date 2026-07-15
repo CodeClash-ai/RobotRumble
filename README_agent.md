@@ -980,3 +980,67 @@ planning *around* multi-tile obstacles/dead-ends near the map's
 diamond-shaped wall corners, which no logged match has shown as an
 actual problem so far). Otherwise, status quo (no `robot.py` changes)
 continues to be the lowest-risk/highest-EV action.
+
+## Round 2 (this session, continuing edward__flail matchup) — tested proactive-outnumbered-retreat tweak, neutral result, NOT adopted
+
+Opponent `edward__flail` recurring (Round 0: 245/250 wins, ~2.16x margin
+as Blue; Round 1: 243/250 wins, ~2.23x margin as Red — both logged in
+`/logs/rounds/0` and `/logs/rounds/1`). Margin consistent across both
+rounds and in the same "genuinely competent opponent" bucket as
+`aaa__jippty5`/`anton__anton4000`/`aayyad__testbot` from earlier
+sessions. Investigated a few more loss logs this round
+(`sim_125.txt` etc.) — same pattern as previously documented: close,
+legitimate symmetric endgames (11v10, 12v11 units), no bugs/stuck
+units/idle-turn patterns found.
+
+Verified `git diff HEAD -- robot.py` clean (no drift; retreat logic from
+several sessions ago intact: `RETREAT_ENABLED = True`, lethal-danger
+check present). Ran a sanity match (`./rumblebot run term
+--results-only --seed 1 robot.py robot_v1_baseline.py` → Blue won
+76hp/28 units vs 12hp/3 units, ~4s, no errors — matches the expected
+post-retreat-adoption numbers exactly).
+
+**Experiment tried**: per the "still untried ideas" flag (proactive
+retreat when badly outnumbered, not just when literally lethal this
+turn), created `robot_experiment_retreat2.py` (temporary, now deleted —
+see this note for the exact diff if you want to reproduce) with the
+lethal-retreat condition loosened to also trigger when
+`unit.health <= 2 and len(adjacent_enemies) >= 2` (i.e. retreat when
+badly hurt and facing 2+ adjacent enemies, even if not mathematically
+lethal this exact turn). A/B tested via `tools/ab_test.py
+robot_experiment_retreat2.py robot.py --seeds 1-30 --swap` (using the
+already-fixed, unambiguous `{botname}_wins=N` labels — no letter-swap
+trap): result was a **dead-even 15-15 / 15-15 split both as Blue and as
+Red** — i.e. statistically indistinguishable from the current `robot.py`,
+neither an improvement nor a regression at this sample size.
+
+**Not adopted** — a coin-flip result isn't worth the added code
+complexity or the risk of a real (if small) regression against some
+other opponent identity, especially given no opponent source is
+available to validate a matchup-specific benefit against
+`edward__flail` specifically. This is consistent with the "Closed
+experiments" section's existing note that outnumbered-retreat tuning
+tends to be a wash — reinforces rather than overturns that finding.
+Deleted the experiment file after testing (no permanent artifact left
+behind this time, since the result was neutral rather than
+"interesting but flawed" like the original retreat-experiment file
+which is still kept around).
+
+**No code changes made to `robot.py`.** Status quo (soft per-unit
+targeting + focus-fire + opportunistic attack + lethal-retreat) remains
+in place, still winning decisively (97-98% game win rate) against this
+recurring opponent, just without the historically-typical blowout
+margin. Future teammates: if you want to keep pushing on
+outnumbered-retreat tuning, a bigger seed count (60-100) might resolve
+the 15-15 tie one way or the other, but given `robot.py`'s round-level
+win rate has never been in danger, this remains a "nice to have,
+uncertain payoff" experiment rather than an urgent one. The
+`_bfs`/multi-step-lookahead idea from the historical list is still the
+only genuinely unexplored lever if a future opponent's margin drops
+below ~2x or an actual round loss occurs — but real risk is
+implementation complexity + WASM/RustPython performance overhead per
+turn (bot must stay well under the 60s-per-match budget), which the
+"still untried" note has always underweighted; if attempting it, budget
+extra steps specifically for wall-clock timing validation via
+`tools/ab_test.py`'s reported `real` time over 30+ seeds, not just
+correctness.
