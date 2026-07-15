@@ -3130,3 +3130,50 @@ loss for marginal upside.
   * /tmp/bench.py BOT OPP N (BOT=BLUE), /tmp/benchR.py BOT OPP N (BOT=RED) -
     keep N<=8 to stay under the 30s per-command wall-clock; term IS
     non-deterministic - run 8x+ and compare unit MARGINS, not just W/L.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = wolfsleuth__simple (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 215-14 w/ 21 TIES** vs
+  `wolfsleuth__simple` (we were BLUE). ~86% win. All 14 losses are CLOSE
+  (margins -6..-1, mostly -1: [-6,-5,-4,-4,-3,-1x9]).
+### ROOT CAUSE (traced sim_0, sim_133, sim_161 per-turn HP+units)
+- The opponent OUT-TRADES us on HP: in nearly all losses/ties it maintains
+  HIGHER HP the whole game (e.g. sim_133 t79 HP 25-40; sim_161 t79 HP 27-46;
+  sim_0 t90 HP 46-59). Units stay close, then the count race tips against us
+  late. sim_0: AHEAD 12-9 units at t89, turn-90 spawn flipped to 13-13 (symmetric
+  spawns, but their surviving units had higher HP), then bled to 12-13.
+- Verified NOT a spawn-tile wipe: at end of turn 90 in sim_0 NO units were on
+  spawn tiles (checked the board render). Spawn deltas symmetric
+  (/tmp/spawncheck.py: only 177/2250 = 8% spawn events had a Blue deficit).
+  This is the documented HP-out-trade residual that resists safe fixes.
+### Verification this session
+- robot.py parses OK (ast.parse); `def robot(state: State, unit: Obj)` line 268;
+  SQUAD=2 (line 101). No uncommitted changes (matches git HEAD bc7959d).
+- robot.py BLUE vs /tmp/cluster.py 5x: W4 L0 T1 avg +2.40.
+- robot.py BLUE vs /tmp/aggro.py 5x: W5 L0 T0 avg +3.40.
+- robot.py BLUE vs /tmp/marcher.py: crush 20-3 (HP 100-15), runtime ~2.8s.
+- Robust on our real (BLUE) side; runtime well under 60s.
+### Decision: KEPT robot.py UNCHANGED (proven mature baseline, ~86% win as BLUE).
+The bot is EXTREMELY evolved (focus-fire + multi-target SQUAD=2 + grouping +
+spawn-evac + wipe-turn forced evac + endgame lock-in/disperse + favorable-fight
+override + mid_lead). The residual close HP-out-trade losses resist safe fixes;
+ALL known change levers are documented DEAD-ENDS (reduce-OVERKILL, PREDICTIVE
+COVERAGE -15, tighter early grouping, passive/retreat mid-game tweaks,
+adjacency-priority focus, even_game-tied, earlier-disperse, focus-radius 2->1,
+whiff-avoidance, boxed-focus). Changing risks regression for marginal upside vs
+an opponent we already dominate.
+### Guidance for next teammate
+- If opponent STAYS wolfsleuth__simple: submit robot.py as-is (~86% win as BLUE).
+  Do NOT retry the documented dead-ends (they REGRESS or give no gain).
+- The residual losses are genuine HP out-trades (opponent keeps higher HP via
+  clean hits while ours whiff). The ONLY realistic lever is EARLY/MID combat HP
+  efficiency without going passive - genuinely hard, resists safe fixes.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move (best
+    proxy for this competitive HP-out-trading foe).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/bench.py BOT OPP N (BOT=BLUE, prints W/L/T + avg margin; keep N<=5-8).
+  * /tmp/analyze.py (W/L/T + margins, team=BLUE=1st), /tmp/spawncheck.py.
+- term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
