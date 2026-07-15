@@ -435,3 +435,87 @@ summarized earlier in this file.
 - `robot_v1_baseline.py` remains a frozen, untouched copy of the round-0
   winning bot, kept specifically for A/B self-play testing — do not
   delete/modify it.
+
+## Round 4 (this session — will produce /logs/rounds/2/ once submitted)
+
+**Status check (first thing):** Re-verified `/logs/rounds/1/results.json` and
+`sim_*.txt` — still `anton__wallifier` as opponent, still a clean **250/250
+sweep for sonnet-5** (avg final units: opponent ~1.98, us ~28.1 — computed
+with the standard win/loss snippet from earlier sections, still works).
+Third consecutive total sweep across rounds 0/1 of this series against this
+opponent name. No sign of the opponent adapting.
+
+### What I did this round
+1. Re-ran the weight-constant grid search one more time (`HEALTH_WEIGHT`,
+   `FOCUS_BONUS`, `COORD_WEIGHT`) via temp variants in `/tmp/variants/`,
+   A/B'd against the current defaults over ~20-30 seeds each split across
+   several shell calls (each `rumblebot run term` call ~0.8-1s; keep
+   loops to <=10-15 iterations per `bash` call to avoid the ~30s per-command
+   timeout — I hit a timeout once this round with 15 iterations x 4 variants
+   in one call, had to split further). Result: consistent with rounds 2/3's
+   findings — `HEALTH_WEIGHT` around 1.0-1.2 shows a *mild* positive trend
+   (~16-12-2 combined across 30 games, i.e. ~57%) but it's within
+   plausible noise for this sample size, same conclusion as previous
+   rounds. **Did not change the weight constants** — three rounds running
+   now of nobody finding a robust signal here; if a future teammate wants
+   to resolve this, it needs a much bigger sample (50+ seeds) or, better,
+   actual evidence the opponent is competitive enough that these marginal
+   gains matter.
+
+2. **Found and fixed a real (if low-probability) bug**: when `enemies` is
+   empty (no visible enemy units — can happen briefly between wiping the
+   opposing team and the next periodic respawn wave, since spawns happen
+   every `spawn_every=10` turns per `logic/logic/src/lib.rs::run`), the old
+   `robot()` unconditionally `return None`d, i.e. every unit freezes
+   completely. Traced the engine's spawn-cycle code
+   (`clear_spawn`/`spawn_units` in `run()`): at the *start* of every turn
+   where `(turn - 1) % spawn_every == 0` (turns 11, 21, 31, ...,
+   BEFORE that turn's robot actions are even requested), `clear_spawn()`
+   deletes **any unit of either team still sitting on a spawn-point
+   tile**, no exceptions. So if one of our own units happens to be
+   idling (frozen because `enemies` was empty) on a spawn tile when this
+   turn hits, we lose that unit for free, for no reason
+   (`determine_winner_normal` only counts alive units, so this is a pure,
+   avoidable unit-count loss).
+   Fix: in `robot()`, when `enemies` is empty, check
+   `unit.coords.is_spawn()` first; if true, actively move to any adjacent
+   free non-spawn tile instead of passing (falls through to `return None`
+   otherwise, same as before). Cheap, low-risk, purely defensive — doesn't
+   change behavior at all when enemies are visible (the overwhelming
+   majority of turns in every game we've observed so far, since the
+   opponent has 250/250 always still had *some* units alive most of the
+   match). See the diff in `robot.py`'s `robot()` function, right after
+   `enemies = state.objs_by_team(state.other_team)`.
+   - Validated: `./rumblebot run term --results-only robot.py robot.py`
+     and `... robot.py robot_v1_baseline.py` both run cleanly, no
+     exceptions, combat still happens normally.
+   - Re-ran the standard 10-seed A/B vs `robot_v1_baseline.py`: **6 wins /
+     4 losses / 0 ties** — consistent with previous rounds' ~55-65% edge
+     over the baseline, i.e. no regression from this change (expected,
+     since it only fires in the rare "zero visible enemies" case which
+     didn't come up much in these particular seeds either way — this fix
+     is more of an insurance policy against an edge case than a strategy
+     change, so seeing "no measurable difference" in a small sample is
+     actually the expected/desired outcome, not a null result).
+
+### Suggested next steps for future teammates
+- Same standing advice as previous rounds: check
+  `/logs/rounds/N/results.json` + unit-count margins FIRST. If the
+  opponent (`anton__wallifier` as of this writing) is still getting
+  crushed 250-0, prioritize low-risk validation over big rewrites.
+- The "zero visible enemies -> move off spawn tile" fix this round is
+  purely defensive/edge-case; it's very unlikely to have caused any of the
+  3 sweeps so far (opponent always had units alive), so don't expect it to
+  suddenly change score against a currently-weak opponent. It's there in
+  case a future stronger opponent gets fully wiped out mid-match by us and
+  the empty-enemies branch actually starts mattering.
+- Weight-constant tuning (`HEALTH_WEIGHT`/`FOCUS_BONUS`/`COORD_WEIGHT`) has
+  now been attempted and inconclusive across 3 separate rounds (this one,
+  and the two "Round 2"/"Round 3" sections above) — recommend NOT
+  re-attempting this with small samples again; either commit to a large
+  (50+ seed) sweep in one sitting, or leave it alone and focus effort
+  elsewhere (BFS pathfinding, multi-target split-army coordination — both
+  still untried, see earlier sections).
+- Remember: `rumblebot run term` calls are ~0.8-1s each; a `bash` tool
+  call here times out around 30s wall-clock, so keep any A/B-loop to
+  <=15-20 iterations per call (I hit exactly this timeout once this round).

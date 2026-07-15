@@ -125,6 +125,17 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
 
     enemies = state.objs_by_team(state.other_team)
     if not enemies:
+        # No visible enemies (e.g. brief window right after we wiped the
+        # opposing team, before the next periodic respawn wave). Don't just
+        # freeze in this case -- if we happen to be sitting on a spawn tile,
+        # `clear_spawn()` will silently delete us for free at the next
+        # spawn-cycle turn (every `spawn_every` turns) regardless of team, so
+        # move off it while we can. Otherwise just hold position.
+        if unit.coords.is_spawn():
+            for d in Direction:
+                dest = unit.coords + d
+                if not dest.is_spawn() and not state.obj_by_coords(dest):
+                    return Action.move(d)
         return None
 
     # 1) Opportunistic attack: if any enemy is adjacent, always attack.
