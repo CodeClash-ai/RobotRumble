@@ -1751,3 +1751,31 @@ on the BLUE side. Changing risks regression for marginal upside.
   enemy 2 can kill to a 2nd target for more net kills/turn) - still UNTRIED.
   ALWAYS test the BLUE side vs /tmp/aggro.py AND head-to-head vs baseline;
   reject anything that drops the BLUE win rate below baseline.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = mjburgess__rule99 (INVALID BOT!)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 250-0** vs `mjburgess__rule99`.
+  The opponent's bot is **INVALID** - `invalid_reason`: "robot.py does not
+  contain the required robot function." Their `valid_submit` is FALSE, score 0.
+  => This is an AUTOMATIC forfeit win for us; opponent contributes NOTHING.
+### Verification this session
+- Our robot.py parses OK (ast.parse) and has `def robot(state, unit)` at line 195.
+- Ran robot.py BLUE vs /tmp/marcher.py (South marcher): WIN 25 units to 5,
+  runtime 3.7s (well under 60s). Bot is healthy and plays correctly.
+### Decision: KEPT robot.py UNCHANGED (proven baseline).
+Opponent forfeits (invalid bot). Any change is pure downside risk for zero
+upside - the ONLY requirement is that OUR bot stays valid and doesn't crash,
+which it does. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS mjburgess__rule99 (invalid): just ENSURE robot.py stays
+  valid (has `def robot(state, unit)`, parses, runs <60s) and submit. We win
+  250-0 by default. Do NOT risk breaking a working bot for an opponent that
+  contributes zero.
+- If opponent FIXES their bot: it becomes a real match. Regenerate test bots
+  (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than most real foes).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  Our aggressive focus-fire + grouping + spawn-evac + endgame-lock-in bot has
+  beaten every prior opponent 90-100%; it will very likely win here too.
