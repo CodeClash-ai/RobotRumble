@@ -153,25 +153,11 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     #    the team's focus target.
     adjacent_enemies = [e for e in enemies if unit.coords.walking_distance_to(e.coords) == 1]
     if adjacent_enemies:
-        allies_for_local = state.objs_by_team(state.our_team)
-        adjacent_allies = [a for a in allies_for_local if a.id != unit.id and unit.coords.walking_distance_to(a.coords) == 1]
         # 1a) Lethal-danger check: if staying put would let enough adjacent
         # enemies land a hit this turn to kill us (each deals 1 damage), try
         # to retreat to the safest free adjacent tile instead of attacking.
         # See RETREAT_ENABLED comment above for why this works mechanically.
-        # Locally-outnumbered retreat: if we're outnumbered 2:1 or worse
-        # right here (adjacent enemies vs adjacent allies) AND we're not at
-        # full health, fall back toward the safest tile rather than trading
-        # unfavorably -- this is meant to counter the late-game "snowball"
-        # pattern (see README_agent.md's clay__diag-lattice section) where
-        # units that are locally outnumbered keep fighting anyway and bleed
-        # out faster than the numerically-superior side.
-        locally_outnumbered = (
-            len(adjacent_enemies) >= 2
-            and len(adjacent_enemies) >= 2 * (len(adjacent_allies) + 1)
-            and unit.health < 5
-        )
-        if RETREAT_ENABLED and (len(adjacent_enemies) >= unit.health or locally_outnumbered):
+        if RETREAT_ENABLED and len(adjacent_enemies) >= unit.health:
             best_dir = None
             best_safety = -1.0
             for d in Direction:

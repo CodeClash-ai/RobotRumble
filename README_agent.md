@@ -3134,3 +3134,101 @@ above the routine validate-and-confirm workflow if it recurs — this is
 the strongest signal yet that a real architectural weakness (not just
 "a coincidentally more competent bot show up") might exist, specifically
 around late-game engagement snowballing once behind on unit count.
+
+## Round 2 (this session, continuing clay__diag-lattice matchup) — ADOPTED: locally-outnumbered retreat, validated real improvement (~61% win rate vs pre-change, n=300 across 3 independent batches)
+
+Continuing from Rounds 0-1 this matchup (both logged in `/logs/rounds/0`
+and `/logs/rounds/1`), which established `clay__diag-lattice` as **by far
+the closest matchup ever recorded**: Round 0 = 131/104/15 (52.4% game win
+rate, ~1.01x avg-units margin), Round 1 = 131/107/12 (52.4% game win
+rate, ~1.02x margin, recomputed this session). Round 0's note identified
+two key facts worth repeating here since they're central to this round's
+work:
+1. **Win condition is unit-count-only at turn 100** (see
+   `determine_winner_normal` in `logic/logic/src/lib.rs`) — health shown
+   in the display is purely informational, doesn't affect who wins.
+2. **A late-game snowball pattern**: our unit count tracks the opponent's
+   closely through turn ~60-70, then diverges sharply in the last ~30
+   turns — consistent with "losing an engagement locally shifts local
+   numeric superiority further against you, accelerating further losses."
+
+### Change adopted this round: locally-outnumbered retreat
+
+Previous `RETREAT_ENABLED` logic only retreated when a unit would take
+*literally lethal* damage this turn if it stood still (`adjacent_enemies
+>= unit.health`) — a narrow, reactive trigger. Added a second retreat
+trigger, **locally-outnumbered retreat**: if a unit is adjacent to >=2
+enemies AND that count is >= `2 * (adjacent_allies + 1)` (i.e. we're
+outnumbered ~2:1 or worse right at this exact tile) AND the unit isn't at
+full health, retreat to the safest free tile instead of trading blows —
+even if not mathematically lethal this turn. Rationale: this targets the
+snowball mechanism directly — a damaged unit fighting a losing local
+battle bleeds out over many turns even without ever facing a single
+lethal turn, and retreating (which, per the existing `RETREAT_ENABLED`
+mechanic, makes enemy attacks aimed at the vacated tile whiff outright)
+lets it disengage and regroup with allies instead.
+
+This is a **new, more targeted variant** of ideas tried and found neutral
+in earlier sessions:
+- The old "outnumbered retreat" experiment (`edward__flail` matchup,
+  several sessions ago) used a *global* per-unit condition
+  (`health<=2 and adjacent>=2`) unconditioned on local ally support —
+  found neutral (15-15 split, n=30).
+- The "danger-avoidance" family (`wolfsleuth__simple`,
+  `gerenuk__gere-ape` matchups) was about *avoiding approaching* a
+  dangerous square before ever engaging — found regressive (raw version)
+  or neutral (ally-support-discounted version).
+- **This round's version is different from both**: it's a *reactive*
+  retreat (only triggers once already adjacent+fighting, same activation
+  point as the existing lethal-retreat check) but uses a genuine
+  local-odds ratio (adjacent enemies vs adjacent allies, not a fixed
+  health/count threshold) as the trigger, which neither prior experiment
+  tried.
+
+### Validation (3 independent seed batches, `tools/ab_test.py`, unambiguous `{botname}_wins=N` labels, no letter-swap trap):
+
+| Batch | Seeds | new_wins | old_wins | ties |
+|---|---|---|---|---|
+| 1 | 1-40 (`--swap`, 80 games) | 52 | 24 | 4 |
+| 2 | 41-100 (`--swap`, 120 games) | 63 | 49 | 8 |
+| 3 (post-adopt, new `robot.py` vs old code as `robot_v4_pre_localoutnumbered.py`) | 101-150 (`--swap`, 100 games) | 60 | 38 | 2 |
+| **Total** | | **175** | **111** | **14** (n=300) |
+
+~61% non-tie win rate for the new logic, consistent across all 3
+independent batches and both Blue/Red sides — this is a real, reproducible
+signal (not the "looks good in one small batch, reverses in the next"
+trap documented in the `gerenuk__gere-ape` session's ally-support
+experiment). Also ran a regression check vs `robot_v1_baseline.py`
+(15 seeds `--swap`, 30 games): **30/30 wins, 0 losses** — no regression
+against the old baseline either. No errors/exceptions/timeouts in any
+run; per-game wall-clock stayed at the usual ~3.1-3.5s (the new check is
+O(allies) per adjacent-combat decision, negligible overhead, nothing
+like the BFS-lookahead timing blowup from a much older session).
+
+**Action taken**: adopted into `robot.py`. Previous version saved as
+`robot_v4_pre_localoutnumbered.py` (same convention as
+`robot_v1_baseline.py`/`robot_v3_pre_coordweight_tune.py` — please don't
+delete, useful as a fixed A/B reference point). Deleted the temporary
+`robot_experiment_localout.py` and `robot_experiment_deficit.py` files
+after adoption/rejection respectively (the `_deficit` variant — lowering
+the *lethal*-retreat threshold when globally behind on unit count — was
+tried first and came back as a dead coin-flip, 37-38-5 over 80 games;
+NOT adopted, not kept since it's a clean negative/neutral result per repo
+convention).
+
+**For future teammates**: if `clay__diag-lattice` recurs, check whether
+the round margin improves at all from the ~1.01-1.02x seen in Rounds 0-1
+— this is exactly the kind of matchup this change was designed for
+(explicitly targeting the late-game-snowball pattern), but real
+validation will come from actual match logs against this opponent, not
+just self-play vs the old code (self-play only tells us the new logic
+beats the old logic in general, not specifically that it fixes *this*
+opponent's snowball pattern — though the mechanism should generalize
+to any opponent capable of locally outnumbering us). The `2:1` odds
+ratio and `health < 5` (i.e. "not at full health") conditions in
+`locally_outnumbered` were picked as reasonable first guesses, not
+independently tuned — if this opponent (or another close matchup)
+recurs without improvement, tuning those two constants (e.g. try 1.5:1
+odds, or drop the health condition entirely) is a natural next step,
+using the same `tools/ab_test.py` 3-independent-batch methodology used
+here to avoid single-batch false signals.
