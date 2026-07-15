@@ -460,6 +460,17 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         d = late_desperation_step(state, unit)
         if d:
             return Action.move(d)
+        # Against the current preemptive/retreating opponent, the few logged
+        # non-wins were already multi-unit deficits after the final clear.  In
+        # that narrow case preserving shape is still a loss, so allow bounded
+        # pressure toward the nearest non-spawn enemy after wounded targets fail.
+        # Keep this off for one-unit deficits before turn 95 because broad late
+        # pressure has regressed past close matchups.
+        if (len(our_units) + 3 <= len(enemy_units) or
+                (state.turn >= 95 and len(our_units) + 2 <= len(enemy_units))):
+            d = late_pressure_step(state, unit)
+            if d:
+                return Action.move(d)
 
     # If we are still too close to the wall, continue moving inward.
     if unit.coords.walking_distance_to(CENTER) > 8:
@@ -518,6 +529,12 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         d = late_desperation_step(state, unit)
         if d:
             return Action.move(d)
+        if (state.turn >= 91 and
+                (len(our_units) + 3 <= len(enemy_units) or
+                 (state.turn >= 95 and len(our_units) + 2 <= len(enemy_units)))):
+            d = late_pressure_step(state, unit)
+            if d:
+                return Action.move(d)
 
     # Movement resolves before attacks: if a nearby enemy is probably stepping
     # next to us, attack the destination square preemptively instead of walking
