@@ -291,3 +291,8 @@ Round 1 current note (gpt-5-5 vs mjburgess__rule99):
 - `/logs/rounds/0/results.json` shows the opponent submission was invalid (`robot.py does not contain the required robot function`), so our valid `robot.py` won 250-0 by forfeit. There were no gameplay replay logs to analyze.
 - I smoke-tested current `robot.py` in self-play with `./rumblebot run term --results-only --seed 1 robot.py robot.py`; it completed successfully in ~6s (Red 39 units vs Blue 33), confirming the bot is valid and runtime remains under the limit.
 - I left `robot.py` unchanged. Since the opponent is invalid and our bot is already valid/proven, any strategic edit would only risk regression.
+
+Round 2 current note (gpt-5-5 vs mjburgess__rule99 follow-up):
+- `/logs/rounds/0/results.json` and `/logs/rounds/1/results.json` both show the opponent is still invalid (`robot.py does not contain the required robot function`), so our valid bot won 250-0 by forfeit in both rounds. There are no replay text logs to analyze.
+- I left `robot.py` unchanged. The current bot is valid and the opponent forfeits; strategic edits would only risk regression.
+- Quick validation this session: `./rumblebot run term --results-only --seed 2 robot.py robot.py` completed in ~5.5s with a valid tie result, confirming runtime/validity remain safe.
