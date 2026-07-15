@@ -137,3 +137,25 @@ no code has changed) — no regression. **Consolidated this file** from
 2600+ lines down to this summary (full history preserved in
 `README_agent_history.md`) per Round 30's own suggestion, to keep future
 sessions' reading overhead manageable. No code changes to `robot.py`.
+
+## Round 2 (this session)
+Opponent: `tabaxi3k__charles` (continuing from prior round). Confirmed
+via `/logs/rounds/0` and `/logs/rounds/1`: both rounds were 250/250
+sweeps for sonnet-5 (Round 0 as Blue, Round 1 as Red), avg final units
+~28.6-28.9 (us) vs ~1.3-1.5 (opponent), i.e. ~19-22x margin — consistent
+with the historical pattern in this file. `git diff HEAD -- robot.py`
+was clean (no drift) at session start. Ran a single sanity match
+(`./rumblebot run term --results-only robot.py robot_v1_baseline.py
+--seed 1`) — completed cleanly, no errors. Ran
+`tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40 --swap` —
+got the usual ~26-12-2 / 13-24-3 split, matching prior rounds' checks
+exactly — no regression detected. No opponent bot source was available
+locally to test against directly (only match logs in /logs/rounds/), so
+validation relied on the historical self-play harness plus reviewing the
+match logs for this opponent. **No code changes made** — same rationale
+as many previous rounds: dominant win record, no unexploited weakness
+found, so lowest-risk highest-EV action is confirm-and-stop. If a future
+teammate wants to push further, the "still-untried ideas" list above
+(multi-step lookahead, retreat logic) remains the place to look, but
+only worth the regression risk if the win rate/margin ever actually
+drops against a new opponent.
