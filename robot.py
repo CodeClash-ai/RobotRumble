@@ -140,7 +140,7 @@ def retreat_from_adjacent(state: State, unit: Obj, adj: List[Tuple[Direction, Ob
         nearby = sum(1 for e in enemy_units if dest.walking_distance_to(e.coords) <= 2)
         spawn_penalty = 1 if is_spawn_coord(dest) else 0
         return (min_dist, -nearby, -spawn_penalty,
-                -abs(dest.walking_distance_to(CENTER) - 7))
+                -abs(dest.walking_distance_to(CENTER) - 8))
 
     dirs.sort(key=score, reverse=True)
     for d in dirs:
@@ -153,10 +153,10 @@ def retreat_from_adjacent(state: State, unit: Obj, adj: List[Tuple[Direction, Ob
 
 
 def step_to_annulus(state: State, unit: Obj) -> Optional[Direction]:
-    # Stay off the spawn ring and distribute around radius ~7 from center.  This
+    # Stay off the spawn ring and distribute around radius ~8 from center.  This
     # prevents traffic jams and keeps most units away from perimeter spawn wipes.
     dirs = list(DIRECTIONS)
-    dirs.sort(key=lambda d: (abs((unit.coords + d).walking_distance_to(CENTER) - 7),
+    dirs.sort(key=lambda d: (abs((unit.coords + d).walking_distance_to(CENTER) - 8),
                              (unit.coords + d).walking_distance_to(CENTER)))
     for d in dirs:
         dest = unit.coords + d
@@ -185,7 +185,7 @@ def kite_from_nearby(state: State, unit: Obj, radius: int = 3, allow_spawn: bool
         all_near = sum(1 for e in enemy_units if dest.walking_distance_to(e.coords) <= 2)
         allies_near = sum(1 for a in our_units if a is not unit and dest.walking_distance_to(a.coords) <= 2)
         return (min_dist, -all_near, allies_near,
-                -abs(dest.walking_distance_to(CENTER) - 7))
+                -abs(dest.walking_distance_to(CENTER) - 8))
 
     dirs.sort(key=score, reverse=True)
     for d in dirs:
@@ -347,11 +347,9 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                     d = retreat_from_adjacent(state, unit, adj, allow_spawn=True)
                     if d:
                         return Action.move(d)
-                    # If trapped on the final wave and the focused target should
-                    # die, attack rather than passively absorbing adjacent hits;
-                    # a trade is better than losing only our body.
-                    if target.health <= allies_on_target:
-                        return Action.attack(attack_dir)
+                    # If no retreat exists, hold.  Recent seven-of-nine logs
+                    # regressed when trapped units converted late leads into
+                    # simultaneous trade-downs.
                     return None
                 if target.health <= allies_on_target:
                     return Action.attack(attack_dir)
@@ -396,11 +394,8 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 91))
             if d:
                 return Action.move(d)
-            # Trapped adjacent units are likely to be hit anyway; if local focus
-            # can remove the target, take the trade instead of holding and dying
-            # for free.  This is still restricted to exact late unit ties.
-            if target.health <= allies_on_target:
-                return Action.attack(attack_dir)
+            # If no retreat exists, hold.  In this mirror-like matchup, allowing
+            # trapped exact-tie trades converted too many draws into losses.
             return None
         if late_ahead:
             # While protecting a late unit-count lead, avoid nonlethal trades,
@@ -420,10 +415,8 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 91))
             if d:
                 return Action.move(d)
-            # With no escape square, a focused kill/trade is preferable to
-            # waiting in place while adjacent enemies attack us.
-            if clean_kill:
-                return Action.attack(attack_dir)
+            # If no escape square exists, hold rather than taking a likely
+            # simultaneous trade while protecting a late unit-count lead.
             return None
         if (target.health <= allies_on_target or allies_on_target >= enemies_near_us + 1 or
                 (late_behind and target.health <= 3)):
