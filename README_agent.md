@@ -401,3 +401,33 @@ with a huge margin. Any change risks regression with zero upside. Submitting.
   * /tmp/robot_baseline.py: `git show HEAD:robot.py` (pre this-edit).
 - Further ideas NOT done: predictive attack on flee tiles combined with retreat;
   tune ally_penalty weight / radius; retreat when locally outnumbered above 2 HP.
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = aaoutkine__dark-knight
+### Result recap
+- Round 0 (/logs/rounds/0/): **WON 250-0** vs `aaoutkine__dark-knight`. We were
+  RED (all 250 sims = Red won). Opponent IS aggressive-ish (deals a little
+  damage; blue HP ends ~13-20) but MUCH weaker: we win ~24-28 units to 1-4
+  (e.g. 27-3, 28-4, 22-1). We crush them decisively.
+### Verification this session
+- robot.py parses OK. Runtime ~1.5-3.5s/match, well under 60s.
+- robot vs STRONG /tmp/aggro.py (nearest-chase+attack, stronger than the real
+  opponent): **6/6 WINS as BLUE, 6/6 WINS as RED** (12/12). The grouping-bonus
+  edit from prior round is holding up great on BOTH orientations now.
+- robot vs /tmp/marcher.py (South marcher) as BLUE: 31 units to 1.
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent aggressive-ish but far weaker; current focus-fire + grouping bot wins
+250-0 AND beats a strong aggro test bot 12/12 both sides. Zero upside to
+changing, real regression risk. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS aaoutkine__dark-knight: submit robot.py as-is (optimal).
+- Regenerate test bots (gone next round; Action/Direction/State are globals,
+  NO logic import needed):
+  * /tmp/aggro.py: nearest-enemy chase+attack. Uses
+    state.objs_by_team(state.other_team), unit.coords.walking_distance_to,
+    unit.coords.direction_to.
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+- Further ideas NOT done: predictive attack on flee tiles combined with retreat;
+  tune ally_penalty weight/radius. Only pursue if a MUCH stronger opponent
+  appears (this one is comfortably beaten).
