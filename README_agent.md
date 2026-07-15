@@ -2189,3 +2189,68 @@ lookahead pathing — the only genuinely unexplored lever after 58+
 rounds) remains the place to look if a future opponent's round win
 rate drops below ~95% or margin drops below ~2x, which has not
 happened here (clean sweep both rounds, healthy ~4.0x margin).
+
+## Round 1 (this session) — new opponent `mountain__neuralbot4-3h`
+
+Opponent: `mountain__neuralbot4-3h` (new identity, ~36th distinct
+opponent seen), logged as `/logs/rounds/0`. Result: **247/250 wins for
+sonnet-5** (we were Red per `details`: "mountain__neuralbot4-3h was
+Blue and sonnet-5 was Red"), 3 losses, 0 ties. Avg final units: ~23.24
+(us) vs ~10.03 (opponent), ~2.32x margin — dominant round win (98.8%
+game win rate) but margin below the ~3x "fully dominant" soft
+threshold, in the same "genuinely competent opponent" bucket as
+`aaa__jippty5` (~2.3x), `anton__anton4000` (~2.3-2.5x), and
+`edward__flail` (~2.16x) from many sessions ago.
+
+Investigated the 3 losses (`sim_103.txt`, `sim_125.txt`, `sim_164.txt`):
+all ran the full 100 turns and ended in genuinely close symmetric states
+(e.g. 20v17 units/46v48hp; 18v13 units/53v50hp) — no evidence of a bug,
+stuck/idle units, or wasted turns; reads as legitimately close
+seeds/starting positions against a reasonably competent opponent, same
+pattern as every previous "closer than usual" opponent investigated in
+this file. `grep -li "error|exception|traceback" sim_*.txt` → 0 matches
+across all 250 logs (no crashes/exceptions).
+
+Verified `git diff HEAD -- robot.py` clean (no drift; tree already
+clean at session start — retreat logic (`RETREAT_ENABLED = True`) +
+`HEALTH_WEIGHT=0.6`, `FOCUS_BONUS=2.0`, `COORD_WEIGHT=0.05` tune from
+many previous sessions still intact, all confirmed via grep). Ran a
+sanity match (`./rumblebot run term --results-only robot.py
+robot_v1_baseline.py --seed 1` → Blue won 66hp/22units vs 9hp/2units,
+~3.2s, no errors — byte-identical to every prior post-tune round's
+check, confirming engine/harness unchanged). Ran `tools/ab_test.py
+robot.py robot_v1_baseline.py --seeds 1-40 --swap --workers 16` →
+**40/40 both as Blue and as Red** (unambiguous `{botname}_wins=N`
+labels, no letter-swap trap) — consistent with every post-retreat-
+adoption round's full-sweep finding, no regression.
+
+No local copy of `mountain__neuralbot4-3h`'s source found on disk
+(`find / -iname "*neuralbot*" -o -iname "*mountain*"` outside `/logs/`
+→ empty), same situation as almost every previous opponent, so no way
+to build/validate a targeted matchup-specific fix this session.
+
+Considered re-attempting weight tuning or the "still-untried ideas"
+list given the margin (~2.32x) is below the ~3x threshold, similar to
+past opponents that triggered investigation (`mousetail__genetic-robot`
+led to the COORD_WEIGHT 0.15→0.05 adoption). However: (a) weight tuning
+(`HEALTH_WEIGHT`, `FOCUS_BONUS`, `COORD_WEIGHT`) has already been
+re-probed multiple times post-retreat-adoption with no further gain
+found (see "Closed experiments" section — doubly-closed as of a few
+sessions ago), (b) the "outnumbered retreat" generalization was already
+tried and found neutral (15-15 split, see `edward__flail` Round 2
+notes), and (c) without opponent source there's no way to build/
+validate a hypothesis-driven change against `mountain__neuralbot4-3h`
+specifically — all 3 losses reviewed are legitimately close games, not
+bugs or exploitable patterns. Given this, and the still-dominant 98.8%
+game win rate, chose **not to make speculative code changes** this
+round — consistent with the established playbook of only investing
+implementation effort when a round is actually lost or margin drops
+below ~2x (neither has happened here).
+
+**No code changes made.** Future teammates: the "still-untried ideas"
+list (multi-step lookahead pathing — the only genuinely unexplored
+lever after 59+ rounds) remains the place to look if
+`mountain__neuralbot4-3h` recurs without margin improving, or if a
+future opponent's round win rate drops below ~95% or margin drops
+below ~2x. Otherwise, status quo (`robot.py` unchanged) continues to be
+lowest-risk/highest-EV.
