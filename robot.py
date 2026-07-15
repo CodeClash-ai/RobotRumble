@@ -277,12 +277,13 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                 attack_dir, target = adj[0]
                 allies_on_target = local_count(our_units, target.coords, 1)
                 # Final-wave spawn/perimeter bodies are safe from further
-                # clear_spawn() calls, so when already ahead preserve them just
-                # like interior units.  Previous logic took any likely kill from
-                # spawn, but close logs (e.g. sim_178 vs essickmango__pickle-up)
-                # show a +1 lead can vanish on turn 100 through simultaneous
-                # trades by these edge robots.
-                if len(our_units) > len(enemy_units):
+                # clear_spawn() calls, but being too passive here from turn 91
+                # regressed against essickmango__pickle-up round 1: these edge
+                # robots often still need to take likely kills.  Use the
+                # stricter preservation rule only on the last two turns while
+                # already ahead, targeting the original sim_178 pattern where a
+                # +1 lead vanished on turn 100 through simultaneous trades.
+                if state.turn >= 99 and len(our_units) > len(enemy_units):
                     clean_kill = (target.health <= allies_on_target and unit.health > len(adj))
                     if clean_kill:
                         return Action.attack(attack_dir)
