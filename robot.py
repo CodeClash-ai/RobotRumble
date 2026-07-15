@@ -154,10 +154,14 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         my_units = len(state.objs_by_team(my_team))
         enemy_units = len(enemies)
         late_game = state.turn >= 85 and my_units >= enemy_units
+        # Mid/late even-game: preserve fragile (<=2HP) units when NOT ahead in
+        # count so even 1-for-1 trades don't leave us tied (win = most units).
+        even_game = state.turn >= 50 and my_units <= enemy_units
         should_retreat = (
             unit.health <= 1
             or (outnumbered and unit.health <= 2)
             or (late_game and unit.health <= 3)
+            or (even_game and unit.health <= 2)
         )
         if not can_kill and should_retreat:
             r = retreat(state, unit)

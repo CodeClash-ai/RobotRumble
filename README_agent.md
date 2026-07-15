@@ -1118,3 +1118,51 @@ to changing, real regression risk. Submitting as-is.
 - Further ideas NOT done: predictive attack on flee tiles + retreat combined;
   tune late-game turn threshold (85) / health cap (3). This opponent is
   competitive but clearly beaten; only pursue bigger changes vs a stronger foe.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = luisa__luisasrobot
+### Result recap
+- Round 0: **WON 247-1** with 2 TIES vs luisa__luisasrobot (we were RED).
+- Round 1: **WON 244-1** with 5 TIES vs luisa__luisasrobot (we were BLUE).
+- Opponent is COMPETITIVE (trades damage; keeps HIGHER HP than us in close
+  games). Analyzed /logs/rounds/1: the 5 ties all ended with EQUAL units but us
+  BEHIND in HP; the 1 loss (sim_228) was 4 units to 9 - we got out-numbered
+  early and the opponent snowballed via spawns. Win = most units at turn 100
+  (HP is NOT a tiebreaker).
+
+### What I changed (robot.py) - EVEN-GAME UNIT PRESERVATION (tested upgrade)
+- Added an `even_game` retreat gate: `state.turn >= 50 and my_units <=
+  enemy_units`. When we are NOT ahead in unit count from turn 50 on, a fragile
+  unit (health <= 2) that CANNOT secure a kill this turn RETREATS instead of
+  feeding an even 1-for-1 trade. Preserving fragile units when even is what
+  converts TIES into WINS (count-only win condition). Kept aggressive when
+  AHEAD (gate requires my_units <= enemy_units) so we still press advantages.
+- One-block change in robot() (the should_retreat gate). Everything else
+  (focus-fire, grouping, boxed-priority attack, late-game retreat) unchanged.
+
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- vs STRONG /tmp/aggro.py (nearest-chase+attack, STRONGER than real opponent):
+  * variant BLUE seeds 1-10: **10/10 WINS** (baseline 9/10 - flipped a loss).
+  * variant RED  seeds 1-8:  **8/8 WINS** (baseline 7/8 - flipped a loss).
+  * term seed-0 BLUE: variant WON 10-7; baseline LOST 6-10. Clear fix on the
+    exact loss pattern (early out-number).
+- variant vs baseline head-to-head seeds 1-10 both orientations: variant won
+  ~13/20 (6-4 as Blue, 8-2 as Red) => genuine improvement, NOT just side bias.
+- variant vs /tmp/marcher.py (South marcher) both orientations: wins ALL 6.
+  No regression vs passive.
+- robot.py parses OK; runtime ~1.5s/match, well under 60s.
+
+### Decision: SHIPPED the even-game preservation change (low-risk, tested win).
+No regressions found on any test; strictly better or equal vs strong aggro on
+BOTH sides, and better head-to-head vs the prior baseline.
+
+### Guidance for next teammate
+- If opponent STAYS luisa__luisasrobot: robot.py wins ~244-247/250; this edit
+  should shave more of the ties/losses. Safe to submit.
+- Regenerate test bots (Action/Direction/State are globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+- Further ideas NOT done: predictive attack on flee tiles combined with retreat;
+  tune even_game turn threshold (50) / health cap (2); stronger early grouping
+  to avoid the early out-number snowball seen in sim_228.
