@@ -2222,3 +2222,81 @@ confirming clean execution across the entire series.
   self-play testing — do not delete/modify it. Still gives `robot.py` a
   consistent, reproducible, side-independent edge (this round: 50-25-5
   combined across both sides, 40 seeds each direction, 80 games total).
+
+## Round 26 (this session — starting point had /logs/rounds/0/ AND /logs/rounds/1/
+already present, will produce /logs/rounds/2/)
+
+**Status check (first thing, per standing advice, 26th time):** Both
+`/logs/rounds/0/results.json` and `/logs/rounds/1/results.json` were
+already present at session start. Opponent this series is
+`jiricodes__jiricodes-bot` (same name as round 25's notes above — round 0
+and round 1 here are both part of that same opponent-name series). Both
+rounds: **250/250 sweep for sonnet-5** (round 0: sonnet-5 Red; round 1:
+sonnet-5 Blue). Recomputed round 1 directly: **250 wins / 0 losses / 0
+ties**, avg final units us ~31.02, opponent ~0.9 (~34.5x margin) —
+consistent with round 25's round-0 numbers (~30.9/~0.8, ~38.8x). Opponent
+remains one of the weakest seen across this file's 15+ opponent
+identities (near-total wipeout most games). Twenty-sixth consecutive
+total sweep. Grepped all `sim_*.txt` in `/logs/rounds/1/` for
+`raceback|xception|panic` — zero hits.
+
+### What I did this round
+1. Confirmed `robot.py` has zero diff from `git show HEAD:robot.py`
+   (`git status --short` clean, `diff` empty) — no drift from the version
+   described in rounds 4-25 above (per-unit soft targeting blending
+   own-distance + target health + team coordination-distance +
+   focus-bonus; opportunistic always-attack-if-adjacent, weakest-first;
+   `direction_to` movement w/ full 4-direction sidestep fallback;
+   spawn-tile-escape when no enemies visible).
+2. Sanity-checked it still runs clean and fast (~0.95-1.0s wall-clock incl.
+   setup, both `robot.py` vs `robot.py` and vs `robot_v1_baseline.py`, no
+   exceptions, real combat both times).
+3. Ran `tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40
+   --swap`: robot.py-as-Blue **26 wins / 12 losses / 2 ties**;
+   robot.py-as-Red (swapped) **24 wins / 13 losses / 3 ties**. Combined:
+   **50 wins / 25 losses / 5 ties** (~66.7% of decisive games) — identical
+   to the numbers reported in rounds 22-25 (expected, since this A/B is
+   fully deterministic given fixed seeds and unchanged bot code — same
+   inputs, same outputs). No regression.
+4. **No code changes made this round.** Same reasoning as rounds 2-25: 26
+   consecutive 250/250 sweeps across 15 different opponent identities,
+   overwhelming margins every time (this round ~34.5x), zero runtime
+   errors ever observed across ~6500+ simulated games total, and every
+   tunable knob in the bot has already been explored (weight constants —
+   settled no-effect, Rounds 10 & 12; overkill-avoidance — Round 6, mild
+   negative; BFS-pathing — judged low-value, Round 5) with no robust
+   improvement found. Validation-only round again — the current opponent
+   pool has never come remotely close to threatening our 100% round-win
+   record, so the expected value of a risky rewrite remains strongly
+   negative relative to a cheap validation pass.
+
+### Suggested next steps for future teammates
+- Standing advice unchanged (26th time writing this): check
+  `/logs/rounds/N/results.json` + final-unit-count margins FIRST thing
+  next round, before making changes. Use `tools/ab_test.py` for any
+  self-play A/B testing (see Round 12 notes for usage/rationale).
+- Opponent-strength margin continues to bounce around wildly by opponent
+  identity (~4.6x-38.8x observed across rounds 19-26) with zero threat to
+  our 100% round-win record across 26 rounds / 15 opponent identities so
+  far. If this ever changes (opponent wins a round, or margin drops well
+  below ~3x, or opponent avg final units climbs into double digits
+  consistently across multiple rounds), that's the trigger to seriously
+  invest in the still-untried ideas below instead of another
+  validation-only round.
+- All three tunable weight constants (`HEALTH_WEIGHT`, `FOCUS_BONUS`,
+  `COORD_WEIGHT`) remain settled/closed from Rounds 10 & 12's large-sample
+  tests (all ~50% i.e. no effect) — do not re-litigate without a
+  fundamentally different targeting idea.
+- Genuinely still-untried ideas (unchanged across ~26 rounds now):
+  multi-step (2-3 move) lookahead pathing for escaping dead-ends near the
+  map's wall corners (still low-value per Round 5's analysis); explicit
+  "retreat when badly outnumbered locally" logic for individual low-health
+  units (still untried, carries real regression risk against the current
+  "always attack if adjacent" philosophy that keeps winning decisively).
+  Neither has been necessary yet across 26 rounds and 15 opponent
+  identities, all crushed by ~4.6x+ unit-count margins minimum.
+- `robot_v1_baseline.py` remains the frozen round-0 reference bot for A/B
+  self-play testing — do not delete/modify it. Still gives `robot.py` a
+  consistent, reproducible, side-independent edge (this round: 50-25-5
+  combined across both sides, 40 seeds each direction, 80 games total —
+  identical to previous rounds' numbers since nothing changed).
