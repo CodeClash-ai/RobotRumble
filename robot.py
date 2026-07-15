@@ -298,9 +298,13 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # don't have more attackers on the target than it has adjacent allies) -
         # otherwise a favorable trade can push us AHEAD, which wins the count.
         local_favorable = attackers > count_enemy_adjacent(state, my, other_team)
-        endgame = state.turn >= 90 and (
-            my_units > enemy_units
-            or (my_units == enemy_units and not local_favorable)
+        # Strictly-ahead endgame lock-in fires EARLIER (turn>=86): traced losses
+        # (sim_0, sim_113) held a 1-3 unit lead at turn ~90 then traded it away
+        # in the last turns to a tie/loss. Protecting the lead sooner converts
+        # those. Tied case stays at turn>=90 (only when not locally favorable).
+        endgame = (
+            (state.turn >= 86 and my_units > enemy_units)
+            or (state.turn >= 90 and my_units == enemy_units and not local_favorable)
         )
         boxed_here = enemy_boxed(state, e, my_team)
         should_retreat = (
@@ -345,7 +349,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # lets the enemy hit us on their turn -> a trade that can erode our lead.
     # Preserving the count (win = most units at turn 100) is worth more than a
     # chip of damage. Only fires when ahead, dist==2, so we don't go passive.
-    if state.turn >= 90 and my_units > enemy_units and dist_to_enemy == 2:
+    if state.turn >= 86 and my_units > enemy_units and dist_to_enemy == 2:
         mine_near, foes_near = local_balance(state, my, my_team, other_team, radius=2)
         # Only hold if the fight ahead is NOT locally favorable. If we clearly
         # outnumber them here, keep pressing (a favorable trade widens our lead).

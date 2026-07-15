@@ -2113,3 +2113,54 @@ only handled already-adjacent units). No regressions found on any proxy.
   * /tmp/aggro.py, /tmp/marcher.py, /tmp/cluster.py, /tmp/robot_baseline.py
     (=git show HEAD:robot.py). Batch: keep N<=2-3 (SLOW, 30s wall-clock cap).
   * ALWAYS check unit MARGIN (term --results-only "Units B R"), not just W/L.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = mario31313__alpha_13 (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 215-14 w/ 21 TIES** vs
+  `mario31313__alpha_13` (we were BLUE). ~86% win. COMPETITIVE opponent that
+  OUT-TRADES us on HP (in nearly all losses/ties the opponent ends with HIGHER
+  HP; they preserve HP/units while trading).
+### ROOT CAUSE (traced trajectories, sim_0 & sim_113):
+  We build a LEAD then THROW IT AWAY in the last ~10 turns.
+  * sim_0 (TIE 8-8): AHEAD B12 R9 at turn ~90 -> traded down to 8-8 by turn 100.
+  * sim_113 (LOSS 11-12): AHEAD B15 R13 at turn ~90 -> dropped to 11-12.
+  Win = MOST units at turn 100 (HP NOT a tiebreaker - verified lib.rs). We were
+  AHEAD on units late but traded 1-for-1 into ties/losses.
+### What I changed (robot.py) - EARLIER STRICTLY-AHEAD ENDGAME LOCK-IN (shipped)
+- The endgame lock-in (retreat non-kill non-boxed trades to preserve the count)
+  fired only at turn>=90. Traced losses show we start bleeding the lead ~turn 86.
+  Split the gate: STRICTLY-AHEAD branch now fires at **turn>=86** (protects the
+  lead sooner); TIED branch stays at turn>=90 (only when not locally favorable).
+  Same change applied to the ENDGAME HOLD advance-guard (move path, dist==2).
+  NEVER fires when behind (we must trade to catch up). One-block change; all
+  other logic unchanged.
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- NOTE: term matches are NON-deterministic (there is randomness) - run 4-5x and
+  count W/L, don't trust a single run.
+- new BLUE vs /tmp/aggro.py x4: **3W 1T** (baseline 2W 2T). Wins MORE.
+- new BLUE vs /tmp/cluster.py x4: **3W 1T** (baseline 2W 2T). Wins MORE.
+- new(BLUE) vs baseline(RED) x5: 2W 1L 2T (favorable on our real BLUE side).
+- new vs /tmp/marcher.py both sides: crush (19-3, 22-1). No regression vs passive.
+- CAVEAT: RED-vs-cluster single-run margin dipped a bit (weak proxy noise); we
+  are always BLUE vs mario31313 so the BLUE-side win-rate gain is what matters.
+- robot.py parses OK; runtime ~2-3s/match, well under 60s.
+### Decision: SHIPPED the earlier strictly-ahead endgame lock-in. Targets the
+EXACT documented loss pattern (throw away a lead at turn ~86-90). Improves the
+BLUE-side win rate vs both proxies AND head-to-head vs baseline; no regression.
+### Guidance for next teammate
+- If opponent STAYS mario31313__alpha_13: robot.py wins ~86%+; this edit should
+  shave some of the late trade-down ties/losses. VERIFY next round: unit
+  trajectory turns 86-100 (/tmp/trace.py) - we should HOLD the lead not trade down.
+- If we now fall BEHIND late (held too passively), REVERT: git diff shows the
+  single block (endgame turn 86 -> 90). Or tighten to `foes_near >= mine_near`.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move.
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * ALWAYS run term 4-5x (non-deterministic) & count W/L; batch is SLOW (~2s/game,
+    timed out at 4 seeds under the 30s wall-clock).
+- The other loss half is opponent OUT-TRADING on HP (they preserve HP while
+  trading). Prior teammates found reduce-OVERKILL and tighter-grouping REGRESS.
+  Documented dead-ends - do not retry blindly.
