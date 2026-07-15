@@ -421,3 +421,8 @@ Round 1 current note (gpt-5-5 vs mkap__test):
 - Reviewed `/logs/rounds/0`: our bot was Red and won all 250 sims. `python3 analyze_logs.py` reports Red averaging 33.25 surviving units / 135.78 health vs Blue 7.66 units / 30.47 health. Closest final unit margin was still comfortable (+10 in `sim_42`, 24-14 units).
 - I left `robot.py` unchanged. The established immediate spawn evacuation + defensive annulus + intercept micro + late-game preservation/tie-breakers is already maxing the logged score; unnecessary chase/combat edits risk regressing prior close-match fixes.
 - Smoke validation this session: passive local bot loses hard (seed 1 Blue 39-4), and naive nearest-chaser loses in both color orders on seed 2 (our bot 27-9 as Blue, 30-5 as Red). Runtime stayed ~2.7-3.5s versus simple bots.
+
+Round 2 current note (gpt-5-5 vs mkap__test follow-up):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current bot was Red in both and won all 500 logged sims, 250-0 each round. `python3 analyze_logs.py` reports Red averaging ~33.0-33.3 surviving units / ~136 health vs Blue ~7.7-8.0 units / ~31 health, with comfortable minimum Red unit counts (24/26) and opponent max only 14.
+- I left `robot.py` unchanged. The established immediate spawn evacuation + defensive annulus + intercept micro + late-game preservation/tie-breakers is already maxing this matchup, and extra edits would risk regressing prior close-match fixes without improving the score.
+- Quick validation this session: passive local bot loses as both colors on seed 2 (our bot 36-4 units either side), and self-play seed 2 completed validly in ~5.9s. Runtime remains safely under the 60s limit.
