@@ -308,11 +308,17 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         d = kite_from_nearby(state, unit, 3, allow_spawn=(state.turn >= 91))
         if d:
             return Action.move(d)
-        # Once we have a late unit-count lead, do not volunteer for any extra
-        # intercepts/chases/annulus shuffling.  Recent aayyad__testbot losses
-        # came from bleeding a 2-4 unit post-spawn lead during turns 95-100;
-        # standing still away from adjacent threats preserves the only score
-        # that matters better than walking into predicted attacks.
+        # Once we have a late unit-count lead, do not volunteer for chase or
+        # annulus shuffling.  However, in the final few turns a unit that cannot
+        # kite away may still pre-fire a predicted adjacent square: this does not
+        # move our body into a trade, and can stop the exact pattern seen in the
+        # aaoutkine__silo34 round-1 tie where a +2 post-spawn lead was slowly
+        # chased down into a final unit-count draw.
+        if state.turn >= 95:
+            d = intercept_dir(state, unit)
+            if d:
+                reserved_attack_squares.add(unit.coords + d)
+                return Action.attack(d)
         return None
 
     # If tied very late but behind/even on health, try the wounded-target
