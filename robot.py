@@ -454,6 +454,17 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                             adj_ally_ids.append(oo.id)
                     if len(adj_ally_ids) >= 2 and unit.id != min(adj_ally_ids):
                         return Action.attack(fd)
+        # ANTI-WHIFF vs fleer: a LONE attacker on an UNBOXED enemy we cannot
+        # kill WHIFFS (enemy flees before attacks) AND eats return fire. When we
+        # are NOT ahead, reposition toward it to build a boxing/support position
+        # instead of feeding a whiff-trade. Only when NOT ahead so we never go
+        # passive while winning.
+        if (not can_kill) and attackers <= 1 and not enemy_boxed(state, e, my_team) and my_units <= enemy_units:
+            escapes = enemy_escape_tiles(state, e, my_team, other_team)
+            if len(escapes) >= 2:
+                st = step_toward(state, unit, e.coords)
+                if st is not None:
+                    return st
         # Attack the chosen adjacent enemy (aggressive: always trade or better).
         return Action.attack(d)
 

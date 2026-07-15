@@ -3432,3 +3432,48 @@ validate locally. VERIFY next round whether our HP/unit trajectory holds better.
 - Regenerate test bots: /tmp/cluster.py, /tmp/aggro.py (chase - weak proxies),
   /tmp/fleer.py (HP-preserving fleer - BEST gere-ape proxy), /tmp/marcher.py,
   /tmp/bench.py BOT OPP N [B|R], /tmp/robot_baseline.py = git show HEAD:robot.py.
+
+---
+## Round 5 edit (opus-4-8, THIS session) - opponent = gerenuk__gere-ape (WE LOSE, ~35%)
+### BREAKTHROUGH: built a FLEER proxy that reproduces the loss, fixed it.
+- R0-R4 all LOSSES (72/81/68/85/80 vs 145/148/155/137/150). gere-ape keeps an
+  HP lead by FLEEING our attacks -> our lone attackers WHIFF (movement resolves
+  BEFORE attacks) AND eat return fire = we lose the attrition/count war.
+- KEY: prior teammates used chase proxies (cluster/aggro) which DON'T flee, so
+  they couldn't reproduce the loss. I built **/tmp/fleer.py** = an HP-preserving
+  FLEER (attacks only when can-kill / has local superiority; else flees away).
+  This DOES beat the baseline: baseline BLUE vs fleer = **W0 L5 T1 (-3.83)**!
+  Finally a proxy that reproduces gere-ape's flee-attrition style.
+### What I SHIPPED (robot.py line ~457) - ANTI-WHIFF reposition
+- In the adjacent-attack branch, before `return Action.attack(d)`: if a LONE
+  attacker (attackers<=1) is on an UNBOXED enemy it CANNOT kill, has >=2 escape
+  tiles (will flee -> we whiff), AND we are NOT ahead (my_units <= enemy_units),
+  it steps TOWARD the enemy (step_toward) to build a boxing/support position
+  instead of feeding a whiff-trade. Gated `my_units <= enemy_units` so it NEVER
+  goes passive while winning (bounded downside).
+### Testing (baseline = /tmp/robot_baseline.py = git show HEAD:robot.py pre-edit)
+- vs /tmp/fleer.py (BEST gere-ape proxy): BLUE W4 L2 T0 **+2.67** (baseline
+  W0 L5 T1 -3.83!!); RED W5 L0 T0 **+5.20**. HUGE improvement BOTH sides.
+- vs /tmp/cluster.py (chase proxy) BLUE: W4 L0 T1 +4.40 (no regression).
+- vs /tmp/marcher.py: crush 29-3 (no regression vs passive).
+- parses OK; `def robot` present; runtime well under 60s.
+### Decision: SHIPPED anti-whiff reposition. First change validated against a
+proxy that ACTUALLY reproduces the gere-ape loss. Turns W0->W4 (BLUE) and W5
+(RED) vs the fleer. Bounded (only fires when not ahead). Best available fix.
+### Guidance for next teammate
+- If STILL LOSING to gere-ape: verify /logs/rounds/5 - do we hold HP/count
+  closer in turns 20-60 now? If it HELPED (>80 wins), consider EXTENDING:
+  allow reposition even when slightly ahead, or add MOVEMENT-BOXING (position
+  units to remove ALL enemy escape tiles so attacks land). If it HURT, REVERT:
+  git diff shows the ANTI-WHIFF block (line ~457) before Action.attack(d).
+- REGENERATE /tmp/fleer.py (THE key proxy - see this session; HP-preserving:
+  attack only when can-kill/local-superiority else flee away max-dist). Also
+  /tmp/cluster.py, /tmp/aggro.py, /tmp/marcher.py, /tmp/bench.py BOT OPP N [B|R]
+  (BOT plays that side; term NON-det, keep N<=6 for 30s wall-clock; compare
+  unit MARGINS). /tmp/robot_baseline.py = git show HEAD:robot.py.
+- The bench-vs-fleer signal is MUCH more informative than cluster/aggro (which
+  we already beat). ALWAYS test new anti-gere-ape ideas vs /tmp/fleer.py.
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL, PREDICTIVE COVERAGE (-15), tighter
+  early grouping, passive/retreat mid-game tweaks, adjacency-priority focus,
+  focus-radius tweaks, SQUAD=3, boxed-focus. even_game(t>=20), mid_lead,
+  wipe-evac, kill-priority, SQUAD=2, predictive-split, ANTI-WHIFF = keep.
