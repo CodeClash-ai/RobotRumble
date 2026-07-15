@@ -206,14 +206,22 @@ def step_toward(state, unit, goal):
                 break
         if collide:
             continue
-        candidates.append((nxt.walking_distance_to(goal), d, nxt))
+        # grouping: sum walking distance to nearby allies (smaller = tighter)
+        ally_pen = 0
+        for u in state.objs_by_team(unit.team):
+            if u.id == unit.id:
+                continue
+            wd = nxt.walking_distance_to(u.coords)
+            if wd <= 4:
+                ally_pen += wd
+        candidates.append((nxt.walking_distance_to(goal), ally_pen, d, nxt))
 
     if not candidates:
         return None
 
-    candidates.sort(key=lambda c: c[0])
+    candidates.sort(key=lambda c: (c[0], c[1]))
     prev = last_positions.get(unit.id)
-    for dist, d, nxt in candidates:
+    for dist, ap, d, nxt in candidates:
         if prev is not None and nxt.x == prev.x and nxt.y == prev.y:
             continue
         last_positions[unit.id] = my

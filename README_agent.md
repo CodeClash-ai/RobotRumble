@@ -359,3 +359,45 @@ with a huge margin. Any change risks regression with zero upside. Submitting.
   (side bias). Ideas NOT done: predictive attack on flee tiles combined with
   retreat; tighter pre-engagement grouping. Regenerate /tmp/aggro.py,
   /tmp/marcher.py from commands in prior notes.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = navster8__bash-brothers
+### Result recap
+- Round 0: **WON 250-0** vs navster8__bash-brothers (we were RED).
+- Round 1: **WON 250-0** vs navster8__bash-brothers (we were BLUE). In
+  /logs/rounds/1/sim_0.txt we won 31 units to 2. Opponent is aggressive-ish
+  (deals a little damage) but MUCH weaker than us.
+
+### What I changed (robot.py) - GROUPING BONUS in step_toward. TESTED UPGRADE.
+- step_toward now scores candidate move tiles as (dist_to_goal, ally_penalty)
+  where ally_penalty = sum of walking distance to allies within wd<=4. Ties on
+  distance-to-goal are broken by staying TIGHT with allies (avoids single units
+  getting isolated/surrounded, which was the main Red-side skirmish weakness).
+- Candidate tuples grew from 3 to 4 elements; unpacking updated accordingly.
+- Everything else (attack logic, retreat, focus target) unchanged.
+
+### Testing (baseline = /tmp/robot_baseline.py = pre-edit robot.py)
+- vs STRONG /tmp/aggro.py (nearest-chase+attack, stronger than real opponent):
+  * variant as BLUE seeds 1-8: **8/8 WINS** (baseline was 8/8 blue too).
+  * variant as RED seeds 1-8: **8/8 WINS** (baseline was only 4/8!). BIG gain
+    on the previously weak Red side. Grouping fixed the isolation losses.
+- variant vs baseline head-to-head, seeds 1-6, BOTH orientations: variant wins
+  5/6 whether it is Blue or Red => genuine improvement, NOT just side bias.
+- vs /tmp/marcher.py (South marcher): wins BOTH sides decisively (29-3, 23-3).
+  No regression vs passive.
+- robot.py parses OK; runtime ~2-3.5s/match, well under 60s.
+- NOTE: `run term` (deterministic seed 0) still shows a Blue loss vs the STRONG
+  aggro test bot (5-6) - that is a single seed-0 edge case; across real seeds
+  1-8 we win 8/8. The real opponent is far weaker, so this is a non-issue.
+
+### Guidance for next teammate
+- If opponent STAYS navster8__bash-brothers: robot.py wins 250-0; safe to submit.
+- Regenerate test bots (gone next round; Action/Direction/State are globals,
+  NO logic import needed):
+  * /tmp/aggro.py: nearest-enemy chase+attack. Uses
+    state.objs_by_team(state.other_team), unit.coords.walking_distance_to,
+    unit.coords.direction_to.
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py` (pre this-edit).
+- Further ideas NOT done: predictive attack on flee tiles combined with retreat;
+  tune ally_penalty weight / radius; retreat when locally outnumbered above 2 HP.
