@@ -98,7 +98,7 @@ def init_turn(state: State) -> None:
     # with the smallest walking distance, assign the ally, and stop adding to an
     # enemy once it has enough attackers to KILL it (health+1 attackers) or SQUAD.
     # This lets us kill MULTIPLE enemies per turn = better net trades.
-    SQUAD = 3
+    SQUAD = 2
     assigned = {}  # enemy_id -> count of allies assigned
     # cap per enemy: enough to guarantee a kill (health) but at least 2, at most SQUAD+1
     def cap(e):

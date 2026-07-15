@@ -3021,3 +3021,53 @@ TRADES in turns 70-90 (where we bleed leads): try v3 (attack-when-favorable),
 and consider PREDICTIVE ATTACKS (movement resolves BEFORE attacks, so attack
 the tile a fleeing enemy will step to). Validate any change against the real
 opponent if it ever appears in /logs — self-play is uninformative (all ties).
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = essickmango__pickle-up (STRONGEST YET, ~50/50)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 118-111 w/ 21 TIES** vs
+  `essickmango__pickle-up` (we were BLUE). This is the CLOSEST match ever
+  (~47% margin, mean unit margin -0.25!). By far the strongest opponent.
+- Loss analysis (/tmp/analyze.py, /tmp/trace.py sim_112): opponent OUT-TRADES
+  us hard - in losses it ends with MUCH higher HP (e.g. 22-60, 12-50) AND more
+  units. We fall behind starting turn 30-40 in the first big clustered melee and
+  never recover. Genuine combat-efficiency loss (they dodge our hits / preserve
+  HP while their hits land).
+### What I changed (robot.py) - SQUAD 3 -> 2 (parallel gang-kills, TESTED, SHIPPED)
+- init_turn `SQUAD = 3` -> `SQUAD = 2` (line 101). This spreads our attackers
+  across MORE enemies (killing more in PARALLEL) instead of dogpiling ~3-4 on
+  one enemy (overkill). Directly counters the opponent's parallel-kill
+  efficiency that out-trades us in the clustered melee.
+### Testing (/tmp/bench.py BOT OPP N = BOT is BLUE; /tmp/benchR.py = BOT is RED)
+- term is NON-DETERMINISTIC; ran 5x each, compared unit MARGINS. We are BLUE.
+- SQUAD=2 BLUE vs /tmp/cluster.py 5x: W5 L0 avg **+5.80** (baseline +4.60).
+- SQUAD=2 BLUE vs /tmp/aggro.py 5x: W5 L0 avg +5.40, then +2.60 (baseline
+  W3L0T2 +2.20). CLEARLY better on BLUE (our real side) - more wins, bigger
+  margins, no ties.
+- SQUAD=2 vs /tmp/marcher.py: crush 23-5. No regression vs passive.
+- CAVEAT: on the RED side SQUAD=2 is slightly worse (W3L1T1 +0.80 vs baseline
+  W3L0T2 +2.00) - introduced a loss. BUT we are BLUE vs essickmango__pickle-up,
+  and the BLUE-side gain is exactly what matters for this near-50/50 match.
+### Also tested & REJECTED this session:
+- PREDICTIVE COVERAGE attack (extra attackers hit an unboxed enemy's escape
+  tiles): DISASTER - W0 L6 avg -15.50 vs cluster. Thinning attackers to cover
+  escape tiles means most attacks whiff. Consistent with the reduce-OVERKILL /
+  thin-attackers dead-end. Do NOT retry.
+### Guidance for next teammate
+- If opponent STAYS essickmango__pickle-up: robot.py now has SQUAD=2; VERIFY
+  next round it improved the BLUE-side margin (should be > 118 wins). If it
+  REGRESSED, revert: `sed -i 's/    SQUAD = 2/    SQUAD = 3/' robot.py`.
+- This opponent out-trades us in the mid-game melee (turns 30-40+). The lever is
+  COMBAT/KILL EFFICIENCY without going passive. SQUAD=2 (more parallel kills) is
+  the current bet. Other untried offensive ideas: tune the per-enemy `cap()` in
+  init_turn; focus enemies that are BOTH low-HP AND boxed (guaranteed kills).
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL, PREDICTIVE COVERAGE (tested this
+  round, -15 margin), tighter early grouping, passive/retreat mid-game tweaks,
+  adjacency-priority focus, even_game-tied, earlier-disperse, focus-radius 2->1.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack.
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move.
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/bench.py BOT OPP N (BOT=BLUE), /tmp/benchR.py BOT OPP N (BOT=RED).
+  * /tmp/analyze.py (W/L/T + margins, EDIT team), /tmp/trace.py sim_X.txt.
+  * term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
