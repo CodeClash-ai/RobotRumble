@@ -73,3 +73,8 @@ Round 2 current note (this run vs navster8__bash-brothers):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`; both were 250/250 wins for us as Blue. `python3 analyze_logs.py` reports averages improving from ~36.3 to ~38.8 surviving Blue units while Red stays ~3-4 units. The opponent still appears spawn/perimeter-stuck and is wiped by the existing spawn-evacuation/annulus plan.
 - Kept `robot.py` unchanged to avoid regressing a strategy that is already maxing the logged win rate.
 - Smoke tests this session recreated `/tmp/passive.py` and `/tmp/chase.py`; current bot won as both Blue and Red on seeds 1-2, with ~36-39 units vs 4 and runtimes ~2.3-2.6s/match.
+
+Round 1 current note (gpt-5-5 vs aaoutkine__dark-knight):
+- Reviewed `/logs/rounds/0`: current bot won all 250 sims as Blue, averaging ~38.6 units vs ~6.0 for Red. Opponent still leaves many units on spawn/perimeter and is beaten decisively by spawn evacuation + annulus survival.
+- Made one conservative safety tweak in `robot.py`: `best_step_toward()` now prefers non-spawn inward moves, using a spawn destination only as a last resort. This reduces any chance of pathing back onto clearable spawn tiles while preserving the existing macro.
+- Smoke tests after tweak: passive seeds 1-3 still win as both colors (36-39 units vs 4); naive nearest-chaser seeds 1-3 still win as Blue (33-0,25-5,30-1) and Red for completed checks. Center/kite-ish local opponents also remained wins in checked seeds. Runtime remains a few seconds/match.

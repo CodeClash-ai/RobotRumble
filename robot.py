@@ -79,11 +79,21 @@ def best_step_toward(state: State, unit: Obj, target: Coords) -> Optional[Direct
     dirs = list(DIRECTIONS)
     dirs.sort(key=lambda d: (0 if d == primary else 1,
                              (unit.coords + d).walking_distance_to(target)))
+    fallback = None
     for d in dirs:
         dest = unit.coords + d
         if is_free(state, dest) and dest.walking_distance_to(target) < current_dist:
-            reserved_moves.add(dest)
-            return d
+            # Never step onto a spawn tile if a non-spawn inward move exists.
+            # Spawn is cleared before waves on turns 11,21,... and the known
+            # opponent often leaves perimeter bait there.
+            if not is_spawn_coord(dest):
+                reserved_moves.add(dest)
+                return d
+            if fallback is None:
+                fallback = d
+    if fallback is not None:
+        reserved_moves.add(unit.coords + fallback)
+        return fallback
     return None
 
 
