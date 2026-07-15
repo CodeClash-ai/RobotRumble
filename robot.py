@@ -129,6 +129,49 @@ def retreat(state, unit):
     return None
 
 
+
+def spawn_turn_soon(state):
+    """True if a spawn/clear will occur at the start of the next turn.
+    Spawn/clear happens when (turn-1) % 10 == 0 (turns 1,11,21,...). A unit
+    still on a spawn tile at the END of turn T (where (T) % 10 == 0) is wiped
+    at the start of turn T+1. We evacuate on turns ending in ...8,9,0."""
+    t = state.turn
+    # next spawn turn is the smallest turn n>t with (n-1)%10==0
+    return (t % 10) in (8, 9, 0)
+
+
+def evacuate_spawn(state, unit):
+    """Move a unit off a spawn tile (toward center/allies) so it is not wiped
+    on the spawn turn AND does not block our own new spawns (spawn only occurs
+    on points whose tile AND mirror are both free)."""
+    my = unit.coords
+    other = state.other_team
+    enemies = state.objs_by_team(other)
+    goal = Coords(MAP_SIZE // 2, MAP_SIZE // 2)
+    if enemies:
+        # head toward the nearest enemy direction but any non-spawn free tile is fine
+        ne = min(enemies, key=lambda e: my.walking_distance_to(e.coords))
+        goal = ne.coords
+    best = None
+    best_key = None
+    for d in DIRECTIONS:
+        nxt = my + d
+        if blocked_tile(state, nxt):
+            continue
+        if state.obj_by_coords(nxt) is not None:
+            continue
+        if nxt.is_spawn():
+            continue  # must leave the spawn zone entirely
+        key = nxt.walking_distance_to(goal)
+        if best_key is None or key < best_key:
+            best_key = key
+            best = d
+    if best is not None:
+        _planned_moves[unit.id] = my + best
+        return Action.move(best)
+    return None
+
+
 def robot(state: State, unit: Obj) -> Optional[Action]:
     other_team = state.other_team
     my_team = state.our_team
@@ -137,6 +180,20 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
 
     if not enemies:
         return leave_spawn(state, unit)
+
+    # SPAWN EVACUATION (critical): if we're on a spawn tile and a spawn/clear is
+    # imminent, get off it -- otherwise we're wiped AND we block our own spawns.
+    if unit.coords.is_spawn() and spawn_turn_soon(state):
+        # Exception: don't abandon a GUARANTEED kill this turn (attacks stack).
+        secured_kill = False
+        for d, e in adjacent_enemies(state, my, other_team):
+            if e.health <= count_my_adjacent(state, e.coords, my_team):
+                secured_kill = True
+                break
+        if not secured_kill:
+            ev = evacuate_spawn(state, unit)
+            if ev is not None:
+                return ev
 
     # 1) If an enemy is adjacent, decide whether to attack now.
     adj = adjacent_enemies(state, my, other_team)

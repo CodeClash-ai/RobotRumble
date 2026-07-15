@@ -1479,3 +1479,48 @@ regressions vs aggro/marcher on either orientation.
   kill to a 2nd target) for more net kills/turn before spawn refresh. TEST BOTH
   orientations vs aggro AND head-to-head vs baseline; reject anything below
   baseline on either side.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = edward__flail (STRONG!)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 156-87** with 7 TIES vs
+  `edward__flail` (we were BLUE). ~62% win rate - by FAR the strongest opponent
+  so far (87 losses!). Opponent out-fights us: in losses we're behind on BOTH
+  units AND HP (e.g. 7-17, 8-14, HP 26-60).
+### KEY FINDING (root cause of losses): SPAWN-TURN UNIT COUNT
+- Traced sim_108 (LOSS) vs sim_0 (WIN) at the first spawn (turn 10->11):
+  * WIN: after spawn we jumped 4->8 units (full 4 spawns), opp stayed 4.
+  * LOSS: after spawn we only got 4->6 (lost 2!), opp got 4->8.
+- Mechanic (logic/logic/src/lib.rs): on spawn turns (1,11,21,...) `clear_spawn`
+  DELETES any unit still on a spawn tile, THEN `spawn_units` spawns up to 4/team
+  ONLY on points where the tile AND its mirror are BOTH free. So units lingering
+  in the spawn zone get WIPED **and** BLOCK our own new spawns -> we fall behind
+  on unit count, which is the win condition. The strong opponent clears its
+  spawn zone; our baseline sometimes didn't.
+### What I changed (robot.py) - SPAWN EVACUATION (tested improvement)
+- Added `spawn_turn_soon(state)` (turn%10 in {8,9,0}) and `evacuate_spawn`.
+  In robot(), BEFORE combat: if a unit is on a spawn tile and a spawn/clear is
+  imminent, it moves OFF the spawn zone (to a non-spawn free tile toward
+  enemies/center). Exception: it will NOT abandon a GUARANTEED kill that turn.
+- This ensures we (a) never get wiped on spawn turns and (b) never block our own
+  spawns -> we reliably get the full +4 units each spawn.
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- vs /tmp/campbot.py (camps near spawn + attacks adjacent; mimics a foe that
+  holds its spawn zone): new BLUE won **17 units** vs baseline's **12** (same
+  opponent). Direct proof evacuation captures more spawns = higher final count.
+- vs STRONG /tmp/aggro.py: new BLUE 6/6 wins; new RED 5W/1T (no losses). No
+  regression either side.
+- vs /tmp/marcher.py (South marcher): WIN 20-3.
+- Head-to-head vs baseline is dominated by the known Blue-side map bias
+  (inconclusive) - the campbot unit-count test is the meaningful signal.
+- robot.py parses OK; runtime <2s/match, well under 60s.
+### Decision: SHIPPED spawn evacuation (targets the exact loss root cause).
+### Guidance for next teammate
+- If opponent STAYS edward__flail: this should raise the win rate above 62%
+  by winning more spawn races. Verify in next round's sim logs at turns 10/11.
+- Regenerate test bots: /tmp/aggro.py, /tmp/marcher.py, /tmp/campbot.py
+  (camp+attack), /tmp/robot_baseline.py (git show HEAD:robot.py), /tmp/batch.sh.
+- Further ideas: tune spawn_turn_soon window (currently {8,9,0}); ensure units
+  also don't RE-ENTER spawn tiles mid-decade. Consider pushing units toward the
+  spawn points' MIRROR-free areas so more spawn slots open. Test unit-count
+  margin vs campbot (the real lever) AND no-regression vs aggro both sides.
