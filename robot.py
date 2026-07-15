@@ -243,6 +243,22 @@ def late_equal_pressure_step(state: State, unit: Obj) -> Optional[Direction]:
     return best_step_toward(state, unit, target.coords)
 
 
+
+def late_health_pressure_step(state: State, unit: Obj, radius: int = 7) -> Optional[Direction]:
+    # When unit count is tied/behind very late but our total HP is much higher,
+    # a passive final state is still only a draw/loss.  Use the HP buffer to
+    # apply bounded pressure toward nearby non-spawn enemies, preferring weak
+    # targets.  This is deliberately restricted to late-game callers so the
+    # proven spawn-evacuation survival macro is unchanged.
+    candidates = [e for e in enemy_units if (not is_spawn_coord(e.coords) and
+                                            unit.coords.walking_distance_to(e.coords) <= radius)]
+    if not candidates:
+        return None
+    target = min(candidates, key=lambda e: (e.health,
+                                           unit.coords.walking_distance_to(e.coords),
+                                           e.coords.walking_distance_to(CENTER)))
+    return best_step_toward(state, unit, target.coords)
+
 def late_pressure_step(state: State, unit: Obj) -> Optional[Direction]:
     # Very late, if unit counts are tied without a health edge or we are behind,
     # holding position preserves only a draw/loss. Apply bounded pressure toward
@@ -473,6 +489,10 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                 reserved_attack_squares.add(unit.coords + d)
                 return Action.attack(d)
             return None
+        if health_edge >= 25 and state.turn >= 94:
+            d = late_health_pressure_step(state, unit, radius=7)
+            if d:
+                return Action.move(d)
         if health_edge == 0:
             d = late_equal_pressure_step(state, unit)
             if d:
@@ -491,6 +511,10 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         d = late_desperation_step(state, unit)
         if d:
             return Action.move(d)
+        if state.turn >= 94 and sum(a.health for a in our_units) >= sum(e.health for e in enemy_units) + 15:
+            d = late_health_pressure_step(state, unit, radius=7)
+            if d:
+                return Action.move(d)
         # Against the current preemptive/retreating opponent, the few logged
         # non-wins were already multi-unit deficits after the final clear.  In
         # that narrow case preserving shape is still a loss, so allow bounded
@@ -533,10 +557,18 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                 return Action.attack(d)
             # Current logs versus sixty-nine-line still have exact final ties at
             # +14/+16 health where no one moved after the final spawn.  Once the
-            # match reaches the last two turns, a tie is no better than a loss;
-            # use the existing wounded-target nudge for the whole modest-health
-            # band, after safer kite/intercept options fail.
-            if state.turn >= 99 or health_edge <= 12:
+            # match reaches the last few turns, a tie is no better than a loss;
+            # use the existing wounded-target nudge, and with a clear HP buffer
+            # add bounded pressure toward weak nearby enemies.
+            if state.turn >= 97:
+                d = late_desperation_step(state, unit)
+                if d:
+                    return Action.move(d)
+                if health_edge >= 12:
+                    d = late_health_pressure_step(state, unit, radius=7)
+                    if d:
+                        return Action.move(d)
+            elif health_edge <= 12:
                 d = late_desperation_step(state, unit)
                 if d:
                     return Action.move(d)
