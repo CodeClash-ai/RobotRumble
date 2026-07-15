@@ -2005,3 +2005,60 @@ record. Submitting as-is.
   on an enemy 2 can kill to a 2nd target for more net kills/turn). ALWAYS test
   BOTH orientations vs /tmp/aggro.py AND head-to-head vs /tmp/robot_baseline.py
   (git show HEAD:robot.py); reject regressions.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = thesmilingturtl__naivefaa (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 214-12 w/ 24 TIES** vs
+  `thesmilingturtl__naivefaa` (we were BLUE). ~86% win. A COMPETITIVE opponent
+  (12 losses, 24 ties). In ALL 12 losses we are behind on BOTH units AND HP
+  (e.g. 6-8, 6-9, 5-8; opponent HP ~30-38 vs ours ~11-23).
+### ROOT CAUSE (traced sim_9): opponent OUT-TRADES us on HP.
+  Turn-by-turn (sim_9): opponent maintains consistently HIGHER HP the whole game
+  (mid-game HP 50 vs our 38, units R8 vs B7 by turn 31). They preserve HP while
+  trading, then win the count race in the last turns as we bleed down.
+### Experiment tested (NOT shipped - REGRESSED margin, REVERTED)
+- OVERKILL REDIRECTION: when the chosen adjacent enemy is BOXED and has MORE
+  attackers than needed to kill it, redirect the SURPLUS (higher-id) adjacent
+  allies to a DIFFERENT adjacent enemy for more net kills/turn. Deterministic
+  keeper set = `health` lowest-id adjacent allies stay; rest redirect.
+  * Parsed OK, no crashes. NEW(Blue) vs aggro 5/5 (== baseline). NEW vs
+    baseline head-to-head: dominated by strong RED-side bias (mirror
+    baseline-vs-baseline: Red wins seeds 1,2,3), inconclusive; on seed 4 NEW
+    won BOTH orientations (slight real edge).
+  * BUT vs /tmp/cluster.py (competitive clustered foe, mimics this opponent):
+    NEW term (seed 0) won only 12-9 (margin +3) vs BASELINE's 15-8 (margin +7).
+    REGRESSION in unit margin. Redirecting surplus attackers to a 2nd enemy
+    gives that enemy a partial hit but it SURVIVES and returns fire, costing us
+    HP/units. Against a competitive/clustered foe that out-trades us, this HURTS.
+    W/L unchanged (both win 4/4 vs cluster) but the SMALLER margin = closer
+    games = more risk of tipping to losses over 250 games. REJECTED & REVERTED.
+### KEY TAKEAWAY (consistent with ALL prior teammates)
+- The "reduce OVERKILL" lever that every prior note listed as untried DOES NOT
+  robustly help - it thins our attackers, letting partially-hit enemies survive
+  and out-trade us. It REGRESSES the unit margin vs a competitive foe. The
+  baseline's dogpile-a-boxed-enemy behavior actually SECURES kills cleanly.
+  Self-play remains dominated by a strong RED-side map bias.
+### Decision: KEPT robot.py UNCHANGED (proven balanced baseline, ~86% win).
+Verified: parses OK; `def robot(state: State, unit: Obj)` at line 225; BLUE vs
+/tmp/aggro.py 5/5 batch + term win 15-9; BLUE vs /tmp/cluster.py wins; crushes
+/tmp/marcher.py 22-3. Runtime ~2s/game, well under 60s. We are BLUE vs this
+opponent and win 214-12; no tested change beat baseline on the BLUE side.
+### Guidance for next teammate
+- If opponent STAYS thesmilingturtl__naivefaa: submit robot.py as-is (~86% win
+  as BLUE). Do NOT retry the overkill-redirection lever (tested & regressed).
+- The ONLY realistic lever vs this HP-out-trading foe is to LOSE FEWER of our
+  own units in mid-late game WITHOUT going passive (prior teammates: passive/
+  retreat tweaks regress). Untried & harder: predict enemy flee tile and only
+  attack when the hit will LAND (movement resolves before attacks) so we don't
+  whiff and eat return fire. Risky - test BLUE side vs /tmp/aggro.py AND
+  /tmp/cluster.py MARGIN (not just W/L) and head-to-head vs baseline.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move
+    (competitive clustered foe, best proxy for this opponent).
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * Batch (SLOW ~2s/game, keep N<=4-5 for the 30s wall-clock):
+    `(for s in 1 2 3 4; do printf '{"blue":"A.py","red":"B.py","seed":"%s"}\n' $s; done) | ./rumblebot run batch | grep -oE '"winner":"[^"]*"'`
+  * ALWAYS check unit MARGIN (term --results-only "Units B R"), not just W/L.
