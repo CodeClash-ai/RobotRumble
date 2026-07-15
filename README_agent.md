@@ -358,3 +358,80 @@ it — it's intentionally a pristine copy of the round-0 winning bot).
   - `Action.heal` is confirmed a no-op in `Normal` game mode (traced through
     the Rust engine in a previous round) — do not bother adding it unless
     you've separately confirmed matches run in `NormalHeal` mode.
+
+## Round 3 (this session — will produce /logs/rounds/1/ once submitted)
+
+**Status check (first thing, per previous teammates' advice):** Re-verified
+`/logs/rounds/0/results.json` and all 250 `sim_*.txt` files for this
+session's *starting point*. Opponent this series is now `anton__wallifier`
+(a different name than the `happysquid__test`/`anton__anton3000` opponents
+referenced in older notes above — this looks like a new opponent-name
+episode, but same overall dynamic). Result: **250/250 win for sonnet-5**
+(sonnet-5 was Red). Computed via the win/loss snippet (still works, run
+from `/logs/rounds/0/`): `Blue wins: 0 Red wins: 250 ties: 0`. Also checked
+final unit counts across all 250 sims: opponent (Blue/anton__wallifier)
+averaged **1.9** final units (range 0-5) vs our **27.9** (range 16-38). So
+the opponent is still extremely weak/passive relative to us — another total
+sweep, even more lopsided in final-unit-count terms than the round
+summarized earlier in this file.
+
+### What I did this round
+1. Confirmed `robot.py` still matches the strategy described in the
+   docstring/prior notes (per-unit soft targeting blending own-distance +
+   target health + team focus-bonus + coordination-distance; opportunistic
+   always-attack-if-adjacent; `direction_to` movement with sidestep
+   fallback). No drift/staleness between code and docs.
+2. Sanity-checked `robot.py` still runs cleanly and fast:
+   `./rumblebot run term --results-only robot.py robot.py` → completes in
+   ~1s wall-clock (well under the 60s limit), no exceptions, real combat
+   happens (not frozen).
+3. Grid-swept the three tunable weight constants again (`HEALTH_WEIGHT`,
+   `FOCUS_BONUS`, `COORD_WEIGHT`) via temp copies in `/tmp`, A/B'd each
+   variant vs the current checked-in `robot.py` over ~12-24 seeds per
+   variant (pattern: copy `robot.py` to a temp file, `sed`/`re.sub` the
+   constant, run `./rumblebot run term --results-only --seed N
+   variant.py current.py` in a loop, tally `Units X Y` regex). Findings:
+   - `HEALTH_WEIGHT=1.0` (vs default 0.6): 7-4-1 over seeds 1-12, but
+     5-7-0 over seeds 13-24 → net ~roughly even (12-11-1 combined), i.e.
+     within noise, NOT a clear improvement.
+   - `FOCUS_BONUS=4.0` (vs default 2.0): 6-4-2 over seeds 1-12 — mild edge
+     but small sample, didn't extend the sweep further.
+   - `COORD_WEIGHT=0.0` and `COORD_WEIGHT=0.3` (vs default 0.15): both
+     roughly break-even (5-5-2 and 7-5-0 respectively) over seeds 1-12.
+   - **Conclusion: none of the swept configs showed a clear, robust
+     improvement over the current defaults** at the sample sizes I could
+     afford this round (~12-24 seeds/config, limited by the ~30s per-shell-command
+     budget — each `rumblebot run term` call is ~0.8-1s). Left the
+     constants unchanged (`HEALTH_WEIGHT=0.6`, `FOCUS_BONUS=2.0`,
+     `COORD_WEIGHT=0.15`).
+4. **No code changes made this round.** Given (a) a 250/250 sweep with an
+   even *larger* final-unit-count margin than previous rounds, and (b) no
+   statistically clear win from re-sweeping the weight constants, the
+   highest-value action was to validate-and-document rather than risk
+   introducing a regression for an already-dominant matchup.
+
+### Suggested next steps for future teammates
+- Keep doing the "check `/logs/rounds/N/results.json` + unit-count margins
+  first" step before changing anything. If `anton__wallifier` (or whatever
+  the opponent is named by then) starts actually fighting back / winning
+  units, *that's* the signal to invest in the open ideas list below. Right
+  now every round has been an overwhelming sweep, so low-risk, incremental
+  validation is more valuable than large rewrites.
+- If you want to re-attempt the weight sweep, use bigger seed counts
+  (30-50+ per config) split across multiple shell commands (each
+  `./rumblebot run term` call is ~0.8-1s; a single shell command times out
+  around 30s wall-clock, so budget ~25-30 runs per `bash` tool call) — the
+  12-24 seed samples this round and in round 2's notes were both too small
+  to distinguish real signal from noise (deltas of 1-2 games out of 12).
+- Still-open, still-untried ideas from earlier rounds (see sections above
+  for full rationale, unchanged):
+  - Real BFS/A* pathfinding around the diamond map's wall corners (current
+    approach is greedy `direction_to` + 1-step sidestep fallback).
+  - Proper multi-target split-the-army coordination for widely separated
+    unit clusters (partially mitigated already by per-unit soft targeting).
+  - `Action.heal` is a confirmed no-op in `Normal` game mode (traced
+    through the Rust engine) — don't add it unless you've separately
+    confirmed matches run in `NormalHeal` mode.
+- `robot_v1_baseline.py` remains a frozen, untouched copy of the round-0
+  winning bot, kept specifically for A/B self-play testing — do not
+  delete/modify it.
