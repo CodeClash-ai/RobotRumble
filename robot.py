@@ -97,6 +97,33 @@ def best_step_toward(state: State, unit: Obj, target: Coords) -> Optional[Direct
     return None
 
 
+
+def evacuate_spawn_step(state: State, unit: Obj) -> Optional[Direction]:
+    # Strict spawn escape used before clear_spawn waves.  best_step_toward()
+    # normally insists on reducing distance to center and may fall back to a
+    # still-spawn destination when all inward squares are blocked; in crowded
+    # final-wave positions that can leave a body on spawn to be deleted.  Any
+    # non-spawn neighbor is better than dying to the next clear, even if it is
+    # sideways or slightly outward.
+    dirs = list(DIRECTIONS)
+
+    def score(d: Direction) -> Tuple[int, int, int]:
+        dest = unit.coords + d
+        nearby = sum(1 for e in enemy_units if dest.walking_distance_to(e.coords) <= 2)
+        return (dest.walking_distance_to(CENTER), nearby, local_count(our_units, dest, 1))
+
+    dirs.sort(key=score)
+    for d in dirs:
+        dest = unit.coords + d
+        if is_free(state, dest) and not is_spawn_coord(dest):
+            reserved_moves.add(dest)
+            return d
+    # If no off-spawn square is free, a closer spawn-ring step can still help
+    # before the very last pre-clear turn by opening room for the next action.
+    if state.turn < 90:
+        return best_step_toward(state, unit, CENTER)
+    return None
+
 def retreat_from_adjacent(state: State, unit: Obj, adj: List[Tuple[Direction, Obj]], allow_spawn: bool = False) -> Optional[Direction]:
     # Move out of current adjacent attacks when the local fight is poor.  The
     # Before the last reinforcement wave the destination must avoid spawn tiles
@@ -227,7 +254,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # 101 clear, so perimeter robots are often safer counting as survivors
         # than marching into late trades.
         if state.turn < 91:
-            d = best_step_toward(state, unit, CENTER)
+            d = evacuate_spawn_step(state, unit)
             if d:
                 return Action.move(d)
         else:
@@ -322,7 +349,8 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # if enemies close from distance 4-5 and get attacks after movement.
         # Start backing away from those slightly farther threats at turn 95;
         # before then keep the old radius so we don't over-kite too early.
-        kite_radius = 5 if state.turn >= 95 else 3
+        lead_margin = len(our_units) - len(enemy_units)
+        kite_radius = 5 if (state.turn >= 95 or (state.turn >= 91 and lead_margin >= 3)) else 3
         d = kite_from_nearby(state, unit, kite_radius, allow_spawn=(state.turn >= 91))
         if d:
             return Action.move(d)
@@ -339,18 +367,26 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                 return Action.attack(d)
         return None
 
-    # If tied very late but behind/even on health, try the wounded-target
-    # nudge before generic wall-to-center movement.  The remaining round-1 tie
-    # versus aaoutkine__school-bot had us tied on units but down on health from
-    # turn 94 onward; perimeter robots marching inward never found the +1 kill.
-    # This only affects exact unit ties in the last few turns, so it does not
-    # disturb lead-preservation or the pre-final-wave evacuation macro.
+    # If tied very late and we do not have a meaningful health cushion, try the
+    # wounded-target nudge before generic wall-to-center movement.  Several
+    # exact final ties had perimeter/final-wave robots spend the last turns
+    # walking inward instead of looking for one nearby wounded kill.
     if state.turn >= 95 and len(our_units) == len(enemy_units):
         health_edge = sum(a.health for a in our_units) - sum(e.health for e in enemy_units)
-        if health_edge <= 0:
-            d = late_chase_step(state, unit)
+        if health_edge <= 8:
+            d = late_desperation_step(state, unit)
             if d:
                 return Action.move(d)
+
+    # If we are behind after the final clear, preserving a smaller loss is
+    # worthless.  Take the controlled wounded-target nudge before inward wall
+    # movement so final-wave/perimeter bodies can try to flip narrow deficits.
+    # Pre-91 evacuation above still has priority so we do not lose units to the
+    # last spawn clear.
+    if state.turn >= 91 and len(our_units) < len(enemy_units):
+        d = late_desperation_step(state, unit)
+        if d:
+            return Action.move(d)
 
     # If we are still too close to the wall, continue moving inward.
     if unit.coords.walking_distance_to(CENTER) > 8:
@@ -387,7 +423,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             # +16 health), but use +1..+8 cases like the current tie logs to
             # try to turn a draw into a one-unit win.
             if health_edge <= 8:
-                d = late_chase_step(state, unit)
+                d = late_desperation_step(state, unit)
                 if d:
                     return Action.move(d)
             return None
