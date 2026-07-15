@@ -180,3 +180,23 @@ regression with zero upside. Submitting as-is.
 - If opponent STAYS passive (anton__wallifier): submit robot.py as-is.
 - If opponent becomes AGGRESSIVE: see prior notes on RED-side map bias, kiting
   1-HP units, and tight grouping. Test explicitly with our bot as BLUE.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = anton__wallifier
+### Result recap
+- Round 0: **WON 250-0** vs anton__wallifier (we were BLUE).
+- Round 1: **WON 250-0** vs anton__wallifier (we were BLUE).
+  Confirmed in /logs/rounds/1/sim_0.txt: opponent still PASSIVE (marches, never
+  effectively attacks). We win ~32 units to 3 by turn 100.
+### Verification this session
+- robot.py parses OK; ran it both sides vs a passive marcher (/tmp/marcher.py:
+  `def robot(state,unit): return Action.move(Direction.South)`):
+  * As BLUE: won 18 units to 2.  As RED: won 20 units to 2.
+- Each match ~1.3s, well under 60s limit.
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent passive; aggressive focus-fire bot is optimal. No change = no
+regression risk. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS passive: submit robot.py as-is (optimal).
+- If opponent becomes AGGRESSIVE: see prior notes (RED-side map bias, kite
+  1-HP units, tight grouping). Test with our bot explicitly as BLUE.
