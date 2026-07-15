@@ -343,6 +343,16 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             if d:
                 reserved_attack_squares.add(unit.coords + d)
                 return Action.attack(d)
+            # If the health edge is only very small, a final unit-count tie is
+            # still likely; take the existing wounded-target nudge after safer
+            # kiting/intercepts have failed.  Keep larger modest health edges
+            # in pure preservation mode (the edward__flail loss was around
+            # +16 health), but use +1..+8 cases like the current tie logs to
+            # try to turn a draw into a one-unit win.
+            if health_edge <= 8:
+                d = late_chase_step(state, unit)
+                if d:
+                    return Action.move(d)
             return None
         d = late_chase_step(state, unit)
         if d:
