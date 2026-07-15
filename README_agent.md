@@ -2879,3 +2879,51 @@ Clean W/L (6/6 vs aggro), no regression vs marcher. cluster margin dip is noise
 - DEAD-ENDS (do NOT retry): reduce-OVERKILL, tighter early grouping, BROAD
   passive/retreat mid-game tweaks, adjacency-priority focus, even_game-tied,
   earlier-disperse, focus-radius 2->1, mid_lead (tests neutral).
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = ketza__arthur (COMPETITIVE)
+### Result recap
+- Round 0: **WON 227-9 w/ 14 TIES** vs ketza__arthur (we were RED, ~91%).
+- Round 1: **WON 215-20 w/ 15 TIES** vs ketza__arthur (we were RED, ~86%).
+  Round 1 was the FIRST round with the round-0 "wipe-turn forced evacuation"
+  edit (commits ff3d637/b5bae61). Result DROPPED 227->215, so I A/B tested
+  whether that edit caused it (like the prior mountain__neuralbot4-3h round).
+### A/B TEST: current robot.py (with wipe-turn evac) vs /tmp/robot_prev.py
+  (= git show 799dbfb:robot.py = pre-wipe-evac baseline). We are RED (2nd pos).
+  term is NON-DETERMINISTIC; compared unit MARGINS over many runs:
+- RED vs /tmp/cluster.py (best competitive proxy): current avg +5.17 (6/6 wins),
+  prev avg +4.17 (6/6 wins). Current SLIGHTLY BETTER.
+- RED vs /tmp/aggro.py (stronger stress) x8+6: current avg ~+2.6 (all wins, one
+  early -2 outlier that vanished in the x8 batch), prev avg ~+2.9 (7W/1T).
+  Statistically TIED (within noise).
+- Head-to-head current(RED) vs prev(Blue) x6: current won 5/6.
+CONCLUSION: the wipe-turn evac change is NEUTRAL-to-slightly-positive (within
+noise vs aggro, slightly better vs cluster, wins head-to-head). The round-1
+real-match dip (227->215) is most likely opponent/matchmaking VARIANCE, NOT the
+edit. The change is also THEORETICALLY sound for count wins (on the wipe turn
+t%10==0, keeping our unit + freeing the spawn slot for a +1 spawn beats a
+1-for-1 kill that ALSO loses the slot).
+### Decision: KEPT robot.py UNCHANGED (mature baseline, ~86-91% win as RED).
+No proven benefit to reverting the wipe-turn evac AND no proven harm to keeping
+it (tests neutral-to-better). The bot is highly evolved (focus-fire +
+multi-target squads + grouping + spawn-evac + wipe-turn forced evac + endgame
+lock-in/disperse + favorable-fight override + mid_lead). ALL other change levers
+are documented DEAD-ENDS. Verified: parses OK; `def robot` line 268; BLUE vs
+/tmp/marcher.py 29-3; RED vs aggro/cluster all positive margins; runtime ~1.9s.
+Changing risks regression for marginal upside vs an opponent we already dominate.
+### Guidance for next teammate
+- If opponent STAYS ketza__arthur: submit robot.py as-is (~86-91% win as RED).
+  Do NOT retry the documented dead-ends.
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL (regresses margin), tighter early
+  grouping (no robust gain), passive/retreat mid-game tweaks (lose aggression),
+  adjacency-priority focus (regresses), even_game-tied (regresses),
+  earlier-disperse (regresses), focus-radius 2->1 (noise). mid_lead & wipe-turn
+  evac both test NEUTRAL-to-slightly-positive (keep them).
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move
+    (best proxy for a competitive foe).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_prev.py: `git show 799dbfb:robot.py` (baseline w/o wipe-evac).
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+- term is NON-DETERMINISTIC - run 5-10x and compare unit MARGINS, not just W/L.
