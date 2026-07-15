@@ -93,24 +93,13 @@ def init_turn(state: State) -> None:
 
 
 def _first_free_dir(state: State, unit: Obj, dirs: List[Direction], past_coords) -> Optional[Direction]:
-    # Prefer free, non-spawn tiles first (see SPAWN_AVOID_ENABLED comment
-    # near RETREAT_ENABLED above for why landing on a spawn tile is risky:
-    # clear_spawn() wipes ANY unit -- ally or enemy -- sitting on a spawn
-    # tile for free every `spawn_every` turns, regardless of health).
-    for d in dirs:
-        dest = unit.coords + d
-        if dest == past_coords:
-            continue
-        if not state.obj_by_coords(dest) and not dest.is_spawn():
-            return d
-    # second pass: allow a free spawn tile (better than not moving at all)
     for d in dirs:
         dest = unit.coords + d
         if dest == past_coords:
             continue
         if not state.obj_by_coords(dest):
             return d
-    # third pass: allow revisiting past_coords if truly nothing else works
+    # second pass: allow revisiting past_coords if truly nothing else works
     for d in dirs:
         dest = unit.coords + d
         if not state.obj_by_coords(dest):
@@ -185,28 +174,14 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         if RETREAT_ENABLED and (len(adjacent_enemies) >= unit.health or locally_outnumbered):
             best_dir = None
             best_safety = -1.0
-            best_spawn_dir = None
-            best_spawn_safety = -1.0
             for d in Direction:
                 dest = unit.coords + d
                 if state.obj_by_coords(dest):
                     continue  # blocked by wall or unit
                 safety = min(dest.distance_to(e.coords) for e in enemies)
-                if dest.is_spawn():
-                    # Track spawn-tile candidates separately -- they get
-                    # freely wiped every spawn_every turns (see
-                    # SPAWN_AVOID comment above _first_free_dir), so only
-                    # fall back to one if no non-spawn escape exists.
-                    if safety > best_spawn_safety:
-                        best_spawn_safety = safety
-                        best_spawn_dir = d
-                    continue
                 if safety > best_safety:
                     best_safety = safety
                     best_dir = d
-            if best_dir is None and best_spawn_dir is not None:
-                best_dir = best_spawn_dir
-                best_safety = best_spawn_safety
             # Only bother retreating if it actually improves our safety
             # margin vs. staying put (distance 1, since we're adjacent to
             # at least one enemy right now).
@@ -232,29 +207,16 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     dest = unit.coords + direction
 
     blocker = state.obj_by_coords(dest)
+    if not blocker:
+        return Action.move(direction)
+
+    # Path blocked (wall or unit) -- try to sidestep around it, preferring
+    # whichever perpendicular direction gets us closer to the target.
     perp_dirs = [direction.rotate_cw, direction.rotate_ccw]
     perp_dests = [unit.coords + d for d in perp_dirs]
     if target.coords.distance_to(perp_dests[0]) > target.coords.distance_to(perp_dests[1]):
         perp_dirs = [perp_dirs[1], perp_dirs[0]]
 
-    if not blocker:
-        if dest.is_spawn():
-            # Direct step would land on a spawn tile (freely wiped every
-            # spawn_every turns -- see SPAWN_AVOID comment above
-            # _first_free_dir). Prefer a non-spawn sidestep if one exists
-            # and doesn't move us further from the target; otherwise just
-            # take the direct step anyway (still better than not moving).
-            for pd, pdest in zip(perp_dirs, perp_dests):
-                if (
-                    not state.obj_by_coords(pdest)
-                    and not pdest.is_spawn()
-                    and target.coords.distance_to(pdest) <= target.coords.distance_to(dest)
-                ):
-                    return Action.move(pd)
-        return Action.move(direction)
-
-    # Path blocked (wall or unit) -- try to sidestep around it, preferring
-    # whichever perpendicular direction gets us closer to the target.
     chosen = _first_free_dir(state, unit, perp_dirs + [direction.opposite], past_coords)
     if chosen:
         return Action.move(chosen)

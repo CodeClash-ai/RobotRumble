@@ -3395,3 +3395,152 @@ early-game deficit or a late-game snowball, without rewriting the
 bucketing script each time. Verified it reproduces the exact numbers
 quoted above when run against `/logs/rounds/0` for this
 `atl15__centerrr` matchup.
+
+## Round 2 (this session, continuing atl15__centerrr matchup) — ROOT-CAUSE FOUND: free spawn-tile-clear kills; spawn-avoidance fix implemented (validated no-regression, matchup-specific benefit unverified)
+
+Continuing from Rounds 0-1 this session, **both of which sonnet-5 LOST**
+(first-ever round losses in this bot's ~60+ round history): Round 0 =
+68/171/11 (27.2% win rate, Red), Round 1 = 74/161/15 (29.6% win rate,
+Blue). `tools/turn_trend.py` on both rounds confirmed the previously-
+flagged "late-game snowball": we track the opponent closely through
+turn ~35-40, then fall behind, and the gap *compounds* every subsequent
+10-turn spawn cycle (Round 1: turn 40 peak blue 9.44 vs red 9.58 (roughly
+even), by turn 80 peak blue 9.61 vs red 10.76 -- gap grew from ~0.14 to
+~1.15 purely across periodic spawn-wave peaks).
+
+### Root cause found this round (NEW, not previously documented)
+
+Traced `clear_spawn()`/`spawn_units()` in `logic/logic/src/lib.rs`
+(lines ~175-236): every `spawn_every` turns (=10, at turns 10, 20, 30...),
+the engine runs `clear_spawn()` **first**, which deletes ANY unit --
+ally or enemy, any health -- sitting on a spawn tile at that moment, for
+free (no combat, no counter). *Then* `spawn_units()` adds up to
+`recurrent_unit_num` (=4) new mirrored pairs at spawn points that are
+currently empty (checked *after* the clear). This is a completely free,
+health-independent kill mechanism that has nothing to do with combat
+skill.
+
+Verified this is actually happening and asymmetric in a real game log
+(`/logs/rounds/1/sim_0.txt`): at turn 89 (pre-spawn-cycle), Units were
+11 (Blue/us) vs 7 (Red/opp). At turn 90 (post-clear+spawn), Units were
+13 vs 10 -- Blue gained +2, Red gained +3, even though both *should* gain
+the same number of new spawns per available mirrored pair (since spawn
+pairs are inherently symmetric: one pair -> one Blue + one Red unit).
+The only way for the *net* gain to differ is if one side lost extra
+units to the free `clear_spawn()` wipe right before the new spawns were
+added -- i.e. **we likely had a unit standing on a spawn tile that got
+deleted for free**, while the opponent didn't lose any that cycle. Since
+spawn tiles are located one-tile-in from the map's outer wall ring (all
+the way around the perimeter, confirmed via `Self::init()`'s
+`x==1||x==size-2||y==1||y==size-2` filter), and since our existing
+`RETREAT_ENABLED` logic (adopted several sessions ago) picks retreat
+destinations purely by `max(min distance to any enemy)` **with no
+awareness of spawn tiles at all**, a unit retreating from a fight in the
+middle of the map is likely to get pushed *toward the edges* (where
+distance-from-enemies is naturally larger) -- i.e., **our own
+retreat-when-outnumbered logic was systematically walking damaged units
+onto spawn tiles, where they'd then get wiped for free at the next
+10-turn spawn cycle**, exactly the kind of thing that would (a) get worse
+the more we're already losing/retreating (since retreat frequency scales
+with how outnumbered we are), and (b) compound across cycles exactly
+like the observed snowball pattern. Normal (non-retreat) movement toward
+a target could also incidentally pass through/land on spawn tiles with
+no penalty, though retreat is the more likely repeat offender since it
+explicitly seeks "far from enemies" = "toward map edges."
+
+(Note: only the "no enemies visible" branch of the old `robot.py`
+checked `is_spawn()` at all, to escape spawn tiles when idle -- this
+never covered the much more common case of actively retreating or
+repositioning while enemies are visible.)
+
+### Fix implemented (in `robot.py`, validated no-regression, NOT yet
+### confirmed as a matchup-specific win vs `atl15__centerrr` -- no real
+### match data available this session, only self-play sanity checks)
+
+Old pre-fix version saved as `robot_v5_pre_spawnavoid.py` (new addition
+to the `robot_v1_baseline.py`/`robot_v3_.../`robot_v4_...` convention of
+frozen reference points -- please don't delete). Three surgical changes,
+all just adding "prefer a non-spawn destination when one exists" as a
+secondary tie-break, never removing any existing behavior:
+
+1. `_first_free_dir` (used by the sidestep-around-an-obstacle fallback):
+   now does a first pass preferring free **non-spawn** tiles, only
+   falling back to a free spawn tile if no non-spawn option exists.
+2. Retreat-destination search (`RETREAT_ENABLED` / lethal + locally-
+   outnumbered branches): spawn-tile candidates are now tracked
+   separately from non-spawn candidates; a spawn tile is only chosen as
+   the retreat destination if literally no non-spawn free tile exists
+   (previously, retreat could and likely did walk into spawn tiles
+   whenever they offered the best raw "distance from enemies" score).
+3. Direct movement step (`direction_to` toward the personal target):
+   if the immediate next step would land on a spawn tile, check whether
+   either non-spawn perpendicular sidestep is at least as close to the
+   target -- if so, take that instead; otherwise (no better option)
+   still take the direct step (never worse than not moving).
+
+### Validation this round (self-play only -- no opponent source, no new
+### real match data against `atl15__centerrr` for this specific fix yet)
+
+- `python3 -c "import ast; ast.parse(...)"` -- syntax OK.
+- Sanity match (`./rumblebot run term --results-only --seed 1 robot.py
+  robot_v1_baseline.py` -> Blue won 67hp/22units vs 9hp/2units, ~3.5s,
+  no errors -- consistent with every prior round's expected numbers,
+  confirming no crash/regression from the fix).
+- `tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-15 --swap`
+  -> **30/30 clean sweep both sides**, matching every previous round's
+  full-sweep finding exactly -- confirms **no regression** against the
+  long-standing baseline.
+- `tools/ab_test.py robot.py robot_v5_pre_spawnavoid.py --seeds 1-10
+  --swap` (n=20) -> essentially a coin-flip at this tiny sample (new
+  fix 3/10 as Blue, 7/10 as Red vs the pre-fix version) -- **not
+  statistically meaningful either direction at n=20**, ran out of step
+  budget this round to get a larger sample. This means the fix is
+  **validated as safe (no regression vs the historical baseline)** but
+  **NOT yet validated as a clear improvement in general self-play** --
+  the hypothesis is mechanistically sound (free kills from a bug-like
+  engine interaction we'd never previously identified/avoided) and
+  specifically targets the exact snowball pattern seen against
+  `atl15__centerrr`, but the small-sample self-play check doesn't
+  confirm a measurable overall win-rate lift on its own.
+
+### For the next teammate -- concrete next steps, in priority order
+
+1. **Get real match data against `atl15__centerrr` with this fix in
+   place** (this is the actual test that matters -- the two logged
+   losses both happened with the *old* retreat-onto-spawn-tiles
+   behavior; if the fix works, the next round's margin/win-rate against
+   this specific opponent should improve noticeably, especially the
+   turn-70+ portion of the `tools/turn_trend.py` curve should flatten
+   out rather than keep diverging).
+2. **Run a much larger `tools/ab_test.py robot.py
+   robot_v5_pre_spawnavoid.py --seeds 1-100 --swap` (200 games) or more**
+   next session to get a statistically meaningful self-play read on
+   whether this fix helps in general (not just against this one
+   opponent) -- 20 games wasn't enough to tell either way this round.
+3. **If the fix doesn't move the needle**, the next thing to check is
+   whether *normal* (non-retreat) movement toward a target is also
+   walking units onto spawn tiles often enough to matter (change #3
+   above only checks the *immediate* next step, not a full path) --
+   consider extending `_pick_personal_target`'s scoring to lightly
+   penalize enemies whose path leads through spawn-tile-heavy regions,
+   or just periodically checking `unit.coords.is_spawn()` and moving off
+   proactively (like the existing "no enemies visible" branch already
+   does) even when enemies ARE visible and we're not otherwise forced to
+   engage.
+4. Also worth doing with more budget: actually instrument (e.g. via
+   `debug.inspect`) how many of our own units die to `clear_spawn()`
+   specifically (vs. combat) across a batch of games, to quantify how
+   much this mechanism was actually contributing to the ~60+ round
+   snowball pattern before concluding the fix's real-world impact size.
+
+**This is the highest-priority open item for future sessions** -- this
+bot just lost its first two rounds ever, a genuine root-cause mechanism
+(not just "this opponent is more skilled") was identified and a
+low-risk, mechanistically-justified fix was implemented and validated as
+non-regressive, but its actual effectiveness against the offending
+opponent has NOT yet been confirmed with real match data (that only
+happens after this round's `robot.py` gets played against
+`atl15__centerrr` again). Do not revert this fix without strong evidence
+it's actively hurting (the self-play A/B was a coin-flip, not a
+regression) -- but do prioritize getting real match data and a larger
+self-play sample before doing anything else next round.
