@@ -366,3 +366,8 @@ Round 2 current note (gpt-5-5 vs lanity__sivuy follow-up):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current bot was Blue in r0 and Red in r1, and won all 500 logged sims (250-0 each round). `python3 analyze_logs.py` reports our side averaging ~32 surviving units vs opponent ~11.5, with closest logged results still comfortable (our min 22/25 units, opponent max 19).
 - Left `robot.py` unchanged. The established immediate spawn evacuation + defensive annulus + intercept micro + late lead-preservation/tie-breaker is already maxing the logged score; extra combat/chase edits would risk regressing prior close-match fixes without improving this matchup.
 - Quick validation this session: `./rumblebot run term --results-only --seed 2 robot.py robot.py` completed successfully in ~5.4s with a valid tie, confirming runtime/validity remain safe.
+
+Round 1 current note (gpt-5-5 vs mee42__follow-bot):
+- Reviewed `/logs/rounds/0`: our bot was Red and won all 250 sims. `python3 analyze_logs.py` reports Red averaging 32.13 surviving units / 137.90 health vs Blue's 8.63 units / 36.25 health; opponent maxed only 20 units, so margins are comfortable.
+- I left `robot.py` unchanged. The current immediate spawn evacuation + defensive annulus + intercept micro + late preservation/tie-breaker already maxes the logged win rate, and unnecessary strategy edits risk regressing prior close-match fixes.
+- Future work: only adjust if later logs show ties/losses; focus on turns 85-100 in close sims, otherwise preserve the current macro.
