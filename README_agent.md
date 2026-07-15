@@ -1260,3 +1260,65 @@ chaser. Untried ideas that might avoid the RED-side regression:
   (gang-kill before spawn refresh) instead of just the weakest.
 - Whatever you try, TEST BOTH orientations vs /tmp/aggro.py AND head-to-head vs
   /tmp/robot_baseline.py; reject anything that drops below ~7/10 as RED.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = anton__anton4000 (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 238-3** with **9 TIES** vs
+  `anton__anton4000` (we were BLUE). Opponent is COMPETITIVE — it TRADES damage
+  and PRESERVES HP/units better than us in close games.
+- Analyzed all 250 sims: the 9 ties ALL ended EQUAL on units but us BEHIND on HP
+  (e.g. sim_0: 15-15 units, HP 47-62). The 3 losses ended slightly behind on
+  units (sim_102: 13-15, sim_208: 11-13, sim_22: 12-13). Win = most units at
+  turn 100 (HP is NOT a tiebreaker).
+- FAILURE MODE (sim_0 turn-by-turn): at turn 40 we were AHEAD 8-5 units, but by
+  turn 100 it was TIED 15-15. We build an early lead then trade it away 1-for-1
+  while the opponent preserves its units; late-game spawns (4/team/10 turns)
+  dominate and they catch up.
+
+### Experiments (ALL tested vs baseline self-play, NONE shipped - all regressed)
+Test bots regenerated this session (gone next round):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than the real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py` (== current robot.py).
+  * /tmp/batch.sh: helper -> `/tmp/batch.sh BLUE.py RED.py NSEEDS` (uses
+    `./rumblebot run batch`, prints {"winner":...} per seed). Keep NSEEDS<=8 or
+    the 30s command wall-clock times out (batch is slow; ~2s/game).
+Variants tried (all made us MORE passive to preserve the lead -> LOST aggression
+and REGRESSED vs baseline in self-play):
+1. /tmp/variant.py: protect_lead turn>=60 + big_lead(turn>=40, health<=4)
+   retreat. Blue vs baseline: 4W-6L-2T. REJECTED (too passive early).
+2. /tmp/variant2.py: protect_lead turn>=65. Blue vs baseline: 3W-4L-1T. REJECTED.
+3. /tmp/variant3.py: when can't-kill & not-boxed & lone attacker, step_toward
+   enemy instead of attacking (avoid whiff). Blue vs baseline: 3W-5L. REJECTED
+   (loses damage output by chasing instead of hitting).
+4. /tmp/v4.py: protect_lead turn>=70 (was 80). Blue vs baseline: 3W-2L-1T (~edge
+   within noise); RED side was pure side-bias loss. NEUTRAL, not clearly better.
+
+### KEY TAKEAWAY (consistent with all prior teammates)
+- Making the bot MORE passive to "preserve leads" consistently LOSES aggression
+  and regresses in self-play. The baseline is well-balanced. Self-play is noisy
+  and dominated by a persistent side (map) bias, so it's a poor proxy for the
+  real (unavailable) opponent.
+- We ALREADY win ~95% (238-3-9) as BLUE vs anton__anton4000. No tested change
+  gave a robust, clear improvement.
+
+### Decision: KEPT robot.py UNCHANGED (proven balanced baseline).
+Verified: parses OK; beats strong /tmp/aggro.py as BLUE (13-7); crushes marcher
+(25-3). Runtime ~2s/game, well under 60s. Changing risks regression for marginal
+upside vs an opponent we already dominate.
+
+### Guidance for next teammate
+- If opponent STAYS anton__anton4000: submit robot.py as-is (wins ~95%).
+- The ONLY realistic lever to convert the 9 ties/3 losses (all EVEN/behind on
+  units, ahead on HP) is to LOSE FEWER of our own units in the mid-late game
+  WITHOUT going passive. Untried ideas that might avoid the passivity regression:
+  * Retreat fragile units TOWARD allies (regroup) not just away from enemy, so
+    they stay useful & in formation (current retreat() only maximizes distance
+    from nearest enemy -> scatters).
+  * Reduce OVERKILL: don't stack 3 attackers on 1 enemy if 2 suffice; redirect
+    the 3rd to a second target -> more net kills per turn before spawn refresh.
+  * Focus the enemy the MOST allies can reach in 1-2 moves (gang-kill fast).
+  * ALWAYS test BOTH orientations vs /tmp/aggro.py AND head-to-head vs
+    /tmp/robot_baseline.py; reject anything that drops below the baseline on the
+    BLUE side (we are Blue vs this opponent).
