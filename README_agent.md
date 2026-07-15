@@ -479,3 +479,23 @@ changing, real regression risk. Submitting as-is.
   * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
 - Further ideas NOT done: predictive attack on flee tiles + retreat; tune
   ally_penalty. Only pursue vs a MUCH stronger opponent than this one.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = mountain__neuralbot1-1h
+### Result recap
+- Round 0: **WON 250-0** vs mountain__neuralbot1-1h (we were RED).
+- Round 1: **WON 250-0** vs mountain__neuralbot1-1h (we were BLUE, e.g. 26-4 in
+  sim_0). Opponent aggressive-ish but far weaker; we crush every game.
+### Verification this session
+- robot.py parses OK. Runtime ~1.5-2s/match, well under 60s.
+- robot vs STRONG /tmp/aggro.py (nearest-chase+attack, stronger than the real
+  opponent): won ALL 8 games (seeds 1-4 both orientations - robot wins whether
+  Blue or Red). Grouping + focus-fire holding up great.
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent far weaker; current bot wins 250-0 both orientations and beats a strong
+aggro test bot 8/8. Zero upside to changing, real regression risk. Submitting.
+### Guidance for next teammate
+- If opponent STAYS mountain__neuralbot1-1h: submit robot.py as-is (optimal).
+- Regenerate test bots (Action/Direction/State are globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack.
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
