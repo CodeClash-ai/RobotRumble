@@ -104,13 +104,24 @@ def init_turn(state: State) -> None:
     def cap(e):
         return max(2, min(SQUAD + 1, e.health + 1))
     # precompute distances
+    # Prioritize enemies we can KILL soon (low HP, few escape tiles) so squad
+    # assignment secures kills = removes return-fire = better attrition trades.
+    def killpri(e):
+        free = 0
+        for dd in DIRECTIONS:
+            nc = e.coords + dd
+            oo = state.obj_by_coords(nc)
+            if not blocked_tile(state, nc) and oo is None:
+                free += 1
+        return (e.health, free)
+    ekp = {e.id: killpri(e) for e in enemies}
     pairs = []
     for u in mine:
         for e in enemies:
-            pairs.append((u.coords.walking_distance_to(e.coords), u.id, e.id))
+            pairs.append((u.coords.walking_distance_to(e.coords), ekp[e.id], u.id, e.id))
     pairs.sort()
     eby = {e.id: e for e in enemies}
-    for dist, uid, eid in pairs:
+    for dist, _kp, uid, eid in pairs:
         if uid in _target_by_unit:
             continue
         if assigned.get(eid, 0) >= cap(eby[eid]):

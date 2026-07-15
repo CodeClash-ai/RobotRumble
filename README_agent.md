@@ -3255,3 +3255,65 @@ the real loss locally, so this is a best-effort fix on the closest proxy signal.
 - DEAD-ENDS (do NOT retry): reduce-OVERKILL, PREDICTIVE COVERAGE (-15), tighter
   early grouping, adjacency-priority focus, focus-radius 2->3, SQUAD=3,
   regroup-when-behind, anti-overextension +2->+3.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = gerenuk__gere-ape (STRONG, WE LOSE!)
+### Result recap - WE ARE LOSING THIS OPPONENT
+- Round 0: **LOST 72-145 w/ 33 TIES** vs gerenuk__gere-ape (we were RED).
+- Round 1: **LOST 81-148 w/ 21 TIES** vs gerenuk__gere-ape (we were RED again).
+  First opponent to consistently BEAT us. Traced sim_0: we trade EVENLY early
+  (both 3-3 at t6) then Blue pulls ahead at spawns AND keeps a HP lead the whole
+  game (out-trades us in the diffuse melee), snowballing to 18-8 by turn 100.
+  At t10 spawn Blue got +4, Red only +3; at t40 Red only +2. Opponent out-fights
+  us in attrition (keeps higher HP = its hits land, ours whiff).
+### ROOT CAUSE: attrition/combat efficiency. Opponent keeps HP lead throughout.
+  Movement resolves BEFORE attacks, so attacks on unboxed enemies WHIFF (enemy
+  flees) while we eat return fire. We need to SECURE KILLS (remove enemies =
+  remove their return fire) faster. NOTE: proxies (/tmp/cluster,/tmp/aggro) are
+  WEAKER than gere-ape and CHASE (don't flee), so we WIN vs them - cannot
+  reproduce the real loss locally. Proxies reward aggression; the real opponent
+  punishes reckless aggression. This is the core dilemma.
+### What I changed (robot.py) - KILL-PRIORITY SQUAD ASSIGNMENT (tested, shipped)
+- init_turn greedy squad assignment now sorts pairs by (distance, killpri) where
+  killpri = (enemy.health, num_escape_tiles). So when two enemies are equidistant
+  we assign allies to the one we can KILL SOONEST (low HP + boxed = few escape
+  tiles). Securing kills removes enemies = removes their return fire = better
+  attrition trades. Pure OFFENSIVE change (kill faster), NOT passivity (prior
+  teammates proved passive/grouping tweaks REGRESS vs proxies - I re-confirmed:
+  tighter-grouping in step_toward tanked to -0.5 margin vs cluster; SQUAD=3 also
+  regressed).
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD pre-edit; term NON-det)
+- kill-priority R vs cluster 6x: W5L1 +5.17 (baseline R vs cluster 8x: W6L1T1
+  +4.12 - baseline ALSO loses 1, so not a regression; bigger margin).
+- kill-priority R vs aggro 6x: W5L0T1 +3.83 (baseline +3.00). Better.
+- kill-priority B vs cluster 8x: W8L0 +4.00 (baseline B vs cluster 6x: W5L1
+  +3.33). Better - eliminated the Blue-side loss.
+- kill-priority B vs aggro 6x: W5L0T1 +2.67 (baseline W4L1T1 +2.00). Better.
+- Equal-or-better on ALL 4 configs (both sides, both proxies). Bigger margins,
+  fewer losses. Ships clean: parses OK, runs 3.7s, crushes marcher 22-3.
+### Decision: SHIPPED kill-priority squad assignment. Best-validated offensive
+change available; targets the attrition weakness (secure kills faster). No
+regression on any proxy config; consistently better margins. CAVEAT: proxies
+are weaker than gere-ape so this is best-effort - may not be enough to flip the
+loss. If it doesn't help, the opponent is simply a stronger combat AI.
+### Guidance for next teammate (WE ARE STILL LOSING - needs real work)
+- If STILL LOSING to gerenuk__gere-ape: verify in sim logs whether we now hold
+  HP/count better mid-game (turns 20-50). The opponent out-trades us on HP.
+  UNTRIED high-value levers (proxies can't validate - opponent flees, proxies
+  don't): PREDICTIVE ATTACK - attack the TILE a fleeing enemy will step INTO
+  (movement resolves before attacks), so our hit lands even as it flees. This is
+  the biggest untapped idea and directly counters an HP-preserving fleer. Design:
+  when adjacent to an unboxed enemy, predict its flee direction (away from our
+  nearest cluster) and if an ally can be positioned there, coordinate. Risky;
+  prior "PREDICTIVE COVERAGE" (thin attackers onto escape tiles) was a DISASTER
+  (-15) - do NOT thin attackers; instead ADD a predictive bonus without reducing
+  concentration.
+- To REVERT kill-priority: git diff shows the killpri block in init_turn.
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL, PREDICTIVE COVERAGE (-15), tighter
+  early grouping (tanks proxy margin), SQUAD=3, passive/retreat mid-game tweaks,
+  adjacency-priority focus, focus-radius tweaks, boxed-focus, whiff-avoidance.
+- Regenerate test bots: /tmp/aggro.py (nearest-chase+attack), /tmp/cluster.py
+  (attack-weakest-adjacent + focus-weakest-nearest), /tmp/marcher.py (South),
+  /tmp/bench.py BOT OPP N [B|R] (BOT plays that side; term NON-det, run 6-8x,
+  keep N<=6 to stay under 30s wall-clock; compare unit MARGINS not just W/L).
+- /tmp/robot_baseline.py = git show HEAD:robot.py.
