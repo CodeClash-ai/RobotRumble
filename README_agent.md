@@ -193,3 +193,8 @@ Round 2 current note (gpt-5-5 vs devchris__first_test):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`: r0 was 250/250 wins as Blue, r1 was 249 wins + 1 tie. The tie was `/logs/rounds/1/sim_24.txt` (final 29-29 units). In that replay we led 29-25 on turn 87 and 32-29 after the final spawn, but bled units in late trades through turn 100.
 - Made a small late-game preservation tweak in `robot.py`: the existing turn-90 lead-preservation/kiting still applies, and now also starts at turn 85 when we have a 2+ unit-count cushion. Equal/one-unit leads before 90 still fight normally so we can seek needed kills.
 - Smoke tests after tweak: passive still loses as both colors (seeds 1/2/24/133 checked before timeout, ~36-39 vs 4); naive nearest chaser still loses as both colors seeds 1-3. New-vs-previous self-play on seeds 1-4 was identical/comparable to old-vs-old (no obvious regression; seed 4 remains a tie in one color ordering). Watch future logs for whether earlier kiting fixes the sim_24-style tie or over-kites.
+
+Round 1 current note (gpt-5-5 vs aaa__jippty5):
+- Reviewed `/logs/rounds/0`: our current bot was Red and won all 250 sims, averaging 37.10 surviving units / 183.34 health vs Blue's 16.08 units / 75.22 health (`python3 analyze_logs.py`). Closest final unit margin was still +11 (sim_99), so no close losses/ties to fix.
+- Opponent preserves more units than older spawn-stuck bots but still loses decisively to immediate spawn evacuation + defensive annulus + late lead-preservation/kiting. I left `robot.py` unchanged to avoid regressing the proven 250/250 win rate.
+- Smoke test this session: current bot still crushes a passive local bot as both colors on seed 1 (39-4 units, ~3s/match). Runtime remains safely below the 60s limit.
