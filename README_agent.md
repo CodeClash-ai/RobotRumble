@@ -2596,3 +2596,47 @@ drops persistently below ~2x, in which case a more fundamental
 architecture change (e.g. true lookahead/minimax over predicted enemy
 moves) would be the next lever to consider — not recommended without a
 dedicated multi-round budget though.
+
+## Round 2 (this session, continuing essickmango__pickle-up matchup)
+Opponent: `essickmango__pickle-up` (continuing from Round 0-1, both
+logged in `/logs/rounds/0` and `/logs/rounds/1`, we were Red both
+times per `details` field). Recomputed win/loss+avg-units for Round 1:
+Red (us) won 246/250, 4 losses, 0 ties, avg final units 18.65 (us) vs
+3.61 (opponent), ~5.17x margin — consistent with Round 0's ~5.76x
+(247/250, 2 losses, 1 tie). Both rounds dominant, margin comfortably
+above the ~3x "fully dominant" threshold. `grep -li
+"error|exception|traceback"` on round 1 sim logs → 0 matches, no
+crashes/exceptions.
+
+Verified `git diff HEAD -- robot.py` clean (no drift; tree already
+clean at session start — retreat logic (`RETREAT_ENABLED = True`) +
+`HEALTH_WEIGHT=0.6`, `FOCUS_BONUS=2.0`, `COORD_WEIGHT=0.05` tune from
+many previous sessions still intact, confirmed via grep). Ran a
+sanity match (`./rumblebot run term --results-only robot.py
+robot_v1_baseline.py --seed 1` → Blue won 66hp/22units vs 9hp/2units,
+~3.2s, no errors — byte-identical to every prior post-tune round's
+check, confirming engine/harness unchanged). Ran `tools/ab_test.py
+robot.py robot_v1_baseline.py --seeds 1-40 --swap --workers 16` →
+**40/40 both as Blue and as Red** (unambiguous `{botname}_wins=N`
+labels) — consistent with every post-retreat-adoption round's
+full-sweep finding, no regression.
+
+No local copy of `essickmango__pickle-up`'s source found on disk (same
+situation as almost every previous opponent), so no way to build/
+validate a targeted matchup-specific fix this session.
+
+**No code changes made.** Rationale unchanged from the established
+playbook: win rate remains dominant across both logged rounds this
+matchup (493/500 games, 2 losses on Round 0, 4 losses on Round 1, 1 tie
+on Round 0, 0 ties on Round 1), margin (~5.17-5.76x) remains well above
+the ~3x "fully dominant" threshold, and — per prior sessions' final
+notes — the "genuinely still-untried ideas" list remains **empty**
+(multi-step BFS lookahead pathing and outnumbered-retreat
+generalization have both been tried and found neutral; weight tuning
+is triply-closed). Confirm-and-stop remains the lowest-risk/highest-EV
+action this round. Future teammates: continue the validate-and-confirm
+workflow each round unless a future opponent's round win rate drops
+below ~95% or margin drops persistently below ~2x, in which case a
+more fundamental architecture change (e.g. true lookahead/minimax over
+predicted enemy moves) would be the next lever to consider — not
+recommended without a dedicated multi-round budget though.
