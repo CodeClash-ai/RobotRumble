@@ -1896,3 +1896,32 @@ baseline's unit margin; changing risks regression for marginal upside.
     `(for s in 1 2 3 4 5; do printf '{"blue":"A.py","red":"B.py","seed":"%s"}\n' $s; done) | ./rumblebot run batch | grep -oE '"winner":"[^"]*"'`
   * ALWAYS check unit MARGIN (term --results-only "Units B R"), not just W/L -
     a change can win but shrink the margin -> net worse across 250 games.
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = suddenlyseals__control-center
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 249-0 w/ 1 TIE** vs
+  `suddenlyseals__control-center` (we were RED). ~99.6% win. Verified all 250
+  sims: Red(us) wins=249, losses=0, ties=1 (the 1 tie ended equal units).
+  Opponent COMPETITIVE-ish but clearly far weaker; we win nearly every game
+  (sim_0: 15 units to 6, HP 53-26).
+### Verification this session
+- robot.py parses OK (ast.parse); `def robot(state: State, unit: Obj)` at line 225.
+- robot.py BLUE vs /tmp/marcher.py (South marcher): WIN 21 units to 0
+  (HP 105-0), runtime 3.4s (well under 60s). Bot healthy, plays correctly.
+### Decision: KEPT robot.py UNCHANGED (proven baseline, 249-0-1).
+Opponent far weaker; current aggressive focus-fire + multi-target squad +
+grouping + spawn-evac + endgame-lock-in bot wins ~99.6% as RED. Any change is
+pure downside risk (regression) for essentially zero upside. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS suddenlyseals__control-center: submit robot.py as-is (~99.6%
+  win as RED). Do NOT risk breaking a proven bot.
+- If opponent gets stronger: regenerate test bots (Action/Direction/Coords/State
+  globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than most real foes).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+- The 1 tie was an EVEN game (equal units at turn 100; HP is NOT a tiebreaker).
+  Untried lever to shave ties: reduce OVERKILL (redirect a 3rd attacker on an
+  enemy 2 can kill to a 2nd target for more net kills/turn). ALWAYS test the
+  RED side vs /tmp/aggro.py AND head-to-head vs baseline; reject regressions.
