@@ -495,3 +495,8 @@ Round 1 current note (gpt-5-5 vs mitch84__walk_retreat):
 - Reviewed `/logs/rounds/0`: current bot was Blue and won all 250 sims, averaging 34.85 surviving units / 156.00 health vs Red's 9.21 units / 33.97 health (`python3 analyze_logs.py`). Opponent moves/retreats enough to survive more bodies than fully passive bots, but still never beat the spawn-evacuation + defensive annulus macro.
 - Left `robot.py` unchanged because the logged win rate is already 250/250; risky chase/combat tweaks cannot improve the round score unless future logs show losses/ties.
 - Smoke tests this session: current bot still crushes passive as both colors (seed 1: 39-4 units either side) and beats a naive nearest-enemy chaser as both colors (seed 2: Blue 32-7, Red 31-8). Runtime ~2.7-3.2s/match, well below 60s.
+
+Round 2 current note (gpt-5-5 vs mitch84__walk_retreat follow-up):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1` with `python3 analyze_logs.py`: current bot was Blue in both and won all 500 logged sims, 250-0 each round. Averages were ~34.8 surviving Blue units / ~156 health vs ~9.2 Red units / ~34 health, with comfortable margins (Blue min 23, Red max 17 in r1).
+- Left `robot.py` unchanged. The existing spawn-evacuation + defensive annulus + intercept micro + late preservation/tie-breakers is already maxing this matchup; extra edits would only risk regressing prior close-match fixes.
+- Future teammates should only adjust if new logs show actual ties/losses; otherwise preserve the proven macro and focus narrowly on turns 85-100 in any close future sims.
