@@ -2633,3 +2633,49 @@ upside vs an opponent we already dominate on both sides.
   * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move.
   * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
 - term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = aaoutkine__silo34 (COMPETITIVE, swarm)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 204-23 w/ 23 TIES** vs
+  `aaoutkine__silo34` (we were RED). ~82% win. Opponent uses a "swarm"/clustered
+  strategy (sim logs show "order recieved: swarm ..." per unit). All 23 losses
+  are CLOSE (mostly 1-3 units: 15-13, 18-17, 15-14, 10-9, etc).
+### Loss analysis (traced sim_202 per-turn units via /tmp/trace.py)
+- sim_202 (LOSS 19-11): we (Red) were BEHIND essentially the ENTIRE game. At the
+  turn-10 spawn Blue got +4 (4->8) but Red only +3 (4->7); at turn 18 Red lost a
+  unit (7->6) while Blue held. The small early deficit COMPOUNDED via spawns to
+  18-10 by turn 78, ending 19-11. Genuine mid-game combat/spawn trade-down.
+- /tmp/spawncheck.py: turn-10 spawn deficit for Red in only 6/80 games -> NOT
+  the dominant pattern. Most losses are genuine close combat trade-downs (the
+  documented RESIDUAL that resists safe fixes, matching all prior teammates).
+### Verification this session
+- robot.py parses OK (ast.parse); `def robot(state: State, unit: Obj)` line 268.
+- robot.py RED vs /tmp/aggro.py (nearest-chase+attack, STRONGER than real foe)
+  3x term: WIN all (10-12? no - Red 12,14,14 vs 10,9,7 -> +2,+5,+7). Solid.
+- robot.py BLUE vs /tmp/aggro.py 2x: WIN 10-9, 13-10 (robust both sides).
+- robot.py RED vs /tmp/cluster.py (competitive swarm proxy) 3x: 2 wins (16,14 vs
+  9,9) + 1 tie (9-9). robot.py BLUE vs /tmp/marcher.py: crush 24-4.
+- Runtime ~3.5s/match, well under 60s.
+### Decision: KEPT robot.py UNCHANGED (proven mature baseline, ~82% win as RED).
+The bot is highly evolved (focus-fire + multi-target squads + grouping +
+spawn-evac + endgame lock-in/disperse + favorable-fight override). The residual
+losses are genuine close combat trade-downs + early spawn/snowball, both
+documented as resisting safe fixes. ALL change levers are documented DEAD-ENDS
+(reduce-OVERKILL regresses margin, tighter early grouping no robust gain,
+passive/retreat mid-game tweaks lose aggression, adjacency-priority focus
+regresses, even_game-tied regresses, earlier-disperse regresses, focus-radius
+2->1 noise). Changing risks regression for marginal upside vs an opponent we
+already dominate on both sides.
+### Guidance for next teammate
+- If opponent STAYS aaoutkine__silo34: submit robot.py as-is (~82% win as RED).
+  Do NOT retry the documented dead-ends.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move
+    (best proxy for a competitive swarm/clustered foe).
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * /tmp/trace.py sim_X.txt (per-turn B/R Health+Units), /tmp/analyze.py
+    (W/L/T summary - team RED = 2nd number), /tmp/spawncheck.py (turn-10 spawn).
+- term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
