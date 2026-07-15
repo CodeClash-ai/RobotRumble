@@ -2762,3 +2762,57 @@ Tightly gated to avoid the passivity regressions prior teammates found.
 - DEAD-ENDS (do NOT retry): reduce-OVERKILL, tighter early grouping, BROAD
   passive/retreat mid-game tweaks, adjacency-priority focus, even_game-tied,
   earlier-disperse, focus-radius 2->1.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = mountain__neuralbot4-3h (STRONG, swarm)
+### Result recap
+- Round 0: **WON 176-56 w/ 18 TIES** vs mountain__neuralbot4-3h (RED, ~70%).
+- Round 1: **WON 157-66 w/ 27 TIES** vs mountain__neuralbot4-3h (RED, ~63%).
+  Round 1 was the FIRST round with the round-0 `mid_lead` edit (committed in
+  the "Round 1 Update" commit caa7d43). Result DROPPED (176->157). I A/B tested
+  whether mid_lead caused it.
+### A/B TEST of mid_lead (current robot.py) vs baseline WITHOUT it (/tmp/robot_prev.py = git show f1d0c50:robot.py)
+- We are RED. term is NON-DETERMINISTIC; ran 6x each, compared unit MARGINS.
+  * vs /tmp/cluster.py (best swarm proxy): mid_lead +3.4/+4.17, no_mid_lead
+    +5.4/+3.67 across two 5-6x batches -> statistically TIED (noise).
+  * vs /tmp/aggro.py: mid_lead +4.67 (1 tie), no_mid_lead +2.83 (0 ties)
+    -> mid_lead slightly better here.
+  CONCLUSION: mid_lead is NEUTRAL (within noise on both proxies). The round-1
+  real-match dip (176->157) is most likely opponent/matchmaking variance, NOT
+  the mid_lead change.
+### Loss-pattern analysis (/logs/rounds/1, traced sim_165 per-turn units)
+- SWARM game: both teams accumulate many units (losses end ~16 B, ~12 R).
+- We stay EVEN/close until step ~65, then Blue pulls away in the MID-LATE game
+  (steps 65-90): at the turn-70 and turn-90 spawns Blue nets bigger spawns while
+  we bleed (B21 R11 at step 90). Genuine mid-late combat trade-down + spawn
+  compounding. mid_lead only fires when we're AHEAD 2+ (rare vs this foe), so it
+  does nothing in these losses - consistent with it testing neutral.
+### Decision: KEPT robot.py UNCHANGED (mature baseline, ~63-70% win).
+mid_lead tests neutral - no proven benefit to reverting AND no proven harm to
+keeping. The bot is highly evolved and ALL other change levers are documented
+DEAD-ENDS. Verified: parses OK; `def robot` line 268; crushes /tmp/marcher.py
+27-4 as RED; beats /tmp/aggro.py & /tmp/cluster.py on RED with positive margins.
+Runtime <4s/match, well under 60s. Changing risks regression for marginal upside
+vs a strong opponent we still beat comfortably.
+### Guidance for next teammate
+- If opponent STAYS mountain__neuralbot4-3h: submit robot.py as-is (~63-70% win).
+  The residual losses are genuine mid-late swarm trade-downs + spawn compounding
+  where we fall behind before turn 65 - NOT a late-lead-throwaway (endgame gates
+  handle that) nor a spawn-wipe (spawns symmetric per free pair).
+- If you want to try to beat this stronger foe: the untapped lever is COMBAT
+  EFFICIENCY in the swarm mid-game (turns 40-70) WITHOUT losing aggression -
+  hard, and all prior attempts (reduce-OVERKILL, tighter grouping, passive/
+  retreat tweaks) REGRESSED. If you must experiment, A/B vs /tmp/cluster.py
+  (best swarm proxy) AND /tmp/aggro.py, run 6x+ (non-deterministic), compare
+  unit MARGINS on the RED side; reject anything not clearly better than baseline.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move (best
+    swarm proxy for this opponent).
+  * /tmp/robot_prev.py: `git show f1d0c50:robot.py` (baseline without mid_lead).
+  * /tmp/analyze.py, /tmp/trace.py sim_X.txt (in this session's history).
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL, tighter early grouping,
+  passive/retreat mid-game tweaks, adjacency-priority focus, even_game-tied,
+  earlier-disperse, focus-radius 2->1. mid_lead tests NEUTRAL (keep or revert,
+  no measurable difference).
