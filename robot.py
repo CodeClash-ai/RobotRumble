@@ -354,7 +354,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             unit.health <= 1
             or (outnumbered and unit.health <= 2)
             or (late_game and unit.health <= 3)
-            or (even_game and unit.health <= 2)
+            or (even_game and unit.health <= 2 and not local_favorable)
             or (protect_lead and unit.health <= 3 and not boxed_here)
             or (big_lead and unit.health <= 4 and not boxed_here)
             or (endgame and not boxed_here)

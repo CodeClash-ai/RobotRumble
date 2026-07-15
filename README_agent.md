@@ -2276,3 +2276,58 @@ sides and removed the baseline's occasional proxy losses. Targets the root cause
 - Documented DEAD-ENDS (do not retry blindly): reduce-OVERKILL (regresses
   margin - partially-hit enemies survive & out-trade), tighter early grouping
   (no robust Blue-side gain), passive/retreat mid-game tweaks (lose aggression).
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = underscore__bot1 (COMPETITIVE)
+### Result recap
+- Round 0: **WON 205-15 w/ 30 TIES** vs underscore__bot1 (we were RED).
+- Round 1: **WON 215-10 w/ 25 TIES** vs underscore__bot1 (we were RED). ~86% win.
+  The prior teammate's tighter focus radius (3->2) improved us (205->215).
+- Analyzed /logs/rounds/1 (10 losses, all CLOSE 1-3 units; 25 ties). ROOT CAUSE
+  (traced sim_80, sim_110): opponent OUT-TRADES us on HP - it consistently keeps
+  HIGHER HP through combat, then wins the count race as we bleed down in mid-late
+  game. NOT a spawn-wipe (spawn deltas symmetric /tmp/spawncheck.py) nor purely a
+  late-lead-throwaway (endgame gates already handle that). It is combat trade
+  efficiency: in even mid-games we sometimes RETREAT fragile units even when the
+  local fight is FAVORABLE, giving up trades that would push us ahead.
+### What I changed (robot.py) - FAVORABLE-FIGHT OVERRIDE on even_game retreat
+- The `even_game` retreat gate (turn>=50, my_units<=enemy_units, health<=2) now
+  only fires when NOT locally favorable: `even_game and unit.health <= 2 and not
+  local_favorable`. `local_favorable = attackers > count_enemy_adjacent(...)`
+  (we have more attackers on the target than enemies adjacent to us). So a
+  fragile unit in a fight WE are winning locally now ATTACKS (secures a
+  favorable trade -> pushes us ahead on count) instead of retreating and feeding
+  the stalemate. One-line change; everything else unchanged. local_favorable is
+  defined (line 343) before its use (line 357) - verified, no NameError.
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- term is NON-deterministic; ran 5x each, compared unit MARGINS (we are RED).
+- v2 RED vs /tmp/aggro.py (STRONGER than real foe) 5x: +8,+2,+3,+7,+3 - ALL wins,
+  BIGGER margins. Baseline RED vs aggro 5x: +1,TIE(8-8),+5,+5,+3 (had a TIE).
+- v2 RED vs /tmp/cluster.py (competitive proxy) 5x: +4,+4,+4,+7,+2 - all wins
+  (baseline +2,+3,+5,+5,+1). Comparable/better.
+- v2 BLUE vs aggro 3x: +1,+3,+1 all wins. v2 BLUE vs cluster 4x: +1,+7,+2,+6 all
+  wins (no regression on Blue side). v2 vs marcher: crush 19-4.
+- robot.py parses OK; `def robot` line 268; runtime ~2s/match, well under 60s.
+### Decision: SHIPPED the favorable-fight override (offensive, low-risk, one line).
+Removed a TIE vs aggro and widened RED-side margins; no regression on either
+orientation vs any proxy. Targets the HP out-trade loss pattern by NOT giving up
+favorable trades in even mid-games.
+### Guidance for next teammate
+- If opponent STAYS underscore__bot1: robot.py wins ~86%+; this edit should
+  convert some of the 25 ties / close losses by winning favorable trades.
+  VERIFY next round: margin distribution (/tmp/analyze.py - EDIT logdir; we are
+  RED = 2nd number in "Units B R"). If it regressed (unlikely), REVERT: git diff
+  shows the single `and not local_favorable` on the even_game line.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move (best
+    proxy for this competitive foe).
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * /tmp/trace.py sim_X.txt (per-turn B/R units+HP), /tmp/spawncheck.py (spawn
+    deltas), /tmp/analyze.py (W/L/T summary - EDIT team=RED).
+- term is NON-deterministic - run 5x+ and compare unit MARGINS (not just W/L).
+- DOCUMENTED DEAD-ENDS (do NOT retry): reduce-OVERKILL (regresses margin),
+  tighter early grouping (no robust gain), passive/retreat mid-game tweaks
+  (lose aggression). Also tested & REJECTED this session: adjacency-priority
+  focus (`-adjnow` first in score) - it caused a LOSS+TIE vs aggro (regression).
