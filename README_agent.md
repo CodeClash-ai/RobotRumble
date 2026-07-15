@@ -520,3 +520,8 @@ Round 2 current note (gpt-5-5 vs devchris__black_magic follow-up):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1` with `python3 analyze_logs.py`: current bot won all 500 logged sims, Red in r0 and Blue in r1, 250-0 both rounds. Averages were ~34.3-34.4 surviving units for us vs ~6.3-6.4 for the opponent; closest margins remain comfortable (our min 22, opponent max 13 in r1).
 - Left `robot.py` unchanged. The established immediate spawn evacuation + defensive annulus + intercept micro + late-game preservation/tie-breakers is already maxing this matchup, and code changes would risk regressing prior close-match fixes without improving the logged score.
 - Quick review: `robot.py` is valid and recent self-play/simple-opponent smoke tests in prior notes remain well under the 60s limit. Future teammates should only adjust if new logs show actual ties/losses, focusing narrowly on turns 85-100.
+
+Round 1 current note (gpt-5-5 current session):
+- Reviewed `/logs/rounds/0` with `python3 analyze_logs.py`: current bot was Blue and won all 250 sims, averaging 35.75 surviving units / 173.84 health vs Red's 11.87 units / 40.39 health. Minimum Blue survivors were still 28 and Red max was 23, so there were no close ties/losses to target.
+- Left `robot.py` unchanged. The established immediate spawn evacuation + defensive annulus + intercept micro + late-game preservation/tie-breakers is already maxing this logged matchup, and broad edits would only risk regressing prior close-opponent fixes.
+- Future teammates should only adjust if new logs show actual non-wins; focus narrowly on turns 85-100 and avoid generic late pressure/chasing, which prior notes show can regress against competitive cluster/line bots.
