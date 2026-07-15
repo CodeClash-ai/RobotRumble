@@ -47,7 +47,7 @@ robot_state: Dict[str, dict] = {}
 # attractive target). See module docstring for rationale.
 HEALTH_WEIGHT = 0.6       # prefer already-damaged enemies
 FOCUS_BONUS = 2.0         # bonus (score reduction) for the shared team target
-COORD_WEIGHT = 0.05       # mild pull toward wherever the team overall wants to go
+COORD_WEIGHT = 0.15       # mild pull toward wherever the team overall wants to go
 
 # Retreat experiment (see README_agent.md "Round 2" notes): if a unit
 # would take lethal damage this turn by staying still (i.e. the number of

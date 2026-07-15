@@ -1044,3 +1044,71 @@ turn (bot must stay well under the 60s-per-match budget), which the
 extra steps specifically for wall-clock timing validation via
 `tools/ab_test.py`'s reported `real` time over 30+ seeds, not just
 correctness.
+
+## Round 1 (this session) — new opponent `mousetail__genetic-robot`; small COORD_WEIGHT tuning adopted
+
+Opponent: `mousetail__genetic-robot` (new identity), logged as
+`/logs/rounds/0`. Result: **round win for sonnet-5** (we were Red).
+Game-level score: sonnet-5 228, opponent 15, ties 7 (out of 250) — 91.2%
+game win rate. Avg final units: ~14.1 (us) vs ~7.3 (opponent), ~1.94x
+margin — decisive round win but one of the **thinner margins seen across
+~24 distinct opponents so far** (right at/below the historical ~2x
+"competent opponent" bucket alongside `aaa__jippty5`,
+`anton__anton4000`, `edward__flail`). No errors/exceptions in any of the
+250 sim logs. Investigated a few losses (e.g. `sim_115.txt`) — legit
+close symmetric endgames (22hp/7units vs 12hp/6units), no bug/stuck-unit
+pattern found, same as prior "closer" opponents.
+
+Verified `git diff HEAD -- robot.py` was clean at session start (no
+drift; retreat logic intact). Ran sanity match + `tools/ab_test.py
+robot.py robot_v1_baseline.py --seeds 1-40 --swap` → 40/40 both sides,
+confirming the post-retreat-adoption baseline is still healthy (no
+engine/harness changes).
+
+**Experiment tried and ADOPTED this round**: given the margin was right
+at the "worth investigating" threshold, tried lowering `COORD_WEIGHT`
+from 0.15 to 0.05 (i.e. reduce the pull of "where the team overall wants
+to go" in each unit's personal-target scoring, letting units react more
+to their own local distance/target-health signal rather than being
+dragged toward wherever the whole team's center-of-mass is currently
+oriented). Rationale: this is a genuinely new angle vs. the
+already-closed weight-tuning experiments from Rounds 10/12, because
+those were tuned *before* the retreat logic existed — the interaction
+between "pull toward team center of mass" and "peel off to retreat when
+outnumbered" hadn't been re-tested since retreat was adopted.
+
+A/B results (`tools/ab_test.py`, unambiguous `{botname}_wins=N` labels,
+no letter-swap trap):
+- vs current `robot.py` (COORD_WEIGHT=0.15), across 200 total games
+  (100 seeds x2 sides, run in 3 batches: seeds 1-30, 31-80, 81-100, all
+  `--swap`): **new (0.05) won 106, old (0.15) won 79, ties 15** — a
+  modest but consistent ~57% non-tie win rate favoring the lower
+  coordination weight, replicated across multiple independent seed
+  batches and both Blue/Red sides (never a lopsided/one-sided split like
+  the old retreat-experiment mislabeling saga — this is a real, if
+  small, signal).
+- vs `robot_v1_baseline.py` (regression check): 15/15 both sides (30/30
+  total) — no regression, still crushes the old baseline just as hard
+  as pre-tweak `robot.py` did.
+- No errors/exceptions in any test run.
+
+**Action taken**: adopted `COORD_WEIGHT = 0.05` into `robot.py` (only a
+one-line constant change; everything else — retreat logic, focus-fire,
+opportunistic attack, movement/sidestep fallback — unchanged). Previous
+version saved as `robot_v3_pre_coordweight_tune.py` for reference/
+future A/B baselines (please don't delete, same convention as
+`robot_v1_baseline.py`).
+
+**For future teammates**: this is a small, validated improvement, not a
+blowout — treat it as incremental. If `mousetail__genetic-robot` (or
+another ~2x-margin opponent) recurs, re-check whether the round margin
+improves at all from ~1.94x with this change in place (hard to say in
+advance how much a ~57% self-play edge translates to round-level margin
+against a *specific* opponent, since we still have no opponent source to
+test against directly). The "still-untried ideas" list (multi-step
+lookahead pathing) remains the other lever if margins stay thin. Given
+step budget ran low this round, did NOT attempt combining this with
+further weight sweeps (e.g. re-tuning `HEALTH_WEIGHT`/`FOCUS_BONUS`
+jointly with the new `COORD_WEIGHT` value) — that combination is
+untried and could be worth a future round's time if this opponent (or
+similar) recurs.
