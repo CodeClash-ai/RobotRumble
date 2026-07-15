@@ -226,6 +226,22 @@ def late_desperation_step(state: State, unit: Obj) -> Optional[Direction]:
     target = min(candidates, key=lambda e: (e.health, unit.coords.walking_distance_to(e.coords), e.coords.walking_distance_to(CENTER)))
     return best_step_toward(state, unit, target.coords)
 
+
+def late_equal_pressure_step(state: State, unit: Obj) -> Optional[Direction]:
+    # Exact late ties with equal health can freeze into draws when every robot is
+    # healthy and the wounded-target nudges have no candidate.  In that narrow
+    # case a draw is worth no more than a loss, so apply controlled pressure
+    # toward the nearest non-spawn enemy, still bounded so we do not chase far
+    # perimeter bait.
+    candidates = [e for e in enemy_units if (not is_spawn_coord(e.coords) and
+                                            unit.coords.walking_distance_to(e.coords) <= 6)]
+    if not candidates:
+        return None
+    target = min(candidates, key=lambda e: (unit.coords.walking_distance_to(e.coords),
+                                           e.health,
+                                           e.coords.walking_distance_to(CENTER)))
+    return best_step_toward(state, unit, target.coords)
+
 def intercept_dir(state: State, unit: Obj) -> Optional[Direction]:
     # Pre-fire an adjacent empty tile when an enemy two steps away is likely to
     # move into it.  Movement is resolved before attacks, so this punishes
@@ -404,10 +420,17 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # If tied very late and we do not have a meaningful health cushion, try the
     # wounded-target nudge before generic wall-to-center movement.  Several
     # exact final ties had perimeter/final-wave robots spend the last turns
-    # walking inward instead of looking for one nearby wounded kill.
-    if state.turn >= 95 and len(our_units) == len(enemy_units):
+    # walking inward instead of looking for one nearby wounded kill.  When the
+    # health totals are also exactly equal, there may be no wounded targets at
+    # all (current diag-lattice tie); start bounded pressure from turn 90 so a
+    # sterile full-health draw has a chance to become a +1 unit win.
+    if state.turn >= 90 and len(our_units) == len(enemy_units):
         health_edge = sum(a.health for a in our_units) - sum(e.health for e in enemy_units)
-        if health_edge <= 8:
+        if health_edge == 0:
+            d = late_equal_pressure_step(state, unit)
+            if d:
+                return Action.move(d)
+        if state.turn >= 95 and health_edge <= 8:
             d = late_desperation_step(state, unit)
             if d:
                 return Action.move(d)
