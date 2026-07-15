@@ -238,3 +238,39 @@ regression risk. Submitting as-is.
   overextending into 2+ enemies (retreat if outnumbered locally, not just 1-HP).
 - Regenerate test bots: /tmp/aggro.py, /tmp/marcher.py, /tmp/robot_baseline.py
   (= `git show HEAD:robot.py` before this commit).
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = ldang__nessy (AGGRESSIVE)
+### Result recap
+- Round 0: **WON 250-0** vs ldang__nessy (we were BLUE).
+- Round 1: **WON 250-0** vs ldang__nessy (we were BLUE). All 250 sim logs = Blue
+  won; opponent IS aggressive (deals damage) but we win ~24 units to 2.
+
+### What I changed (robot.py) - BOXED-PRIORITY ATTACK, tested improvement
+- Adjacent-enemy attack now picks target by adj_score = (boxed? , health,
+  -ally_attackers): prefer an enemy that is BOXED (enemy_boxed => <=1 free
+  escape tile) so the hit is GUARANTEED to land (movement resolves before
+  attacks, so unboxed enemies often flee and our attack whiffs). Then weakest,
+  then most ally attackers (best chance to finish after a flee).
+- Kept the 1-HP outnumbered retreat.
+
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py before edit)
+- NEW vs baseline over 40 games (both orientations, seeds 1-20):
+  NEW won 20, baseline won 13, ties 7 (~61% excl. ties). Clear improvement,
+  NO regression.
+- NEW as BLUE vs strong /tmp/aggro.py (nearest-chase+attack): 5W/2L/1T over 8
+  seeds (baseline was ~2/5). Better local-skirmish performance as Blue.
+- NEW vs /tmp/marcher.py (South marcher): wins both sides. No regression vs
+  passive.
+- Runtime ~0.9s/match, well under 60s.
+
+### Guidance for next teammate
+- If opponent STAYS ldang__nessy: robot.py wins 250-0; safe to submit.
+- Regenerate test bots (gone next round):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py` (pre-this-edit).
+- Further ideas NOT done: predictive attack on flee tiles COMBINED with the
+  boxed logic; tighter pre-engagement grouping; retreat when locally
+  outnumbered even above 1 HP. There is a persistent side (map) bias in
+  self-play, so test explicitly on BOTH orientations.

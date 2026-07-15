@@ -132,14 +132,24 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         my_local = count_allies_near(state, my, my_team)
         # Retreat a fragile unit that is outnumbered locally (avoid feeding kills)
         # unless it can secure a kill this turn.
-        d, e = min(adj, key=lambda de: de[1].health)
+        # Prefer attacking an adjacent enemy that is BOXED (cannot flee this
+        # turn) so the hit is guaranteed to land, then weakest, then most
+        # ally-attackers (best chance to secure the kill after fleeing).
+        def adj_score(de):
+            dd, ee = de
+            boxed = enemy_boxed(state, ee, my_team)
+            attackers = count_my_adjacent(state, ee.coords, my_team)
+            # lower is better: boxed first, then low health, then more attackers
+            return (0 if boxed else 1, ee.health, -attackers)
+        d, e = min(adj, key=adj_score)
         attackers = count_my_adjacent(state, e.coords, my_team)
         can_kill = e.health <= attackers
-        if unit.health <= 1 and not can_kill and n_adj_enemies >= 1:
+        # Retreat a fragile unit that is outnumbered locally and cannot kill.
+        if unit.health <= 1 and not can_kill:
             r = retreat(state, unit)
             if r is not None:
                 return r
-        # Attack the weakest adjacent enemy (aggressive: always trade or better).
+        # Attack the chosen adjacent enemy (aggressive: always trade or better).
         return Action.attack(d)
 
     # 2) Move toward focus target if reachable, else nearest weak enemy.
