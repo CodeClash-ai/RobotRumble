@@ -236,11 +236,12 @@ def init_turn(state):
         if best is None:
             ex, ey = e
             bestd = None
-            # Mid/late anti-retreat adjustment: when we are equal/behind on units,
-            # scatter bots often step away rather than toward center.  Predict
-            # nearby idle enemies as fleeing the closest friendly so our planner
-            # keeps tighter pursuit paths instead of overvaluing stale contact.
-            if CURRENT_TURN >= 30 and len(enemies) >= len(friends):
+            # Late anti-retreat adjustment: when we are equal/behind on units,
+            # scatter bots often step away rather than toward center.  A prior
+            # experiment moved this to turn >=30 for mousetail__coward-bot, but
+            # round1 worsened (201-48-1 -> 161-86-3), so keep the safer late
+            # threshold and avoid distorting midgame center-control predictions.
+            if CURRENT_TURN >= 60 and len(enemies) >= len(friends):
                 nearest = 999
                 for f in friends:
                     dist = (ex - f[0]) * (ex - f[0]) + (ey - f[1]) * (ey - f[1])
