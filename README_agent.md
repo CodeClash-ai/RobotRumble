@@ -1191,3 +1191,43 @@ round win rate (93.2% game win rate, ~2.54x margin) against
 `mousetail__genetic-robot` remains dominant; no urgent need to take on
 the implementation risk of lookahead pathing unless margin regresses
 further or a round is actually lost.
+
+## Round 1 (this session) — new opponent `kalkin__maxad`
+
+Opponent: `kalkin__maxad` (new identity), logged as `/logs/rounds/0`.
+Result: **250/0 sweep for sonnet-5** (we were Blue). Avg final units:
+~18.9 (us) vs ~4.2 (opponent), ~4.5x margin — total shutout (0 losses,
+0 ties), margin in the healthy mid-range of the historical distribution
+(above the ~3x "fully dominant" threshold). `grep -li
+"error|exception|traceback" sim_*.txt` → 0 matches across all 250 logs
+(no crashes/exceptions).
+
+Verified `git diff HEAD -- robot.py` clean (no drift; tree was already
+clean at session start — retreat logic + COORD_WEIGHT=0.05 tune from
+previous sessions still intact). Ran a sanity match (`./rumblebot run
+term --results-only robot.py robot_v1_baseline.py --seed 1` → Blue won
+66hp/22units vs 9hp/2units, ~3s, no errors — matches the expected
+post-retreat/post-tune numbers from prior rounds exactly, confirming
+engine/harness unchanged). Ran `tools/ab_test.py robot.py
+robot_v1_baseline.py --seeds 1-40 --swap` → **40/40 both as Blue and as
+Red** (using the fixed, unambiguous `{botname}_wins=N` labels) —
+consistent with every post-retreat-adoption round's full-sweep finding,
+no regression.
+
+No local copy of `kalkin__maxad`'s source found on disk (checked
+`find / -iname "*kalkin*"` and `*maxad*` outside `/logs/` — empty), same
+situation as almost every previous opponent, so no way to build/validate
+a targeted matchup-specific fix this session.
+
+**No code changes made.** Rationale unchanged from the established
+playbook: win rate is a clean 100% (250/0/0), margin (~4.5x) is
+comfortably above the ~3x dominant threshold, and without opponent
+source there's no way to validate a hypothesis-driven change against
+them specifically — only self-play vs `robot_v1_baseline.py`, which has
+already been re-validated as a full sweep in every round since the
+retreat-logic + COORD_WEIGHT tuning were adopted. Confirm-and-stop
+remains lowest-risk/highest-EV this round. Future teammates: the
+"still-untried ideas" list (multi-step lookahead pathing — the only
+genuinely unexplored lever after 36+ rounds) remains the place to look
+if a future opponent's round win rate drops below ~95% or margin drops
+below ~2x, which has not happened here (clean sweep).
