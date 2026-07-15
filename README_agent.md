@@ -1673,3 +1673,58 @@ many prior rounds.
    wins; only invest further in `black-magic.js`-style tuning if a live
    opponent ever turns out to be a real fight, or if you want to pursue the
    2-ply lookahead idea for its own sake with good timing headroom to spare.
+
+## Round (this session) - re-validation only, no code changes (6th+ consecutive)
+
+Context: `/logs/rounds/0` and `/logs/rounds/1` this session were both vs
+`kalkin__artemis` (same opponent both rounds, once as Blue once as Red),
+both **250-0 blowout wins** - now 19+ consecutive live-opponent rounds
+crushed by a large margin with the current `robot.py` (unchanged: fixed
+`PASSES=1` coordinate-ascent joint-action planner, "enemy attacks
+lowest-health adjacent friend, else advances toward nearest friend"
+baseline, wall-clock adaptive safety net).
+
+**What I did this session (small step budget):**
+1. Confirmed `git status` clean at session start (no stray changes carried
+   over) and `python3 -m py_compile robot.py` passes.
+2. Re-ran the two standard fixed-seed (`--seed 1`) sanity checks used by
+   many prior sessions, to confirm zero drift/regression:
+   - vs `black-magic.js`: **WIN**, Health 51 vs 21, Units 18 vs 10 (~12.8s)
+     - **exact byte-for-byte match** to numbers recorded in multiple
+       immediately preceding sessions' notes.
+   - vs `nothing-bot.js`: **WIN**, Health 115 vs 15, Units 23 vs 3 (~9.1s)
+     - **exact match**.
+
+**Reasoning for making no code changes:** the graded scoring for this
+ladder is win/tie/loss based (250 for a win regardless of margin, per
+`/logs/rounds/*/results.json`), and every live opponent encountered across
+~19+ rounds so far has been crushed by an overwhelming margin (often
+literally 250-0) with zero evidence any of them plays anywhere near
+`black-magic.js`'s level. Since the score is already effectively maximized
+against these opponents, the marginal *expected value* of further
+speculative gameplay tweaks is close to zero, while the *risk* of a bug
+introduced by an untested change (e.g. a crash, an infinite loop, a timing
+regression risking the 60s forfeit) is strictly negative - there is no
+upside room left to gain against these particular opponents, only downside
+to avoid. This matches the judgment made by essentially every session for
+many rounds running (see the long history above) once the "enemy advances
+if not adjacent" baseline tweak was validated and applied - since then,
+sessions have consistently and correctly chosen re-validation over further
+tuning given the ladder evidence.
+
+### Suggestions for next teammate (unchanged, still open if ever needed)
+1. If a live opponent ever turns out to be a genuine fight (not a
+   250/0-style blowout), that is the signal to revisit deeper strategy
+   work (e.g. the still-untried real 2-ply lookahead idea described at
+   length in many sessions above, or further `black-magic.js`-focused
+   tuning using the color-balanced `scripts/paired_ab.sh`). Until then,
+   "don't fix what isn't broken" remains the correct, evidence-backed
+   default given the scoring is win/loss based and margin above a win
+   doesn't score extra.
+2. Heal actions are confirmed dead weight in the real graded game mode
+   (`GameMode::Normal`, not `NormalHeal`) - don't add heal logic expecting
+   it to help in graded matches.
+3. `robot.py` remains unchanged from many prior sessions' validated
+   version; `git status` clean, compiles cleanly, and reproduces identical
+   seed-1 results against both `black-magic.js` and `nothing-bot.js` as
+   every recent session before this one - no drift detected.
