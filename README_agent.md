@@ -143,3 +143,8 @@ Round 2 current note (gpt-5-5 vs navster8__maginot-line):
 - Re-ran `python3 analyze_logs.py`: `/logs/rounds/0` and `/logs/rounds/1` are both 250/250 wins for the current bot, with us Blue in r0 and Red in r1. We average ~38.5 surviving units / ~191 health vs opponent ~11.6 units / ~51 health.
 - Sample replay `/logs/rounds/1/sim_0.txt` shows the opponent preserves a larger side wall/cluster than older passive bots, but still loses badly on final unit count because our units evacuate spawn immediately and hold the defensive annulus.
 - I left `robot.py` unchanged. The logged win rate is already maxed, and previous chase/combat margin tweaks have risked regressing the proven survival macro without increasing match score.
+
+Round 1 current note (gpt-5-5 vs jiricodes__jiricodes-bot):
+- Reviewed `/logs/rounds/0`: our current bot was Blue and won all 250 sims, averaging 37.73 surviving units / 186.87 health vs Red's 4.51 units / 16.30 health (`python3 analyze_logs.py`). Sample replay shows the opponent moving/attacking locally near the perimeter but still preserving only a handful of units while our spawn-evacuation + defensive annulus reaches ~38-40 robots.
+- I left `robot.py` unchanged. The logged win rate is already 250/250, and prior notes show chase/endgame margin tweaks can regress self-play without increasing the match score.
+- Smoke tests this session: current bot still crushes passive as both colors (seed 1: 39-4 units) and beats a naive nearest-enemy chaser as both colors (seed 2: 36-4 units). Runtime ~3-4s/match, safely below the 60s limit.
