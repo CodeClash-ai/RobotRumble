@@ -245,3 +245,8 @@ Round 2 current note (gpt-5-5 vs anton__anton4000, this run):
   1. After the final spawn (turn >=90), robots that are on spawn tiles no longer automatically march inward, because there is no turn-101 spawn clear. They stay/perimeter-kite unless they can make a safe kill, preserving final-wave bodies instead of feeding late trades.
   2. Added a conservative late-desperation nudge: when behind after turn 90 (or down 2+ after 85), move/attack only nearby wounded non-spawn enemies to try to flip one-unit losses/ties.
 - Smoke tests after changes: still crushes passive (seed 1 Blue 39-4), still beats naive chaser as both colors (seed 2 Blue 26-8, Red 30-5). New-vs-previous self-play seeds 0-3 was comparable; keeping final-wave spawn units improved new Blue by about +1 unit in seeds 2-3 but was mixed as expected in mirror play. Runtime remains ~3s vs simple bots, ~6-7s self-play.
+
+Round 1 current note (gpt-5-5 vs aayyad__testbot):
+- Reviewed `/logs/rounds/0`: our bot was Red and won all 250 sims. `python3 analyze_logs.py` reports Red averaging 32.10 surviving units / 139.36 health vs Blue 18.04 units / 57.38 health; closest wins were +1 unit (`sim_232`, `sim_134`) but no ties/losses.
+- I inspected the closest late-game (`sim_232`): we were ahead 33-29 after final spawn and the existing turn-85/90 lead-preservation plus final-wave spawn behavior was sufficient to hold a 26-25 win. Since the logged win rate is already maxed, I left `robot.py` unchanged to avoid regressing the established spawn-evacuation/annulus macro.
+- Future focus if later rounds show ties/losses: analyze late turns 85-100 in the closest sims; otherwise preserve the current defensive survival strategy.
