@@ -140,7 +140,7 @@ def retreat_from_adjacent(state: State, unit: Obj, adj: List[Tuple[Direction, Ob
         nearby = sum(1 for e in enemy_units if dest.walking_distance_to(e.coords) <= 2)
         spawn_penalty = 1 if is_spawn_coord(dest) else 0
         return (min_dist, -nearby, -spawn_penalty,
-                -abs(dest.walking_distance_to(CENTER) - 8))
+                -abs(dest.walking_distance_to(CENTER) - 7))
 
     dirs.sort(key=score, reverse=True)
     for d in dirs:
@@ -153,10 +153,10 @@ def retreat_from_adjacent(state: State, unit: Obj, adj: List[Tuple[Direction, Ob
 
 
 def step_to_annulus(state: State, unit: Obj) -> Optional[Direction]:
-    # Stay off the spawn ring and distribute around radius ~8 from center.  This
+    # Stay off the spawn ring and distribute around radius ~7 from center.  This
     # prevents traffic jams and keeps most units away from perimeter spawn wipes.
     dirs = list(DIRECTIONS)
-    dirs.sort(key=lambda d: (abs((unit.coords + d).walking_distance_to(CENTER) - 8),
+    dirs.sort(key=lambda d: (abs((unit.coords + d).walking_distance_to(CENTER) - 7),
                              (unit.coords + d).walking_distance_to(CENTER)))
     for d in dirs:
         dest = unit.coords + d
@@ -185,7 +185,7 @@ def kite_from_nearby(state: State, unit: Obj, radius: int = 3, allow_spawn: bool
         all_near = sum(1 for e in enemy_units if dest.walking_distance_to(e.coords) <= 2)
         allies_near = sum(1 for a in our_units if a is not unit and dest.walking_distance_to(a.coords) <= 2)
         return (min_dist, -all_near, allies_near,
-                -abs(dest.walking_distance_to(CENTER) - 8))
+                -abs(dest.walking_distance_to(CENTER) - 7))
 
     dirs.sort(key=score, reverse=True)
     for d in dirs:
@@ -347,9 +347,6 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                     d = retreat_from_adjacent(state, unit, adj, allow_spawn=True)
                     if d:
                         return Action.move(d)
-                    # If no retreat exists, hold.  Recent seven-of-nine logs
-                    # regressed when trapped units converted late leads into
-                    # simultaneous trade-downs.
                     return None
                 if target.health <= allies_on_target:
                     return Action.attack(attack_dir)
@@ -380,23 +377,43 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         late_ahead = ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
                       (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2))
         if state.turn >= 90 and len(our_units) == len(enemy_units):
-            # Versus the current Borg/mirror opponent, exact unit-count ties in
-            # the final wave often became losses through adjacent simultaneous
-            # trades, while actual conversions to wins were rare.  Preserve the
-            # tied body count regardless of total-health edge: take only focused
-            # kills that should leave this attacker alive, otherwise retreat or
-            # hold.  Non-adjacent low-commitment intercept/HP-pressure below can
-            # still seek tie-break kills without walking into contact.
-            clean_safe_kill = (target.health <= allies_on_target and
-                               unit.health > len(adj))
-            if clean_safe_kill:
-                return Action.attack(attack_dir)
-            d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 91))
-            if d:
-                return Action.move(d)
-            # If no retreat exists, hold.  In this mirror-like matchup, allowing
-            # trapped exact-tie trades converted too many draws into losses.
-            return None
+            health_edge = sum(a.health for a in our_units) - sum(e.health for e in enemy_units)
+            if health_edge > 0:
+                # Against entropicdrifter__glommer, many late non-wins are exact
+                # unit-count ties where we have a sizeable HP edge.  The bounded
+                # pressure logic below can create chances, but once already
+                # adjacent we should not turn that HP edge into unit losses via
+                # non-survivable trades.  Take only kills that should leave this
+                # attacker alive; otherwise try to step out.  If trapped and
+                # likely to die anyway, a focused attack is still better than
+                # passing and losing a body for free.
+                clean_safe_kill = (target.health <= allies_on_target and
+                                   unit.health > len(adj))
+                if clean_safe_kill:
+                    return Action.attack(attack_dir)
+                d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 91))
+                if d:
+                    return Action.move(d)
+                if target.health <= allies_on_target and unit.health <= len(adj):
+                    return Action.attack(attack_dir)
+                return None
+            if -5 <= health_edge < 0:
+                # Current mitch84__crw_preempt round-1 non-wins included a
+                # small-health-deficit unit tie (sim_43) that was converted
+                # into a loss by late adjacent trades.  A final tie is better
+                # than giving the opponent a win, so in this narrow band only
+                # take kills that look both focused and survivable; otherwise
+                # retreat/hold.  Larger deficits still use the existing
+                # desperation logic, and exact health ties keep their normal
+                # tie-breakers.
+                clean_safe_kill = (target.health <= allies_on_target and
+                                   unit.health > len(adj))
+                if clean_safe_kill:
+                    return Action.attack(attack_dir)
+                d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 91))
+                if d:
+                    return Action.move(d)
+                return None
         if late_ahead:
             # While protecting a late unit-count lead, avoid nonlethal trades,
             # but still take focused kills. Several close logs were lost by
@@ -415,8 +432,6 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 91))
             if d:
                 return Action.move(d)
-            # If no escape square exists, hold rather than taking a likely
-            # simultaneous trade while protecting a late unit-count lead.
             return None
         if (target.health <= allies_on_target or allies_on_target >= enemies_near_us + 1 or
                 (late_behind and target.health <= 3)):
@@ -478,7 +493,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # do not move toward enemies while exactly tied.
     if state.turn >= 90 and len(our_units) == len(enemy_units):
         health_edge = sum(a.health for a in our_units) - sum(e.health for e in enemy_units)
-        d = kite_from_nearby(state, unit, 6, allow_spawn=(state.turn >= 91))
+        d = kite_from_nearby(state, unit, 6 if state.turn >= 95 else 3, allow_spawn=(state.turn >= 91))
         if d:
             return Action.move(d)
         d = intercept_dir(state, unit)
