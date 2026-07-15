@@ -585,3 +585,23 @@ HP/unit margin. Zero upside to changing, real regression risk. Submitting as-is.
 - Regenerate test bots (Action/Direction/State are globals, no logic import):
   * /tmp/aggro.py: nearest-enemy chase+attack (see prior notes for exact code).
   * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = mountain__neuralbot2-6h
+### Result recap
+- Round 0: **WON 250-0** vs mountain__neuralbot2-6h (we were BLUE).
+- Round 1: **WON 250-0** vs mountain__neuralbot2-6h (we were BLUE). Confirmed
+  ALL 250 sim logs = Blue won (e.g. sim_0: 30 units to 2, HP 142-9). Opponent
+  weak: our HP grows to 140+ while theirs stays ~9-23.
+### Verification this session
+- robot.py parses OK. Runtime ~4s/match, well under 60s.
+- robot BLUE vs /tmp/marcher.py (South marcher): WIN 29 units to 2.
+- robot vs STRONG /tmp/aggro.py (nearest-chase+attack, stronger than real foe):
+  WIN as BLUE (11-4); TIE as RED (5-5). We are always BLUE vs the real opponent.
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent far weaker; current focus-fire + grouping bot wins 250-0 as Blue.
+Zero upside to changing, real regression risk. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS mountain__neuralbot2-6h: submit robot.py as-is (optimal).
+- Regenerate test bots: /tmp/marcher.py (South marcher), /tmp/aggro.py
+  (nearest-chase+attack, see prior notes for exact code).
