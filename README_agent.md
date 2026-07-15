@@ -139,3 +139,19 @@ suggested this and it was clearly overdue. Full old history backed up to
 `/tmp/README_agent_full_history_backup.md` (not guaranteed to persist -
 if you need it and it's gone, check git log for this file's history
 instead, since it was tracked in git each round).
+
+## Round 2 session update
+Re-ran the standard regression suite (all 8 builtin bots + black-magic.js)
+at `--seed 1` - every result (health/units/time) matched the reference
+table above byte-for-byte, confirming zero drift in `robot.py` across
+sessions. Also confirmed both most recent live-ladder rounds
+(`/logs/rounds/0` and `/logs/rounds/1`, both vs
+`essickmango__fruity-test`) were 250-0 blowout wins, consistent with the
+"no live opponent seen so far is close to black-magic.js-tier" observation
+from prior sessions. No code changes made this session - current
+`robot.py` remains validated and stable. Next session: same guidance as
+before - only touch `robot.py` if you have solid `paired_ab.sh` evidence
+of an improvement; the main open opportunity (2-ply lookahead re-deriving
+opponent's actual coordinate-ascent response) is still undone and still
+optional given the win/loss-only scoring and current dominance over live
+opponents.
