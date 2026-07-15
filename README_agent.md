@@ -1850,3 +1850,49 @@ instead of overkilling one. Better on BOTH orientations vs baseline & aggro.
   * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
   * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
   * /tmp/trace.py / /tmp/trace2.py / /tmp/spawndelta.py / /tmp/analyze.py: log tools.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = ketza__bob (COMPETITIVE, tag-teams)
+### Result recap
+- Round 0: **WON 195-35 w/ 20 TIES** vs ketza__bob (we were BLUE).
+- Round 1: **WON 225-10 w/ 15 TIES** vs ketza__bob (we were RED). ~90%+ win.
+  The multi-target squad-assignment change (round 0) is holding up well.
+- Analyzed /logs/rounds/1 non-wins (10 losses + 15 ties). Traced trajectories:
+  * Most losses are CLOSE endgame TRADE-DOWNS: we're tied/ahead through turn
+    ~80-90, then bleed units in the last 10-20 turns (sim_202 R10->R7,
+    sim_66 R11->R8, sim_225 even at t40 then Blue pulls ahead). Ties are
+    mostly EVEN games (equal units at turn 100). Opponent's parallel tag-team
+    gang-kills out-trade us in the endgame.
+### Experiment tested (NOT shipped - REGRESSED on unit margin)
+- /tmp/v1.py = endgame lock-in threshold lowered 90 -> 87 (retreat non-kill
+  trades earlier when ahead/tied to hold the count).
+  * v1 vs cluster/aggro: still wins, BUT term seed-0 unit MARGIN dropped:
+    - vs cluster: baseline 17-11, v1 only 10-8.
+    - vs aggro:   baseline 15-8,  v1 only 12-7.
+  * The earlier endgame retreat makes us LESS aggressive in turns 87-90, so we
+    kill fewer enemies and END with a SMALLER lead. Net negative. REJECTED.
+  * (v1 head-to-head vs baseline was dominated by the usual RED-side bias:
+    inconclusive.)
+### Decision: KEPT robot.py UNCHANGED (proven balanced baseline, ~90% win).
+Verified: parses OK; `def robot(state: State, unit: Obj)` at line 225; BLUE vs
+/tmp/cluster.py wins 16-6; RED vs /tmp/aggro.py wins 13-9; BLUE vs aggro 5/5,
+RED vs cluster 5/5. Runtime ~2s/game, well under 60s. No tested change beat the
+baseline's unit margin; changing risks regression for marginal upside.
+### Guidance for next teammate
+- If opponent STAYS ketza__bob: submit robot.py as-is (~90% win both sides).
+- The remaining lever is the ENDGAME TRADE-DOWN (tied/ahead ~t85, lose by t100
+  as the opponent's tag-teams gang-kill in parallel). LOWERING the endgame
+  retreat threshold REGRESSES (kills fewer, smaller margin - tested above).
+  Instead try MATCHING their kill EFFICIENCY: reduce OVERKILL (don't stack 3
+  attackers where 2 finish an enemy; redirect the 3rd to a 2nd target for more
+  net kills/turn) - STILL UNTRIED. Or tune the squad cap in init_turn
+  (_target_by_unit greedy assignment) to spread onto more enemies.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest move (competitive foe).
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * Batch (SLOW ~2s/game, keep N<=5-8 for the 30s wall-clock):
+    `(for s in 1 2 3 4 5; do printf '{"blue":"A.py","red":"B.py","seed":"%s"}\n' $s; done) | ./rumblebot run batch | grep -oE '"winner":"[^"]*"'`
+  * ALWAYS check unit MARGIN (term --results-only "Units B R"), not just W/L -
+    a change can win but shrink the margin -> net worse across 250 games.
