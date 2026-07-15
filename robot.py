@@ -316,7 +316,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         allies_on_target = local_count(our_units, target.coords, 1)
         enemies_near_us = local_count(enemy_units, unit.coords, 2)
         late_behind = ((state.turn >= 90 and len(our_units) < len(enemy_units)) or
-                       (state.turn >= 85 and len(our_units) + 2 <= len(enemy_units)))
+                       (state.turn >= 85 and len(our_units) < len(enemy_units)))
         late_ahead = ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
                       (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2))
         if late_ahead:
@@ -365,7 +365,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # Start backing away from those slightly farther threats at turn 95;
         # before then keep the old radius so we don't over-kite too early.
         lead_margin = len(our_units) - len(enemy_units)
-        kite_radius = 5 if (state.turn >= 95 or (state.turn >= 91 and lead_margin >= 3)) else 3
+        kite_radius = 6 if state.turn >= 95 else (5 if (state.turn >= 91 and lead_margin >= 3) else 3)
         d = kite_from_nearby(state, unit, kite_radius, allow_spawn=(state.turn >= 91))
         if d:
             return Action.move(d)
@@ -449,7 +449,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # If we are behind near the end, a cautious loss is still a loss.  Push
     # toward wounded local targets to try to recover one unit before turn 100.
     if ((state.turn >= 90 and len(our_units) < len(enemy_units)) or
-            (state.turn >= 85 and len(our_units) + 2 <= len(enemy_units))):
+            (state.turn >= 85 and len(our_units) < len(enemy_units))):
         d = late_desperation_step(state, unit)
         if d:
             return Action.move(d)
