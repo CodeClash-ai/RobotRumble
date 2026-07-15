@@ -1426,3 +1426,56 @@ no regressions vs aggro/marcher). Targets the "scatter to death" failure mode.
 - Regenerate test bots (Action/Direction/State are globals, no logic import):
   * /tmp/aggro.py, /tmp/marcher.py, /tmp/robot_baseline.py (= git show HEAD:robot.py),
     /tmp/batch.sh (see above).
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = aayyad__testbot (COMPETITIVE)
+### Result recap
+- Round 0: **WON 220-18** w/ 12 TIES vs aayyad__testbot (we were RED).
+- Round 1: **WON 225-18** w/ 7 TIES vs aayyad__testbot (we were BLUE).
+- Analyzed /logs/rounds/1 non-wins (25 of them). CONSISTENT FAILURE MODE:
+  we are EVEN through ~turn 40, then trade DOWN in the mid-late game while the
+  opponent PRESERVES its units and snowballs on spawns (win = most units at
+  turn 100; HP NOT a tiebreaker).
+  * sim_110 (TIE 9-9): we were AHEAD 13-10 at turn 80, then dropped to a 9-9
+    tie by turn 100 -- THREW AWAY a 3-unit lead in the last 20 turns.
+  * sim_118 (LOSS 4-12): even until ~turn 40, then opponent pulled ahead and
+    we bled from 7 units down to 4 in the last 15 turns.
+
+### What I changed (robot.py) - STRONGER PROTECT-LEAD (big_lead gate)
+- Added `big_lead = state.turn >= 75 and my_units >= enemy_units + 3`. When we
+  hold a COMFORTABLE (>=3 unit) lead late, a unit with health <= 4 that CANNOT
+  secure a kill this turn AND whose target is NOT boxed RETREATS to preserve
+  the numeric lead (regroup-aware retreat backs off toward allies). One extra
+  clause in the existing `should_retreat` gate; everything else unchanged.
+- Tuning: first tried retreating ALL healthy units on big_lead -> term match
+  showed it OVER-retreated (won 8-5 but fewer total units, 14->8). Capped at
+  health <= 4 so full-HP (5) units stay aggressive; term match then 8-7 (better
+  margin) while still winning. Low-risk: only fires when already ahead by 3+.
+
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- vs STRONG /tmp/aggro.py (nearest-chase+attack, STRONGER than real opponent):
+  * v_new BLUE seeds 1-6: 6/6 WINS (== baseline).
+  * v_new RED  seeds 1-6: 5/6 WINS (== baseline). NO regression.
+- v_new(BLUE) vs baseline(RED) seeds 1-6: 5-1 / 4-1 (Blue wins). Consistent
+  with the known Blue-side bias; NO regression. (baseline BLUE vs v_new RED is
+  also ~5-1 Blue -> head-to-head dominated by side bias, inconclusive as usual.)
+- v_new BLUE vs /tmp/marcher.py: WIN. No regression vs passive.
+- robot.py parses OK; runtime well under 60s.
+
+### Decision: SHIPPED the big_lead protect-lead change (low-risk, targeted).
+Only triggers when ahead by 3+ units at turn 75+ with fragile (<=4HP) units;
+directly targets the "throw away a late lead -> tie" pattern (sim_110). No
+regressions vs aggro/marcher on either orientation.
+
+### Guidance for next teammate
+- If opponent STAYS aayyad__testbot: robot.py wins ~90%; this edit should shave
+  some late-lead ties into wins. Safe to submit.
+- Regenerate test bots (Action/Direction/State globals, no logic import):
+  * /tmp/aggro.py, /tmp/marcher.py, /tmp/robot_baseline.py (=git show HEAD:robot.py),
+    /tmp/batch.sh BLUE RED NSEEDS (keep NSEEDS<=6, batch is slow ~2s/game, 30s cap).
+- The remaining lever is the EARLY SNOWBALL (out-numbered by ~turn 40 -> lose,
+  e.g. sim_118). Prior teammates found broad grouping/passivity tweaks regress
+  on one side. Untried: reduce OVERKILL (redirect 3rd attacker on an enemy 2 can
+  kill to a 2nd target) for more net kills/turn before spawn refresh. TEST BOTH
+  orientations vs aggro AND head-to-head vs baseline; reject anything below
+  baseline on either side.

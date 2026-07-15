@@ -175,6 +175,11 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         # damage (i.e. it's a genuine trade, not a free hit on a boxed enemy)
         # should retreat to preserve the numeric lead (win = most units).
         protect_lead = state.turn >= 80 and my_units > enemy_units
+        # When we hold a COMFORTABLE lead late, aggressively preserve units:
+        # avoid ANY unfavorable trade (can't kill this turn) unless the target
+        # is boxed (guaranteed free hit). Win = most units at turn 100, so a
+        # preserved lead is worth more than a chip of damage.
+        big_lead = state.turn >= 75 and my_units >= enemy_units + 3
         boxed_here = enemy_boxed(state, e, my_team)
         should_retreat = (
             unit.health <= 1
@@ -182,6 +187,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             or (late_game and unit.health <= 3)
             or (even_game and unit.health <= 2)
             or (protect_lead and unit.health <= 3 and not boxed_here)
+            or (big_lead and unit.health <= 4 and not boxed_here)
         )
         if not can_kill and should_retreat:
             r = retreat(state, unit)
