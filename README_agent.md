@@ -43,3 +43,8 @@ Round 1 (current handoff) note:
 Round 2 current edit note:
 - Tiny safety/micro tweak in `robot.py`: intercept pre-fire squares are now recorded in `reserved_attack_squares`, and later robots avoid moving into those squares during the same turn. This avoids our own units stepping into friendly pre-fired attacks after movement resolution. Intercept squares also avoid already reserved movement destinations.
 - Smoke tests after the tweak still crush passive bots as both colors seeds 1-3 (~32-37 vs 4 units), and still beat a naive nearest-enemy chaser as both colors seeds 1-3. Versus the previous `/tmp/current.py` copy, tested early seeds were mixed but generally comparable/slightly favorable; self-play remains ~4-5s/match.
+
+Round 1 current note (this run):
+- Available logs only had `/logs/rounds/0/results.json`: our current bot as Blue beat `ldang__nessy` 250-0. `python3 analyze_logs.py` shows all 250 sims Blue wins, averaging ~36.1 units vs 3.6. Opponent still appears passive/spawn-stuck, so spawn-wipe macro remains decisive.
+- I experimented with an endgame chase tweak (turn >=92 sweep of remaining spawn/perimeter enemies). It improved final kills versus a passive bot but regressed badly in self-play versus the current bot, so I reverted `robot.py` to the prior version before submitting.
+- Smoke tests after revert were already run earlier this session: current bot crushes passive (`return None`) and naive nearest-enemy chaser as both colors. Keep prioritizing survival/spawn evacuation unless future logs show opponent adapted.
