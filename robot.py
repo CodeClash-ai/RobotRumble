@@ -196,15 +196,17 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # Combat micro: focus weak adjacent enemies when we can kill/trade well;
     # otherwise dodge away from obvious adjacent attacks.  Late in games
     # where we already have a unit-count lead, favor preserving that lead over
-    # nonlethal trades; recent close logs came from bleeding a small lead
-    # during turns 90-100.
+    # nonlethal trades; recent close logs came from bleeding leads during the
+    # final reinforcement wave.  Begin a little earlier only for a 2+ unit
+    # cushion, so equal/one-up positions can still seek necessary kills.
     adj = adjacent_enemies(state, unit)
     if adj:
         adj.sort(key=lambda t: t[1].health)
         attack_dir, target = adj[0]
         allies_on_target = local_count(our_units, target.coords, 1)
         enemies_near_us = local_count(enemy_units, unit.coords, 2)
-        if state.turn >= 90 and len(our_units) > len(enemy_units) and target.health > allies_on_target:
+        if ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
+                (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2)) and target.health > allies_on_target:
             d = retreat_from_adjacent(state, unit, adj)
             if d:
                 return Action.move(d)
@@ -223,8 +225,10 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             return Action.move(d)
 
     # If ahead in the final stretch, preserve the unit-count lead by kiting
-    # nearby enemies instead of volunteering for trades.
-    if state.turn >= 90 and len(our_units) > len(enemy_units):
+    # nearby enemies instead of volunteering for trades.  With a 2+ unit
+    # cushion, start after turn 85; with a one-unit lead, wait until turn 90.
+    if ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
+            (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2)):
         d = kite_from_nearby(state, unit, 3)
         if d:
             return Action.move(d)
