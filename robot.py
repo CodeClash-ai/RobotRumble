@@ -487,48 +487,23 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                 return Action.attack(d)
         return None
 
-    # If tied very late and we do not have a meaningful health cushion, try the
-    # wounded-target nudge before generic wall-to-center movement.  Several
-    # exact final ties had perimeter/final-wave robots spend the last turns
-    # walking inward instead of looking for one nearby wounded kill.  When the
-    # health totals are also exactly equal, there may be no wounded targets at
-    # all (current diag-lattice tie); start bounded pressure from turn 90 so a
-    # sterile full-health draw has a chance to become a +1 unit win.
+    # If tied after the final spawn/clear, prioritize preserving the unit-count
+    # draw rather than chasing health-edge targets.  Against the current
+    # entropicdrifter__glommerv2 logs, positions that were tied on units at
+    # turn 90 never converted into wins, but many became losses through late
+    # pressure/trades.  Unit count alone determines the winner, so a held tie
+    # is better than over-pressing into a loss.  Keep only low-commitment
+    # preservation: kite nearby threats and pre-fire predicted adjacent squares;
+    # do not move toward enemies while exactly tied.
     if state.turn >= 90 and len(our_units) == len(enemy_units):
-        health_edge = sum(a.health for a in our_units) - sum(e.health for e in enemy_units)
-        if -5 <= health_edge < 0:
-            # With only a small health deficit, avoid turning a possible final
-            # draw into a loss by walking toward wounded bait.  Prefer passive
-            # preservation plus low-commitment intercept pre-fire.  Exception:
-            # the current coward-style logs include sterile final ties where we
-            # are down only a couple HP (effectively no tiebreak edge) and never
-            # move after turn 90; on the last three turns, allow the existing
-            # bounded wounded-target nudge only for that near-even (-1/-2 HP)
-            # case so a draw can still become a +1 unit win.
-            d = kite_from_nearby(state, unit, 6 if state.turn >= 95 else 3, allow_spawn=(state.turn >= 91))
-            if d:
-                return Action.move(d)
-            d = intercept_dir(state, unit)
-            if d:
-                reserved_attack_squares.add(unit.coords + d)
-                return Action.attack(d)
-            if state.turn >= 98 and health_edge >= -2:
-                d = late_desperation_step(state, unit)
-                if d:
-                    return Action.move(d)
-            return None
-        if health_edge >= 25 and state.turn >= 94:
-            d = late_health_pressure_step(state, unit, radius=7)
-            if d:
-                return Action.move(d)
-        if health_edge == 0:
-            d = late_equal_pressure_step(state, unit)
-            if d:
-                return Action.move(d)
-        if state.turn >= 93 and health_edge <= 12:
-            d = late_desperation_step(state, unit)
-            if d:
-                return Action.move(d)
+        d = kite_from_nearby(state, unit, 6 if state.turn >= 95 else 3, allow_spawn=(state.turn >= 91))
+        if d:
+            return Action.move(d)
+        d = intercept_dir(state, unit)
+        if d:
+            reserved_attack_squares.add(unit.coords + d)
+            return Action.attack(d)
+        return None
 
     # If we are behind after the final clear, preserving a smaller loss is
     # worthless.  Take the controlled wounded-target nudge before inward wall
