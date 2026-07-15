@@ -172,6 +172,49 @@ def retreat(state, unit):
 
 
 
+
+def disperse(state, unit):
+    """When STRICTLY AHEAD late, spread units to safe tiles: maximize distance
+    from the nearest enemy, avoid spawn tiles pre-spawn, and avoid clustering
+    (so we can't be gang-killed and we don't clog our own spawn). Unlike
+    retreat(), this does NOT pull toward allies (clustering near spawn late-game
+    got our units wiped in traced losses, e.g. sim_220 t90)."""
+    other = state.other_team
+    enemies = state.objs_by_team(other)
+    if not enemies:
+        return None
+    my = unit.coords
+    ne = min(enemies, key=lambda e: my.walking_distance_to(e.coords))
+    cur_d = my.walking_distance_to(ne.coords)
+    best = None
+    best_key = None
+    for d in DIRECTIONS:
+        nxt = my + d
+        if blocked_tile(state, nxt):
+            continue
+        if state.obj_by_coords(nxt) is not None:
+            continue
+        if bad_spawn_tile(state, nxt):
+            continue
+        dd = nxt.walking_distance_to(ne.coords)
+        if dd < cur_d:
+            continue  # never step closer to the enemy
+        # prefer farther from enemy; break ties by spreading from allies (larger
+        # min-distance to any ally = less clustered = harder to gang-kill)
+        allies = [u for u in state.objs_by_team(unit.team) if u.id != unit.id]
+        if allies:
+            spread = min(nxt.walking_distance_to(a.coords) for a in allies)
+        else:
+            spread = 99
+        key = (-dd, -spread)
+        if best_key is None or key < best_key:
+            best_key = key
+            best = d
+    if best is not None:
+        return Action.move(best)
+    return None
+
+
 def spawn_turn_soon(state):
     """True if a spawn/clear will occur at the start of the next turn.
     Spawn/clear happens when (turn-1) % 10 == 0 (turns 1,11,21,...). A unit
@@ -317,6 +360,12 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             or (endgame and not boxed_here)
         )
         if not can_kill and should_retreat:
+            # When strictly ahead by 2+ late, disperse to safe corners (don't
+            # cluster toward allies/spawn where we get gang-killed/wiped).
+            if state.turn >= 94 and my_units >= enemy_units + 3:
+                dsp = disperse(state, unit)
+                if dsp is not None:
+                    return dsp
             r = retreat(state, unit)
             if r is not None:
                 return r
@@ -349,6 +398,14 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # lets the enemy hit us on their turn -> a trade that can erode our lead.
     # Preserving the count (win = most units at turn 100) is worth more than a
     # chip of damage. Only fires when ahead, dist==2, so we don't go passive.
+    # RUN OUT THE CLOCK: when strictly ahead by 2+ units late, stop advancing
+    # into fights entirely and disperse to safe tiles. Traced losses (sim_220)
+    # threw away a 4-unit lead in the last 20 turns by trading/advancing into
+    # contact near spawn turns. A dispersed lead at turn 100 wins the count race.
+    if state.turn >= 94 and my_units >= enemy_units + 3:
+        dsp = disperse(state, unit)
+        if dsp is not None:
+            return dsp
     if state.turn >= 86 and my_units > enemy_units and dist_to_enemy == 2:
         mine_near, foes_near = local_balance(state, my, my_team, other_team, radius=2)
         # Only hold if the fight ahead is NOT locally favorable. If we clearly

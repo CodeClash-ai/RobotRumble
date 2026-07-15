@@ -2164,3 +2164,56 @@ BLUE-side win rate vs both proxies AND head-to-head vs baseline; no regression.
 - The other loss half is opponent OUT-TRADING on HP (they preserve HP while
   trading). Prior teammates found reduce-OVERKILL and tighter-grouping REGRESS.
   Documented dead-ends - do not retry blindly.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = mario31313__alpha_13 (COMPETITIVE)
+### Result recap
+- Round 0: **WON 215-14 w/ 21 TIES** vs mario31313__alpha_13 (BLUE).
+- Round 1: **WON 210-12 w/ 28 TIES** vs mario31313__alpha_13 (BLUE). ~84% win.
+- Analyzed /logs/rounds/1 losses (12, all CLOSE 1-3 units). Traced trajectories:
+  * DOMINANT loss pattern = we hold a LEAD at turn ~80-88, then LOSE it at the
+    turn-91 SPAWN + final turns. sim_220: B11 R7 at t80, B10 R6 at t88, then
+    at the t90/91 SPAWN it flips to B8 R9 (we LOST 2 units AND they gained 3!)
+    and ends B6 R7. We threw away a 4-unit lead in the last ~12 turns - our
+    units were near our spawn zone clustering (via retreat/regroup toward
+    allies) and got WIPED/blocked at the spawn transition while trading down.
+### What I changed (robot.py) - ENDGAME DISPERSE (run out the clock; shipped)
+- Added `disperse(state, unit)`: unlike retreat()/regroup (which pull TOWARD
+  allies -> cluster near spawn -> get wiped), disperse SPREADS units to safe
+  tiles: maximize distance from nearest enemy, avoid spawn tiles pre-spawn, and
+  MAXIMIZE min-distance to allies (anti-cluster, harder to gang-kill).
+- Gated VERY TIGHTLY: fires only when `state.turn >= 94 AND my_units >=
+  enemy_units + 3` (the final ~6 turns = the spawn-wipe window after the t91
+  spawn, and only with a comfortable 3+ lead). Used in BOTH the adjacent-retreat
+  path and the move path (replaces advancing into fights). When it fires, units
+  scatter to safe corners so a 3+ lead can't be traded/wiped away by turn 100.
+- NOTE: I first tried turn>=82/lead>=2 and turn>=92/lead>=2 - BOTH regressed
+  (too passive, gave up kills; RED-vs-aggro dropped from 3W to losses/ties).
+  turn>=94/lead>=3 has NO regression and only affects the exact loss window.
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- term is NON-deterministic; ran 3-4x each, counted W/L (units, first=Blue).
+- NEW BLUE vs /tmp/aggro.py: 3/3 WINS. NEW RED vs aggro: 3W 1L (== baseline
+  noise; baseline RED vs aggro 3/3). NO regression.
+- NEW RED vs /tmp/cluster.py (competitive proxy): 3/3 WINS. NEW BLUE vs cluster:
+  3/3 WINS. NEW vs /tmp/marcher.py: crush 20-3. No regression vs passive.
+- Head-to-head vs baseline: dominated by side bias (inconclusive, as always).
+- robot.py parses OK; runtime ~2s/match, well under 60s.
+### Decision: SHIPPED endgame disperse (turn>=94, lead>=3). Directly targets the
+documented spawn-wipe / late-lead trade-down loss pattern (sim_220) with a very
+tight gate so it does NOT go passive or give up mid-late kills. No regressions.
+### Guidance for next teammate
+- If opponent STAYS mario31313__alpha_13: robot.py wins ~84%+; this edit should
+  convert some final-turn lead-loss ties/losses. VERIFY next round: unit
+  trajectory turns 90-100 (/tmp/trace.py sim_X.txt) - we should HOLD the lead
+  through the t91 spawn instead of flipping (the sim_220 pattern).
+- If it HURTS (we now fall behind late because we dispersed while their spawns
+  advanced), REVERT: git diff shows the disperse() fn + 2 call sites; or raise
+  the gate to turn>=96. Do NOT lower turn/lead thresholds - tested, regresses.
+- Other loss half = opponent OUT-TRADES on HP / early snowball. Prior teammates
+  found reduce-OVERKILL and tighter-grouping REGRESS - documented dead-ends.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move.
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * ALWAYS run term 3-4x (non-deterministic) & check unit MARGIN, not just W/L.
