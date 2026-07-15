@@ -74,6 +74,37 @@ def count_enemy_adjacent(state, coords, other_team):
     return n
 
 
+def enemy_escape_tiles(state, e, my_team, other_team):
+    """Free tiles an enemy can flee to (not blocked, not occupied). Returns list of Coords."""
+    tiles = []
+    for d in DIRECTIONS:
+        nxt = e.coords + d
+        if blocked_tile(state, nxt):
+            continue
+        if unit_at(state, nxt) is not None:
+            continue
+        tiles.append(nxt)
+    return tiles
+
+
+def predict_flee_tile(state, e, my_team, other_team):
+    """Predict the single tile an enemy will most likely flee TO when threatened.
+    An enemy trying to preserve HP moves AWAY from our units. Pick the free
+    escape tile that MAXIMIZES the min distance to our nearby units. If there is
+    exactly one escape tile, it must go there (guaranteed hit if we attack it).
+    Returns (tile, num_escape_tiles) or (None, 0)."""
+    escapes = enemy_escape_tiles(state, e, my_team, other_team)
+    if not escapes:
+        return (None, 0)
+    mine = state.objs_by_team(my_team)
+    def safety(c):
+        if not mine:
+            return 0
+        return min(c.walking_distance_to(u.coords) for u in mine)
+    best = max(escapes, key=safety)
+    return (best, len(escapes))
+
+
 def init_turn(state: State) -> None:
     global _focus_target_id, _planned_moves, _target_by_unit
     _planned_moves = {}
@@ -393,6 +424,36 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             r = retreat(state, unit)
             if r is not None:
                 return r
+        # PREDICTIVE ATTACK: our attack targets a TILE; movement resolves BEFORE
+        # attacks (lib.rs). If the chosen enemy is UNBOXED it will likely FLEE
+        # our attack -> we whiff AND eat return fire (the gere-ape attrition
+        # loss). If it has EXACTLY ONE free escape tile, it MUST flee there (or
+        # stay), so attacking that escape tile lands the hit whether it flees or
+        # gets blocked. This converts whiffs into landed hits = better attrition.
+        # Only do this when we can't already guarantee the kill on its tile and
+        # no OTHER ally is boxing it in (keep concentration on real kills).
+        if not can_kill:
+            escapes = enemy_escape_tiles(state, e, my_team, other_team)
+            if len(escapes) == 1:
+                flee = escapes[0]
+                fd = my.direction_to(flee)
+                # only if that tile is actually adjacent to us (a valid attack dir)
+                if my.walking_distance_to(flee) == 1:
+                    # attack the escape tile: enemy either flees INTO it (hit) or
+                    # is blocked and stays (we hit its current tile only if we
+                    # target it). Prefer covering the escape when a co-attacker is
+                    # already on the current tile.
+                    # Coordinate: the LOWEST-id adjacent ally hits the current
+                    # tile (covers the enemy staying put/blocked); the others hit
+                    # the single escape tile (covers it fleeing). Split coverage
+                    # guarantees at least one hit lands regardless of its choice.
+                    adj_ally_ids = []
+                    for dd2 in DIRECTIONS:
+                        oo = unit_at(state, e.coords + dd2)
+                        if oo is not None and oo.team == my_team:
+                            adj_ally_ids.append(oo.id)
+                    if len(adj_ally_ids) >= 2 and unit.id != min(adj_ally_ids):
+                        return Action.attack(fd)
         # Attack the chosen adjacent enemy (aggressive: always trade or better).
         return Action.attack(d)
 

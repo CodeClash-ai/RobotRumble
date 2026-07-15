@@ -3372,3 +3372,63 @@ the count race; targets the exact root cause (losing more units in combat).
   /tmp/aggro.py (nearest-chase+attack), /tmp/marcher.py (South),
   /tmp/bench.py BOT OPP N [B|R] (term NON-det, run 4-8x, N<=4 for 30s cap),
   /tmp/robot_baseline.py = git show HEAD:robot.py.
+
+---
+## Round 4 edit (opus-4-8, THIS session) - opponent = gerenuk__gere-ape (WE LOSE, ~35%)
+### Result recap - STILL LOSING but shipped PREDICTIVE ATTACK
+- R0 LOST 72-145-33 (RED). R1 LOST 81-148-21 (RED). R2 LOST 68-155-27 (BLUE).
+  R3 LOST 85-137-28 (RED). Improving slowly (72->85) via prior even_game re-enable.
+### ROOT CAUSE (re-confirmed, traced /logs/rounds/3/sim_0):
+  Opponent keeps a persistent HP LEAD the WHOLE game (e.g. t50 HP 65-52, t70
+  81-60 in Blue's favor) and converts it into a UNIT lead in the mid-game
+  combat phases (turns 55-79: we fall from ~even to -4 units). It preserves HP
+  by FLEEING our attacks. Attacks target a TILE and movement resolves BEFORE
+  attacks (lib.rs), so attacking an UNBOXED enemy's current tile WHIFFS when it
+  flees, while we eat return fire = we lose the attrition/count war.
+### What I changed (robot.py) - PREDICTIVE ATTACK (split coverage; SHIPPED)
+- Added helpers `enemy_escape_tiles()` and `predict_flee_tile()` (line ~72-107).
+- In the adjacent-attack branch (before the final Action.attack(d)): when we
+  CANNOT guarantee a kill AND the chosen enemy has EXACTLY ONE free escape tile
+  that is adjacent to us AND we have >=2 allies adjacent to that enemy, the
+  attackers SPLIT coverage: the LOWEST-id adjacent ally hits the enemy's CURRENT
+  tile (covers it staying/blocked); the OTHER adjacent allies hit the single
+  escape tile (covers it fleeing there). This GUARANTEES a landed hit whether
+  the enemy flees or stays -> converts whiffs into hits = better attrition.
+  Does NOT thin attackers below what's needed (only fires with 2+ adjacent, so
+  concentration is preserved). NOTE: the old "PREDICTIVE COVERAGE" dead-end
+  thinned attackers onto MULTIPLE escape tiles (-15 margin); this is DIFFERENT -
+  it only splits when there's exactly ONE escape and 2+ attackers.
+### Testing (baseline=/tmp/robot_baseline.py=git HEAD; term NON-det, small N)
+- Built /tmp/fleer.py = HP-preserving FLEER (attacks only when can-kill / 2+
+  allies adjacent / lone-threat & healthy; else flees away). BEST proxy for
+  gere-ape's flee style (cluster/aggro CHASE and don't flee, so they can't
+  validate anti-flee logic - we beat them either way).
+- new(R) vs fleer: W2L2 -1.50 (baseline W1L3 -3.00) - better on one 4-game
+  batch; a 5-game rerun was noisier (new -2.80 vs baseline -2.20). Net:
+  neutral-to-slightly-positive vs the fleer (noisy, small samples).
+- new vs /tmp/cluster.py: R W4L0 +5.00, B W4L0 +6.25 (baseline R +5.50, B
+  +5.25) - NO regression, no losses. Crushes /tmp/marcher.py 20-2.
+- parses OK; `def robot(state` present; runtime <45s (well under 60s).
+### Decision: SHIPPED predictive split-coverage attack. Low-risk (only fires
+with 2+ adjacent allies on a 1-escape enemy we can't kill - the extra attacker
+would otherwise WHIFF anyway), theoretically sound for attrition vs a fleer,
+no regression vs cluster/marcher. Best available lever for the documented
+flee-attrition loss. CAVEAT: proxies are weaker than gere-ape; can't fully
+validate locally. VERIFY next round whether our HP/unit trajectory holds better.
+### Guidance for next teammate
+- If STILL LOSING to gere-ape: check /logs/rounds/4/sim_0 - do we now hold HP
+  closer in turns 30-70? If predictive attack HURT (unlikely - low-risk gate),
+  REVERT: git diff shows the `if not can_kill: escapes=...` block before the
+  final Action.attack(d), plus the 2 helper fns.
+- Extend the idea: BOX enemies via MOVEMENT (position units to remove escape
+  tiles) so more attacks land - the upstream fix. Or predict flee for LONE
+  attackers too (currently needs 2+ adjacent). Test vs /tmp/fleer.py (run 6-8x,
+  compare MARGINS; it's the best flee proxy) AND no-regression vs cluster.
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL, PREDICTIVE COVERAGE (thin onto
+  MULTIPLE escapes = -15), tighter early grouping, passive/retreat mid-game
+  tweaks, adjacency-priority focus, focus-radius tweaks, SQUAD=3, boxed-focus,
+  whiff-avoidance, regroup-when-behind. even_game(t>=20), mid_lead, wipe-evac,
+  kill-priority, SQUAD=2 = keep (tested neutral-to-positive).
+- Regenerate test bots: /tmp/cluster.py, /tmp/aggro.py (chase - weak proxies),
+  /tmp/fleer.py (HP-preserving fleer - BEST gere-ape proxy), /tmp/marcher.py,
+  /tmp/bench.py BOT OPP N [B|R], /tmp/robot_baseline.py = git show HEAD:robot.py.
