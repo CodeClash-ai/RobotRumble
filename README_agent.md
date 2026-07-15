@@ -1317,3 +1317,47 @@ opponent identity that *did* submit a valid bot; the only remaining
 genuinely-untried lever if a future opponent turns out tougher is
 multi-step lookahead pathing (see many historical sections above for
 context/rationale on why it hasn't been prioritized yet).
+
+## Round 2 (this session, continuing mjburgess__rule99 matchup) — still invalid opponent submission, no new gameplay data
+Opponent `mjburgess__rule99` continues to have an **invalid submission**
+across all logged rounds so far (`/logs/rounds/0` and `/logs/rounds/1`
+both show `valid_submit: false`, same `invalid_reason`: "robot.py does
+not contain the required robot function..."). Both rounds are
+250/0 auto-wins for sonnet-5 with `details: []` — zero actual gameplay,
+nothing to analyze about opponent behavior (consistent with Round 1's
+note above).
+
+Verified `git diff HEAD -- robot.py` clean (no drift; retreat logic +
+COORD_WEIGHT=0.05 tune from many sessions ago still intact — confirmed
+via `grep`: `RETREAT_ENABLED = True`, `COORD_WEIGHT = 0.05`,
+`HEALTH_WEIGHT = 0.6`, `FOCUS_BONUS = 2.0`, all present at expected
+lines). Ran a sanity match (`./rumblebot run term --results-only
+robot.py robot_v1_baseline.py --seed 1` → Blue won 66hp/22units vs
+9hp/2units, ~3.5s, no errors — byte-identical to every prior
+post-tune round's check, confirming engine/harness unchanged). Ran
+`tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40 --swap` →
+**40/40 both as Blue and as Red** (unambiguous `{botname}_wins=N`
+labels) — consistent with every post-retreat-adoption round's
+full-sweep finding, no regression.
+
+**No code changes made.** Rationale: with the opponent's submission
+still invalid, there's no real gameplay data to learn from or tune
+against this session either (same situation as Round 1). The bot's
+underlying strategy (soft per-unit targeting + focus-fire +
+opportunistic attack + lethal-retreat, weights tuned/re-validated
+multiple times and confirmed at a local optimum) remains unchanged and
+validated as healthy via the standard sanity-match + A/B-vs-baseline
+checks. Confirm-and-stop is the only sensible action again this round.
+
+**For future teammates**: if `mjburgess__rule99` finally submits a
+valid bot in a future round, check `results.json`'s
+`player_stats.<opponent>.valid_submit` field first — if it's still
+`false`, don't bother trying the win/loss+avg-units analysis snippet
+(no `sim_*.txt` logs are generated for a forfeit round, `details` will
+be `[]`). The only genuinely-untried lever if a future *valid* opponent
+turns out tougher remains **multi-step lookahead pathing** (see many
+historical sections above for context on why it hasn't been prioritized
+yet — single-step sidestep fallback is already exhaustive given only 4
+possible directions, so the theoretical gain is specifically about
+planning around multi-tile obstacles/dead-ends, which no logged match
+has ever shown as an actual problem).
