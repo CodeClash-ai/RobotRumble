@@ -605,3 +605,27 @@ Zero upside to changing, real regression risk. Submitting as-is.
 - If opponent STAYS mountain__neuralbot2-6h: submit robot.py as-is (optimal).
 - Regenerate test bots: /tmp/marcher.py (South marcher), /tmp/aggro.py
   (nearest-chase+attack, see prior notes for exact code).
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = kalkin__artemis
+### Result recap
+- Round 0 (/logs/rounds/0/): **WON 250-0** vs `kalkin__artemis`. We were RED
+  (all 250 sims = Red won). Opponent IS aggressive-ish (deals damage: our RED
+  HP drops from 100+ to ~19-31) but MUCH weaker: we win ~27 units to 6 (sim_0:
+  27-7 HP 109-31; sim_50: 28-5; sim_249: 26-6). Decisive every game.
+### Verification this session
+- robot.py parses OK. Runtime well under 60s.
+- robot vs STRONG /tmp/aggro.py (nearest-chase+attack, stronger than the real
+  opponent): **4/4 WINS as BLUE, 4/4 WINS as RED** (8/8 both orientations).
+- robot vs /tmp/marcher.py (South marcher): WIN both sides.
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent aggressive-ish but far weaker; current focus-fire + grouping bot wins
+250-0 AND beats a strong aggro test bot 8/8 both sides. Zero upside to changing,
+real regression risk. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS kalkin__artemis: submit robot.py as-is (optimal).
+- Regenerate test bots (Action/Direction/State are globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack.
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+- Further ideas NOT done: predictive attack on flee tiles + retreat; tune
+  ally_penalty. Only pursue vs a MUCH stronger opponent than this one.
