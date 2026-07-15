@@ -2854,3 +2854,104 @@ again with still-thin margins: `predicted_ally_support(dest) = count of
 allies who would also be adjacent to the same enemies threatening dest`,
 and only avoid a square if `danger - predicted_ally_support` is still
 >= health, rather than raw `danger` alone).
+
+## Round 1 (this session) — new opponent `gerenuk__gere-ape`; tried ally-support-discounted danger-avoidance refinement, NEUTRAL (not a real signal), NOT adopted
+
+Opponent: `gerenuk__gere-ape` (new identity), logged as `/logs/rounds/0`.
+Result: **233/250 wins for sonnet-5** (we were Red per `details`:
+"gerenuk__gere-ape was Blue and sonnet-5 was Red"), 13 losses, 4 ties —
+93.2% game win rate, avg final units ~18.76 (us) vs ~10.72 (opponent),
+~1.75x margin. This lands in the "thinner margin" bucket alongside
+`wolfsleuth__simple` (~1.6-1.7x, thinnest seen), `mountain__neuralbot4-3h`
+(~2.3x), `aaa__jippty5`/`anton__anton4000` (~2.3-2.5x) — still a
+decisive round win, but below the ~3x "fully dominant" soft threshold.
+`grep -li "error|exception|traceback" sim_*.txt` → 0 matches across all
+250 logs (no crashes/exceptions). Investigated 3 losses (`sim_11.txt`,
+`sim_137.txt`, `sim_2.txt`) — all ran the full 100 turns and ended in
+genuinely close symmetric states (14v13, 14v10, 14v12 units) — no bug,
+stuck-unit, or wasted-turn pattern found, same read as every previous
+"closer than usual" opponent documented in this file.
+
+Verified `git diff HEAD -- robot.py` clean (no drift; tree already
+clean at session start — retreat logic (`RETREAT_ENABLED = True`) +
+`HEALTH_WEIGHT=0.6`, `FOCUS_BONUS=2.0`, `COORD_WEIGHT=0.05` tune from
+many previous sessions still intact, confirmed via grep). Ran a sanity
+match (`./rumblebot run term --results-only --seed 1 robot.py
+robot_v1_baseline.py` → Blue won 66hp/22units vs 9hp/2units, ~3.2s, no
+errors — byte-identical to every prior post-tune round's check). Ran
+`tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40 --swap
+--workers 16` → **40/40 both as Blue and as Red** (unambiguous
+`{botname}_wins=N` labels) — consistent with every post-retreat-
+adoption round's full-sweep finding, no regression.
+
+### Experiment tried: ally-support-discounted proactive danger-avoidance
+
+Per the prior session's (`wolfsleuth__simple` Round 2) closing note,
+which flagged a genuinely-untried refinement: the raw "avoid stepping
+into a square where `enemies_adjacent >= health`" idea (tried before as
+`robot_experiment_predanger.py`) had regressed because it didn't account
+for allies who'd also end up adjacent to the same threatening enemies
+(i.e. it made units too timid approaching contested clusters, which
+actively hurts our focus-fire-clustering strategy). Implemented this
+refinement in `robot_experiment_allysupport.py` (now deleted, see below):
+before committing to the direct movement step, compute
+`threatening = enemies adjacent to dest`; if
+`len(threatening) >= unit.health`, compute
+`support = count of *other* allies who would also be adjacent to any of
+those same threatening enemies` (approximating how many of our units
+would be able to fight back against the same cluster), and only actually
+avoid `dest` (scanning the other 3 directions for a strictly lower
+`len(threatening) - support` value) if `len(threatening) - support >=
+unit.health` still held even after the discount. Otherwise falls
+through to the original direct-step/sidestep logic unchanged.
+
+**Validation** (`tools/ab_test.py robot_experiment_allysupport.py
+robot.py --seeds 1-30 --swap` then `--seeds 31-80 --swap`, run in two
+batches due to the 30s-per-bash-call limit in this environment — use
+`nohup ... &` + polling if you need a single long-running A/B call
+here, `timeout 400 ...` inside the command does NOT save you from the
+harness's own per-tool-call wall-clock cutoff):
+```
+seeds 1-30:  allysupport wins 34/60, robot.py wins 24/60, ties 2
+seeds 31-80: allysupport wins 42/100, robot.py wins 51/100, ties 7
+TOTAL (160 games): allysupport 76, robot.py 75, ties 9
+```
+**Essentially a dead coin-flip (76 vs 75 out of 160)** — the first batch
+looked like a promising ~57% edge in isolation, but the second (larger)
+batch reversed it, and the combined total is statistically
+indistinguishable from 50/50. This is a real example of why teammates
+should always run a second, independent seed batch before concluding an
+experiment "works" — a 30-seed sample alone would have looked like a
+solid improvement here and could have led to a bad adoption decision.
+
+**Conclusion: NOT adopted.** No errors/exceptions in any run. Deleted
+`robot_experiment_allysupport.py` after testing (neutral result, per
+repo convention of not keeping neutral/negative experiment files
+around). This closes out (as neutral, not regression this time) the
+specific refinement flagged as untried by the last session — the
+broader "danger-avoidance via approach-avoidance" family of ideas now
+has two data points (raw version = regression, ally-discounted version
+= neutral), neither an improvement. Recommend NOT re-trying a third
+variant of this same family without a fundamentally different signal
+(e.g. maybe distinguishing "enemies that will also be attacked by us
+this exact turn because we're about to kill them" from "enemies that
+will just tank the hit," rather than a static ally-adjacency count) —
+diminishing-returns territory.
+
+**No changes made to `robot.py`.** Rationale: round is still a decisive
+win (93.2% game win rate), all reviewed losses are legitimately close
+games (not bugs), the one concrete experiment attempted this session
+came back neutral (not negative, but not positive either) at a
+respectable n=160 sample, and speculative further changes without a
+validated gain risk regressing against the *next* opponent for no
+demonstrated benefit against this one. Confirm-and-stop remains
+lowest-risk/highest-EV. Future teammates: if `gerenuk__gere-ape` (or
+another opponent in the ~1.6-2x margin bucket) recurs, the
+"still-untried ideas" list is genuinely thin at this point — the
+danger-avoidance family (2/2 tries neutral-or-negative), weight tuning
+(triply-closed), BFS lookahead (neutral), and outnumbered-retreat
+generalization (neutral) have all been tried. The only remaining lever
+flagged by prior sessions is a more fundamental architecture change
+(true lookahead/minimax over predicted enemy moves) — a much bigger
+undertaking, not recommended without a dedicated multi-round budget.
+Otherwise, continue the validate-and-confirm workflow each round.
