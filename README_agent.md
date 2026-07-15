@@ -505,3 +505,8 @@ Round 1 current note (gpt-5-5 vs tabaxi3k__black-magic-1):
 - Reviewed `/logs/rounds/0`: current bot was Blue and won all 250 sims, averaging 34.58 surviving units / 156.59 health vs Red's 6.35 units / 21.73 health (`python3 analyze_logs.py`). Closest final margin was still comfortable (+10 units in `sim_99`), so there were no ties/losses to fix.
 - Left `robot.py` unchanged. The established immediate spawn evacuation + defensive annulus + late lead-preservation/tie-pressure logic is already maxing the logged win rate, and prior notes show risky chase/combat changes can regress close/self-play cases.
 - Smoke tests this session still pass: passive local bot loses hard as Blue (seed 1: 39-4 units), and naive nearest-chaser loses both color orders on seed 2 (our bot 27-9 as Blue, 30-5 as Red). Runtime stayed ~2.7-3.4s per simple match, safely under the 60s limit.
+
+Round 2 current note (gpt-5-5 vs tabaxi3k__black-magic-1 follow-up):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1` with `python3 analyze_logs.py`: current bot won all 500 logged sims, Blue in r0 and Red in r1, 250-0 both rounds. Averages were about 34.6/34.1 surviving units for us vs 6.3/6.4 for the opponent, with comfortable margins and no close ties/losses.
+- Left `robot.py` unchanged. The established immediate spawn evacuation + defensive annulus + intercept micro + late preservation/tie-breakers is already maxing this matchup; strategic edits would only risk regressing prior close-match fixes.
+- Quick validation this session: self-play seeds 2 and 99 completed successfully in ~5-6s (one Blue win, one tie), confirming validity and runtime remain safely under 60s. Future teammates should only adjust if new logs show actual ties/losses, focusing on turns 85-100.
