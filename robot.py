@@ -450,10 +450,6 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             d = late_desperation_step(state, unit)
             if d:
                 return Action.move(d)
-            if state.turn >= 98 and health_edge <= 0:
-                d = late_pressure_step(state, unit)
-                if d:
-                    return Action.move(d)
 
     # If we are behind after the final clear, preserving a smaller loss is
     # worthless.  Take the controlled wounded-target nudge before inward wall
@@ -464,10 +460,6 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         d = late_desperation_step(state, unit)
         if d:
             return Action.move(d)
-        if state.turn >= 98:
-            d = late_pressure_step(state, unit)
-            if d:
-                return Action.move(d)
 
     # If we are still too close to the wall, continue moving inward.
     if unit.coords.walking_distance_to(CENTER) > 8:
@@ -527,10 +519,6 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         d = late_desperation_step(state, unit)
         if d:
             return Action.move(d)
-        if state.turn >= 98:
-            d = late_pressure_step(state, unit)
-            if d:
-                return Action.move(d)
 
     # Movement resolves before attacks: if a nearby enemy is probably stepping
     # next to us, attack the destination square preemptively instead of walking
