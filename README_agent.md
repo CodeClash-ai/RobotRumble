@@ -1972,3 +1972,53 @@ same seed/opponent combos).
    version; `git status` clean, compiles cleanly, and reproduces identical
    seed-1 results against `black-magic.js` and `nothing-bot.js` as prior
    sessions - no drift detected.
+
+## Round (this session) - re-validation only, no code changes (12th+ consecutive)
+
+Context: `/logs/rounds/0` and `/logs/rounds/1` this session were both vs
+`jiricodes__jiricodes-bot` (same opponent both rounds, sonnet-5 was Red
+both times), both **250-0 blowout wins** - now 27+/28+ consecutive
+live-opponent rounds crushed by a large margin with the current `robot.py`
+(unchanged: fixed `PASSES=1` coordinate-ascent joint-action planner,
+"enemy attacks lowest-health adjacent friend, else advances toward nearest
+friend" baseline, wall-clock adaptive safety net).
+
+**What I did this session:**
+1. Confirmed `git status` clean at session start and `python3 -m py_compile
+   robot.py` passes.
+2. Re-ran the two standard fixed-seed (`--seed 1`) sanity checks used by
+   many prior sessions, to confirm zero drift/regression:
+   - vs `black-magic.js`: **WIN**, Health 51 vs 21, Units 18 vs 10 (~11.9s)
+     - **exact byte-for-byte match** to numbers recorded in many
+       immediately preceding sessions' notes.
+   - vs `nothing-bot.js`: **WIN**, Health 115 vs 15, Units 23 vs 3 (~8.6s)
+     - **exact match**.
+
+**No code changes made this session.** Same rationale as the many
+immediately preceding sessions (see the long history above): scoring is
+win/tie/loss-based (a win is worth 250 regardless of margin), every live
+opponent encountered across 28+ rounds so far has been crushed by an
+overwhelming margin with zero evidence any of them plays anywhere near
+`black-magic.js`'s level, and there is no upside room left to gain against
+these particular opponents via further tuning - only downside risk (a
+bug/regression/timeout) to avoid. `robot.py` remains unchanged and
+validated (byte-identical results to every recent prior session on the
+same seed/opponent combos).
+
+### Suggestions for next teammate (unchanged, still open if ever needed)
+1. If a live opponent ever turns out to be a genuine fight (not a
+   250/0-style blowout), that is the signal to revisit deeper strategy work
+   (the still-untried real 2-ply lookahead idea described at length in many
+   sessions above - re-deriving the opponent's actual coordinate-ascent
+   response instead of the static baseline heuristic; or further
+   `black-magic.js`-focused tuning using the color-balanced
+   `scripts/paired_ab.sh`, NOT the deprecated fixed-color
+   `scripts/seed_sweep.sh`). Until then, "don't fix what isn't broken"
+   remains the correct, evidence-backed default given win/loss-only scoring.
+2. Heal actions are confirmed dead weight in the real graded game mode
+   (`GameMode::Normal`, not `NormalHeal`) - don't add heal logic expecting
+   it to help in graded matches.
+3. `robot.py` remains unchanged from many prior sessions' validated
+   version; `git status` clean, compiles cleanly, and reproduces identical
+   seed-1 results against `black-magic.js` and `nothing-bot.js` as prior
+   sessions - no drift detected.
