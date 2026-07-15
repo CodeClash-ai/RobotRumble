@@ -231,6 +231,19 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
             if d:
                 return Action.move(d)
         else:
+            # If the final wave leaves us behind on unit count, merely keeping
+            # spawn/perimeter bodies alive still loses.  Let those robots join
+            # the existing late desperation plan toward nearby wounded targets,
+            # falling back to moving inward so they can create pressure.  This
+            # is only after the last spawn clear, so stepping off/through spawn
+            # no longer risks deletion.
+            if len(our_units) < len(enemy_units):
+                d = late_desperation_step(state, unit)
+                if d:
+                    return Action.move(d)
+                d = best_step_toward(state, unit, CENTER)
+                if d:
+                    return Action.move(d)
             adj = adjacent_enemies(state, unit)
             if adj:
                 adj.sort(key=lambda t: t[1].health)
