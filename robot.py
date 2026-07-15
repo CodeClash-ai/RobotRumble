@@ -101,8 +101,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
 
     blocker = state.obj_by_coords(dest)
     if not blocker:
-        if dest != past_coords or True:
-            return Action.move(direction)
+        return Action.move(direction)
 
     # Path blocked (wall or unit) -- try to sidestep around it, preferring
     # whichever perpendicular direction gets us closer to the target.

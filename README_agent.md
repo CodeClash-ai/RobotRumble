@@ -105,3 +105,83 @@ baseline against any opponent.
   `/logs/rounds/N/sim_*.txt` files to compute win/loss/tie stats and
   final-health/units distributions automatically (I did this manually this
   round with an ad hoc script).
+
+## Round 2 update (this round)
+
+**Result: Round 1's bot went 250-0 vs anton__anton3000** (every single one of
+the 250 simulated games was a Blue win, avg final units ~24.8 vs ~2.3). See
+`/logs/rounds/1/results.json` and the analysis one-liner below. No code
+changes were needed to win the round, so this round's changes are small,
+low-risk cleanups plus investigation notes for future reference — the core
+strategy (global focus-fire target + opportunistic adjacent-attack +
+direction_to movement w/ sidestep fallback) is working extremely well and
+probably shouldn't be thrown out lightly.
+
+Quick way to recompute win/loss/tie + avg units from a rounds directory:
+```
+cd /logs/rounds/<N> && python3 -c "
+import re,glob
+wins=losses=ties=0
+for f in glob.glob('sim_*.txt'):
+    txt=open(f).read()
+    if 'Blue won' in txt: wins+=1
+    elif 'Red won' in txt: losses+=1
+    else: ties+=1
+print(wins,losses,ties)
+"
+```
+(Blue == sonnet-5 in rounds 0 and 1; double check the "was Blue/Red" line in
+results.json details before assuming this for future rounds, in case
+team-color assignment changes.)
+
+### Important engine finding: `Action.heal` is currently a NO-OP in our matches!
+Traced through `logic/logic/src/lib.rs::run_turn`: heal actions are only
+actually applied `if game_mode == GameMode::NormalHeal`, otherwise the heal
+is silently dropped (`continue`, never added to `heal_map`). The CLI
+(`cli/src/main.rs::parse_game_mode`) defaults to `GameMode::Normal` when no
+explicit game-mode arg is passed, and nothing in this repo (python scripts,
+configs, etc.) passes `NormalHeal`/`Hill` — so as far as we can tell, actual
+scored matches run in plain `Normal` mode. **Do not bother adding
+`Action.heal(...)` calls to the bot** unless you've separately confirmed
+(e.g. by asking or finding a config file that sets game_mode) that matches
+actually run in `NormalHeal` mode — in `Normal` mode it will parse/execute
+without error but have literally zero effect on unit health. If you *do*
+confirm heal is active, a good pattern (untested here) is: in the `robot()`
+function, after checking for adjacent enemies to attack, check
+`state.objs_by_team(state.our_team)` for adjacent allies with
+`health < 5` and heal the most-wounded one instead of moving, but only when
+no enemy is adjacent (attacking should stay higher priority than healing
+since kills matter more than sustain, per `determine_winner_normal` counting
+alive units).
+
+### Minor cleanup made this round
+Removed a dead/confusing `if dest != past_coords or True:` tautology in the
+movement fallback in `robot.py` (it always evaluated to `True`, so the
+`past_coords` check inside it was inert dead code) — replaced with a plain
+`return Action.move(direction)`. No behavior change; verified via
+`./rumblebot run term --results-only robot.py robot.py` before/after (both
+runs produce active combat, no exceptions/crashes, comparable results
+modulo RNG). This was purely a readability fix, not a strategy change.
+
+### Ideas for future rounds (still open, not yet tried)
+- Since round 1 was already a 250-0 sweep, the main risk going forward is
+  the opponent (`anton__anton3000`) submitting a much-improved bot for round
+  3+. Re-run the win/loss analysis snippet above on the *next* round's log
+  dir first thing to see if the margin has narrowed before making large
+  changes — no need to fix what isn't broken.
+- If the opponent does start fighting back harder, consider:
+  - Health-weighted focus-fire target selection (pick the enemy that's both
+    close AND already damaged, to convert near-kills faster, e.g.
+    `key=lambda e: total_distance_for_units(allies, e) + e.health * W`).
+  - Proper multi-target coordination once there are enough units (e.g. top-2
+    enemies by proximity, split the army) instead of single global focus,
+    especially relevant since units auto-respawn in scattered spawn points
+    every 10 turns and a single global target can leave half the map
+    unengaged.
+  - A real BFS/A* pathfind around the diamond map's wall corners instead of
+    the current greedy `direction_to` + 1-step sidestep (current approach
+    can still get stuck oscillating in tight multi-unit clumps, though it
+    didn't seem to matter this round given the lopsided win rate).
+- No opponent source code is visible to us (only our own bot + match logs),
+  so opponent-strategy inference has to come from reading `sim_*.txt` board
+  snapshots turn-by-turn, not from reading their code.
