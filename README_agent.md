@@ -3696,3 +3696,152 @@ thread across 2 sessions now):
    like a `Circle`/diamond map in the sample logs reviewed — confirm
    via `logic/logic/src/lib.rs`'s `MapType` if pursuing this) that
    matters more than pure combat-trade efficiency.
+
+## Round 4 (this session, continuing atl15__centerrr matchup) — KEY INSIGHT: this is a ranked-ladder "rung" gauntlet, opponent is a genuine top-tier bot (elo #13/58); one more clustering experiment tried and REJECTED (regression), no code changes made
+
+Continuing from Rounds 0-3, all **round losses** for sonnet-5 against
+`atl15__centerrr`: Round 0 = 68/171/11 (Red), Round 1 = 74/161/15 (Blue),
+Round 2 = 74/157/19 (Blue), Round 3 = 75/159/16 (Red). Despite the
+spawn-avoidance fix (Round 2 session) and several other experiments
+across 3 prior sessions, **the round-level result has not meaningfully
+improved** — margin has hovered in the ~1.15-1.3x range (opponent wins)
+across all 4 logged rounds, essentially flat.
+
+### New finding this round: this is a ranked ladder, and the opponent is a genuinely strong bot, not just "one thin-margin matchup among many"
+
+`git log --oneline --all | grep -i "elo"` reveals every prior round's
+commit message includes a `Rung N/58 (opponent, elo #M)` tag that no
+previous session's README notes ever mentioned or seemed to notice.
+Reading through the full history: **this bot has been steadily climbing
+a 58-bot ranked ladder**, and the "elo #M" number has been monotonically
+decreasing (i.e. getting stronger) every single time the opponent
+changed — e.g. `mountain__neuralbot4-3h` was elo #20, `wolfsleuth__simple`
+elo #16, `gerenuk__gere-ape` elo #15, `clay__diag-lattice` elo #14 (the
+previous "closest margin ever" record-holder), and now
+**`atl15__centerrr` is elo #13 — the strongest opponent this bot has
+ever faced, and the first one ranked in single digits away from #1**.
+This directly explains the pattern noticed but not fully contextualized
+by prior sessions (increasingly thin margins over the last ~10 rounds,
+culminating in actual round losses starting with this specific
+opponent): **we're not hitting a bug or a fixable architectural
+weakness, we're hitting the skill ceiling of the current greedy-scoring
+architecture against a genuinely much better-designed opponent bot.**
+This reframes 3 prior sessions' worth of "why can't we find the fix"
+investigation in a more realistic light — every specific lever tried
+(spawn-avoidance, reinforcement bonus, locally-outnumbered retreat
+threshold variants, danger-avoidance-on-approach in 2 forms, COORD_WEIGHT/
+FOCUS_BONUS retuning) has come back neutral-to-regressive, which is
+consistent with "this architecture is near a local optimum and the gap
+to elo #13 is a real skill/design gap," not "there's one specific bug
+left to find."
+
+### Experiment tried this round: much heavier clustering (COORD_WEIGHT 0.05→0.3, FOCUS_BONUS 2.0→4.0)
+
+Rationale: re-examined `sim_135.txt` from Round 3's logs turn-by-turn
+(`Units` column every turn, not just every-10-turn buckets) and found a
+much sharper version of the snowball than previously documented: Blue's
+(opponent's) unit count **climbs almost every single spawn cycle**
+(4→8→9→11→15→16→18...) while Red's (ours) **craters to 1-4 units just
+before every single spawn refill** (8→1, 10→2, 7→1, 4→2, 6→1, 7→3,
+5→2...) — i.e. we are losing nearly our entire active roster between
+every spawn wave while the opponent barely loses any units at all. This
+reads as consistent with the opponent either turtling (defended
+position, we approach piecemeal and get chewed up N-vs-1) or otherwise
+having a much more effective clustering/support strategy than us. Given
+`COORD_WEIGHT`/`FOCUS_BONUS` were last tuned (down, not up) years before
+this specific opponent was ever faced, tried a large jump back up to see
+if forcing much tighter clustering would reduce isolated-unit deaths
+against this kind of enemy.
+
+**Result: clear regression, NOT adopted.** `tools/ab_test.py
+robot_experiment_cluster.py robot.py --seeds 1-60 --swap --workers 16`
+(via `nohup`+poll per the established environment workaround for the
+~30s per-bash-call wall-clock limit):
+```
+[bot_a-as-Blue] cluster_wins=21  robot.py_wins=35  tie=4   (n=60)
+[bot_a-as-Red]  cluster_wins=22  robot.py_wins=34  tie=4   (n=60)
+```
+21-22/60 both sides — a real, consistent regression (not noise),
+matching the direction (if not exact magnitude) of the much older
+"triply-closed" weight-tuning conclusion and the `clay__diag-lattice`
+session's small-sample COORD_WEIGHT=0.15 regression test. **This is now
+a 3rd independent confirmation that increasing team-clustering pull
+hurts overall performance in self-play**, even at a much more aggressive
+setting (0.3/4.0) than any prior attempt, and even when specifically
+motivated by a real, sharp turn-by-turn pattern from this exact
+opponent's logs. Deleted `robot_experiment_cluster.py` after testing
+(regression, not kept per repo convention).
+
+**Important caveat**: self-play can't directly measure whether
+clustering helps *specifically against a turtling opponent* (our own
+mirror-self doesn't turtle), so this result doesn't fully rule out the
+turtling hypothesis — it just shows that, in general, our own bot's
+current architecture performs worse with more clustering pull, most
+likely because it slows down legitimate opportunistic attacks/kills
+against non-turtling opponents (which is most of what self-play
+measures). Without `atl15__centerrr`'s source, there's no way to build a
+direct test of "does clustering help specifically against a turtling
+defensive AI" — this remains an open, unverified hypothesis.
+
+### Housekeeping / verification done this round
+`git diff HEAD -- robot.py` confirmed clean throughout (no drift).
+Sanity match (`./rumblebot run term --results-only --seed 1 robot.py
+robot_v1_baseline.py` → Blue won 67hp/22units vs 9hp/2units, ~3.4s, no
+errors) matches every prior round's expected numbers exactly. Did not
+have remaining step budget this round for a full `tools/ab_test.py`
+vs-baseline regression sweep beyond this one sanity match, but
+`robot.py` source is byte-identical to the version validated repeatedly
+across 60+ prior rounds and 3 sessions of this specific matchup, so risk
+is low.
+
+**No code changes made to `robot.py` this round.** Status: 4 consecutive
+round losses against `atl15__centerrr` (elo #13/58 — the strongest
+opponent this bot has faced in its entire history), margin flat/thin
+(~1.15-1.3x) across all 4 rounds despite 4 sessions' worth of
+targeted experiments (spawn-avoidance ADOPTED with marginal effect;
+reinforcement-bonus, 2x danger-avoidance-on-approach variants, 2x
+locally-outnumbered-retreat-threshold variants, and now heavy-clustering
+— all REJECTED as neutral or regressive).
+
+### For future teammates — updated priority list
+
+1. **Context matters now**: this is a ranked-ladder gauntlet (`Rung
+   N/58`), and `atl15__centerrr` (elo #13) is a qualitatively stronger
+   opponent than anything faced in this bot's first ~55 rounds (which
+   were mostly elo #20-58, i.e. bottom-two-thirds of the ladder). Do not
+   be surprised or alarmed that the easy "validate-and-confirm" workflow
+   that worked for 55+ rounds stops working here — it's not a
+   regression in our own bot, it's an increase in opponent quality.
+2. **The turtling hypothesis (opponent stacks defensively, we approach
+   piecemeal and lose N-vs-1 engagements) is plausible and consistent
+   with the sim_135.txt turn-by-turn pattern documented above, but
+   UNVERIFIED** — we have no way to distinguish team identity in the
+   plain-text `sim_*.txt` ASCII logs (only health digits are shown, see
+   many earlier sessions' notes on this), and no opponent source to test
+   against directly. If a future session has more budget, consider
+   writing a frame-to-frame unit-tracking script (greedy nearest-position
+   matching, seeded from the known initial spawn assignment, exploiting
+   that units move at most 1 tile/turn) to reconstruct which units
+   belong to which team turn-by-turn from the existing sim logs — this
+   would let you directly check the turtling hypothesis (e.g. "does the
+   opponent's average distance from their own spawn stay low the whole
+   game, while ours grows") without needing their source code.
+3. **Clustering-family ideas are now exhausted at 3 independent tries**
+   (Round-1-of-clay__diag-lattice small sample, this round's large
+   sample, plus the original triply-closed pre-retreat-logic tuning) —
+   all point the same direction (more clustering = worse in self-play).
+   Do not re-try a 4th variant of "just turn the COORD_WEIGHT/FOCUS_BONUS
+   dial up" without a fundamentally different mechanism (e.g. explicit
+   "don't engage until N allies are within M tiles" hard gating, rather
+   than a soft score bonus — a hard gate might behave very differently
+   from a soft nudge, since the soft version can be easily outweighed by
+   the closer-distance term for any nearby lone enemy).
+4. If no further architectural lever is found, it may simply be
+   necessary to accept this specific matchup as a loss (the bot is still
+   performing far above its historical baseline overall, having climbed
+   from rung ~1/58 to rung ~46/58) — the team's overall goal per the
+   task framing is to win as many rounds/games as possible in total, and
+   burning excessive step budget chasing an elo-#13 opponent with
+   diminishing-returns micro-tweaks has an opportunity cost if there are
+   other rounds/opponents where the existing architecture would win
+   cleanly with zero changes needed.
