@@ -604,3 +604,62 @@ outnumbered — fix the `robot_retreat_experiment.py` Red-side bug first
 if pursuing retreat) is still "margin trends toward/below ~3x or an
 actual round loss," which has not happened against this opponent (two
 clean 250/0 sweeps so far).
+
+## Round 1 (this session) — new opponent `anton__anton4000`
+
+Opponent: `anton__anton4000` (new identity, 23rd distinct opponent seen),
+logged as `/logs/rounds/0`. Result: **243/250 wins, 2 losses, 5 ties for
+sonnet-5** (we were Red). Avg final units: ~11.3 (us) vs ~4.6 (opponent),
+~2.47x margin — dominant round win (97.2% game win rate) but margin is
+on the lower end of the historical range (comparable to `aaa__jippty5`'s
+~2.3x a few sessions back), below the ~3x "still fully dominant" soft
+threshold in the recommended workflow above.
+
+Investigated both losses (`sim_29.txt`, `sim_91.txt`) and all 5 ties
+(`sim_113.txt`, `sim_116.txt`, `sim_128.txt`, `sim_154.txt`,
+`sim_230.txt`): every one of these ran the full 100 turns and ended in a
+genuinely close symmetric state (e.g. 7v6 units, 27v19 health; or 5v5
+units, 24v20 health) — no evidence of a bug, stuck/idle units, or
+wasted turns; reads as legitimately close seeds/starting positions
+against a reasonably competent opponent, same pattern as previous
+"closer than usual" opponents (`aaa__jippty5`). Confirmed **zero**
+errors/exceptions/tracebacks across all 250 `sim_*.txt` logs
+(`grep -li "error\|exception\|traceback" sim_*.txt` → 0 matches).
+
+Verified `git diff HEAD -- robot.py` clean (no drift, tree was already
+clean at session start). Ran a sanity match (`./rumblebot run term
+--results-only robot.py robot_v1_baseline.py --seed 1` → Blue/robot.py
+won 32/15hp, 8/4 units, <1s, no errors — identical to every prior
+round's check since source hasn't changed). Ran `tools/ab_test.py
+robot.py robot_v1_baseline.py --seeds 1-40 --swap` → 26-12-2 / 13-24-3,
+byte-identical to every previous round's check (no regression).
+Searched filesystem for opponent source (`find / -iname "*anton*"`) —
+none found outside `/logs/`, so (as with almost every previous
+opponent) no way to build/validate a targeted matchup-specific fix this
+session.
+
+**No code changes made.** Rationale: the round is still a decisive win
+(97.2% game win rate, 0 losses on the *round* level — sonnet-5 was
+declared round winner), and the margin, while thinner than the historical
+high end, is in the same range as `aaa__jippty5` (~2.3x) from several
+sessions ago, where prior teammates also chose not to make blind
+changes without opponent source to validate against. All losses/ties
+were reviewed and show no exploitable bug — just close symmetric games.
+Making an unvalidated change (e.g. weight retuning, already closed as
+having no measurable effect in Rounds 10/12; or the retreat experiment,
+which has a known unresolved Red-side asymmetry bug per
+`robot_retreat_experiment.py`'s notes above) risks a regression against
+future opponents for no demonstrated gain against this one.
+
+**Flag for future teammates**: this is the *second* opponent (after
+`aaa__jippty5`) with margin trending below the ~3x "fully dominant"
+threshold. If a third such opponent appears, or if `anton__anton4000`
+recurs and margin doesn't improve, that's a stronger signal to finally
+invest implementation effort in the "still-untried ideas" list (retreat
+logic — fix the documented Red-side-vs-`robot.py` bug in
+`robot_retreat_experiment.py` first — or multi-step lookahead pathing),
+rather than continuing to defer. So far status quo (no code changes)
+continues to be lowest-risk/highest-EV given: (a) still >97% game win
+rate, (b) no opponent source to validate a targeted fix against, and
+(c) all reviewed losses/ties are close-legitimate-game outcomes, not
+bugs.
