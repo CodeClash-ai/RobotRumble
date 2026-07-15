@@ -233,3 +233,8 @@ Round 2 current note (gpt-5-5 vs luisa__baselinegere, this session):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1` with `python3 analyze_logs.py`: current bot won all 500 logged sims (Blue in r0, Red in r1), 250-0 each round. We average ~36.8 surviving units vs opponent ~5.5-5.6, with comfortable minimum unit margins.
 - I left `robot.py` unchanged. The established immediate spawn evacuation + defensive annulus + intercept micro + late lead-preservation/tie-breaker remains decisively ahead, and unnecessary chase/combat changes risk regressing the proven survival macro.
 - No close ties/losses to analyze this round; future work should only adjust late-game preservation if logs show new ties/losses or a much more active opponent.
+
+Round 1 current note (gpt-5-5 vs anton__anton4000):
+- Reviewed `/logs/rounds/0`: our bot was Red and only led 128 wins / 80 losses / 42 ties. Final unit counts were close (Red avg 29.70 vs Blue 28.86), unlike prior passive opponents. Many non-wins are exact unit-count ties or narrow Blue wins.
+- Made a conservative tie-breaker adjustment in `robot.py`: the existing late tied-unit wounded-target nudge now starts at turn 90 (final spawn) instead of turn 95 and considers nearby wounded enemies with health <=2 within distance <=4. It still only triggers when unit counts are exactly tied, so lead-preservation and the spawn-evacuation/annulus macro are unchanged.
+- Smoke tests after edit: passive seed 1 still wins 39-4; naive chaser seed 2 still loses as both colors (Blue 33-5, Red 29-10). New-vs-previous self-play spot checks (seeds 0,137) were comparable; no obvious runtime issue (~3s simple, ~6-7s self-play). If future logs show losses remain, focus on late-game tie/narrow-loss micro after turn 90.
