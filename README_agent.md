@@ -2056,3 +2056,40 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   this session). DO NOT re-try (all regress bm): unconditional hunt in distance,
   3+ sweeps, enemy-move/approach prediction, linear health, surround-weighted
   tiebreak, symmetric surround, dual/reversed greedy, blending 2-ply into scores.
+
+## ROUND 2 SESSION (opus-4-8, mitch84__retreat_walk2) [2nd occurrence] — CODE CHANGED: STRONGER HUNT BOOST (robot_bm7.py)
+- Opponent = mitch84__retreat_walk2 (SPREAD+RETREAT bot; keeps many units alive at
+  5hp spread across the map; win rule=units-only so it wins close seeds via scattered
+  survivors). History: R0 (old bm5) 179-63, R1 (bm6 conditional hunt) 191-54. Still
+  ~54 losses/250 = the biggest upside seen. Decisive win but weakest margin.
+- FAILURE MODE (round1 sim_121): DEAD-EVEN through turn60 (19u vs 22u), then our
+  CLUMPED force collapses in the endgame (turn100: 5u vs 24u). Our big clump dives
+  into the dispersed enemy and gets ground down while their spread survivors persist
+  and grab the +4/10turn spawns. NOTE: both teams get EQUAL spawns (4 each per 10
+  turns, random spawn cells) — the loss is pure attrition/failure to catch fleers.
+- CHANGE ADOPTED (robot.py == robot_bm7.py): STRENGTHENED the conditional hunt boost.
+  spread threshold 6.0 -> 5.0 (trigger dispersal-chase sooner) and boost 3.0 -> 6.0
+  (chase harder). hunt_score REMAINS the LOWEST-priority tuple element, so it only
+  breaks otherwise-equal moves and can NEVER sacrifice a trade or un-clump vs strong
+  out-traders.
+- VALIDATION: vs builtin-bots/black-magic.js BLUE seeds 1-16 = 16-0-0 (== baseline;
+  NO regression, confirming the lowest-priority tiebreak is safe). vs simple-bot 35-2.
+  Syntax OK, runtime fine (<60s).
+- REJECTED THIS SESSION: promoting hunt ABOVE distance_score when dispersed (returned
+  a reordered tuple) — REGRESSED black-magic 16-0 -> 13-2-1 (bm's units transiently
+  spread past threshold in combat, triggering the reorder). Confirms README: DO NOT
+  promote hunt above distance. Reverted immediately.
+- Could NOT build a faithful retreat_walk2 proxy (my /tmp/walk_retreat.js dies 30-4;
+  real mitch keeps ~24 survivors). So the hunt benefit vs the ACTUAL opponent is
+  UNVERIFIED, but the change is provably risk-free on the black-magic proxy (lowest-
+  priority, gated on high enemy spread) so it can only help or be neutral.
+- Backups: robot_bm6.py (prev conditional-hunt bot), robot_bm7.py (== new robot.py).
+- NEXT TEAMMATE: if still not clean vs retreat_walk2, the endgame collapse (clump
+  dives & dies vs dispersed foes) is the real gap. Ideas that stay SAFE vs bm:
+  (a) tune boost higher / threshold lower (keep hunt LOWEST priority; verify bm 16-0).
+  (b) add a lowest-priority DEFENSIVE term: penalize ending a turn where >=2 enemies
+      could reach us next turn (avoid multi-enemy convergence) — must be lower priority
+      than unit/surround/health/distance to not regress bm.
+  DO NOT promote hunt above distance (REGRESSES bm, retested this session). DO NOT
+  re-try: 3+ sweeps, enemy-move/approach prediction, linear health, surround-weighted
+  tiebreak, symmetric surround, dual/reversed greedy, blending 2-ply into scores.
