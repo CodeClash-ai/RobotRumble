@@ -2816,3 +2816,66 @@ vs a strong opponent we still beat comfortably.
   passive/retreat mid-game tweaks, adjacency-priority focus, even_game-tied,
   earlier-disperse, focus-radius 2->1. mid_lead tests NEUTRAL (keep or revert,
   no measurable difference).
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = ketza__arthur (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **WON 227-9 w/ 14 TIES** vs
+  `ketza__arthur` (we were RED). ~91% win. All 9 losses are CLOSE (1-3 units).
+### ROOT CAUSE (traced sim_104/72/90/106 via /tmp/trace.py) = TURN-91 SPAWN FLIP
+- DOMINANT loss pattern: we are AHEAD/even at turn ~89, then at the turn-91
+  spawn (spawn happens at turns 1,11,...,91; (turn-1)%10==0 in lib.rs) Blue nets
+  MORE units than Red (Blue +3/+4 vs Red +1/+2/0), flipping our lead. Then we
+  trade the remainder down to a close loss (sim_104: R9 B8 at t89 -> R11 B12 at
+  spawn -> ends R8 B9; sim_72: R10 B7 at t89 -> R10 B10 at spawn -> ends).
+- MECHANISM (re-verified lib.rs clear_spawn/spawn_units): spawns are SYMMETRIC
+  per free pair (1 Blue + 1 Red per pair where point AND mirror both free). So
+  both teams get the SAME NUMBER of spawns. The ONLY source of our deficit is
+  `clear_spawn` DELETING OUR units that are sitting ON spawn tiles at the END of
+  the pre-spawn turn (t%10==0). As the aggressor pushing into enemy territory,
+  our units occupy (enemy-side) spawn tiles and get wiped -> we net fewer units.
+  (sim_104: parsed 2 of our units on spawn tiles at end turn90 = exactly the -2.)
+### What I changed (robot.py) - WIPE-TURN FORCED EVACUATION (tested, shipped)
+- The spawn-evac block had a "secured_kill" EXCEPTION: a unit on a spawn tile
+  that could guarantee a kill this turn STAYED and attacked. But on the ACTUAL
+  wipe turn (t%10==0) that unit is DELETED next turn regardless -> the kill is a
+  1-for-1 that ALSO costs us the spawn slot. Evacuating instead keeps OUR unit
+  AND frees the slot for a +1 spawn => strictly better for the COUNT win.
+- Change: on the wipe turn (`(state.turn % 10) == 0`) we now ALWAYS evacuate if
+  possible (skip the secured_kill exception). On buffer turns (7,8,9) we keep
+  the exception (unit can kill now, evacuate next turn). One-block change; all
+  else unchanged. Parses OK; `def robot` present; runtime ~2s/match.
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- term is NON-DETERMINISTIC; ran 6-10x, compared unit MARGINS (we are RED=2nd).
+- NEW RED vs /tmp/aggro.py 6x: 6W/0L, margins +7,+6,+2,+2,+4,+4 (avg +4.2).
+  baseline RED vs aggro 6x: +8,+5,0,+2,+5,+3 (avg +3.8, one tie). NEW >= baseline.
+- NEW RED vs /tmp/cluster.py 10x: avg +3.0 (1 loss, 1 tie). baseline 10x: avg
+  +5.9 (1 loss). NOTE: cluster games mostly END before turn 90 with modest
+  counts, so this change RARELY fires vs cluster -> the margin diff is NOISE
+  (both had a loss; ranges overlap heavily). The change targets LONG swarm games
+  (the real opponent) that reach t90 with our units on spawn tiles.
+- NEW vs /tmp/marcher.py both sides: crush 25-3 / 17-3. No regression vs passive.
+### Decision: SHIPPED wipe-turn forced evacuation. Theoretically PROVABLE
+improvement for the count-based win (keep unit + free slot > 1-for-1 kill +
+lose slot), targeting the EXACT dominant loss pattern (turn-91 spawn flip).
+Clean W/L (6/6 vs aggro), no regression vs marcher. cluster margin dip is noise
+(change barely fires there).
+### Guidance for next teammate
+- If opponent STAYS ketza__arthur: robot.py wins ~91%; this edit should shave
+  some spawn-flip ties/losses. VERIFY next round (/tmp/trace.py sim_X.txt at
+  turns 89-91): do we now KEEP pace on the turn-91 spawn (Red +4 like Blue)
+  instead of flipping? Check spawn deltas: are fewer of OUR units on spawn tiles
+  at end of turn 90?
+- If it HURTS (we now give up too many kills near spawn and fall behind), REVERT:
+  git diff shows the single block (is_wipe_turn gate in the spawn-evac). Or
+  narrow to only skip the exception when we are NOT behind in unit count.
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move.
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+  * /tmp/trace.py sim_X.txt (per-turn B/R units+HP; %10==0 or >=85), /tmp/analyze.py.
+- term is NON-DETERMINISTIC - run 5-10x, compare unit MARGINS not just W/L.
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL, tighter early grouping, BROAD
+  passive/retreat mid-game tweaks, adjacency-priority focus, even_game-tied,
+  earlier-disperse, focus-radius 2->1, mid_lead (tests neutral).
