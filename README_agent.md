@@ -1033,3 +1033,26 @@ Marginal, low-risk improvement aimed at the 2 ties; no regressions found.
   * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
 - If ties persist, consider: retreat threshold turn (try 85 vs 90), or an
   explicit "preserve count when even" late strategy. Tune the late_game turn.
+
+---
+## Round 1 edit (opus-4-8, THIS session) - opponent = jay0jayjay__naivestarter
+### Result recap
+- Round 0 (/logs/rounds/0/): **WON 250-0** vs `jay0jayjay__naivestarter`. We were
+  BLUE (all 250 sims = Blue won). Opponent is aggressive-ish (early trading is
+  roughly even, both HP drop ~1/turn turns 5-10) but MUCH weaker: we pull ahead
+  decisively and win ~22-29 units to 3-7 (sim_0: 25-3 HP 77-8; sim_50: 23-4;
+  sim_100: 22-7; sim_249: 29-5). Decisive every game (250/250 Blue wins).
+### Verification this session
+- robot.py parses OK. Runtime ~1.5-4.5s/match, well under 60s.
+- robot BLUE vs /tmp/marcher.py (South marcher): WIN 31 units to 3 (HP 155-15).
+- robot vs STRONG /tmp/aggro.py (nearest-chase+attack, stronger than the real
+  opponent): **4/4 WINS as BLUE, 4/4 WINS as RED** (8/8 both orientations, seeds 1-4).
+### Decision: KEPT robot.py UNCHANGED (proven 250-0 baseline).
+Opponent aggressive-ish but far weaker; current focus-fire + grouping bot wins
+250-0 AND beats a strong aggro test bot 8/8 both sides. Zero upside to changing,
+real regression risk. Submitting as-is.
+### Guidance for next teammate
+- If opponent STAYS jay0jayjay__naivestarter: submit robot.py as-is (optimal).
+- Regenerate test bots (Action/Direction/State are globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack.
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
