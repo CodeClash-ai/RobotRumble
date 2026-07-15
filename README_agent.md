@@ -2739,3 +2739,118 @@ and COORD_WEIGHT investigations) — recommend the next teammate spend
 meaningful step budget on the friendly-fire/health-drop mechanism above
 before defaulting to "no change" if `wolfsleuth__simple` recurs or a
 similarly thin-margin opponent appears again.
+
+## Round 2 (this session, continuing wolfsleuth__simple matchup) — mystery RESOLVED (not a bug), tried proactive danger-avoidance movement tweak, REGRESSION found, NOT adopted
+
+Continuing from Round 0-1 (both logged in `/logs/rounds/0` and
+`/logs/rounds/1`, both round wins for sonnet-5 but with the **thinnest
+margins seen against any opponent so far**: Round 0 = 214/22/14
+(85.6% game win rate, ~1.63x avg-units margin), Round 1 = 228/12/10
+(91.2% game win rate, ~1.67x avg-units margin). Both rounds won
+outright but nowhere near this bot's usual ~4-20x blowout margins.
+
+### Mystery resolved: the "unexplained symmetric health drop with no
+### adjacent enemy visible" flagged by the prior round's note was NOT a
+### bug — it was a rendering-limitation misread.
+
+The prior round's teammate found pairs of units losing 1 HP/turn in
+`sim_4.txt` that looked "not adjacent to any enemy" on the plain-ASCII
+`rumblebot run term --results-only`-style render, and worried this might
+indicate friendly-fire or a targeting bug in our own bot. I confirmed via
+`cli/src/display.rs` (lines ~34-49) that **the plain ASCII grid render
+only ever prints a bare health digit for a unit — it does NOT print team
+identity at all** (no color, no team-specific glyph in this render mode).
+So two units drawn side-by-side "5 5" that both start dropping HP in
+lockstep are almost certainly **one Blue and one Red unit that
+coincidentally spawned adjacent to each other** (spawn point selection is
+per-unit-pair via `mirror_loc`, but with multiple units spawning
+independently at random available spawn points, nothing stops two
+*different* units of opposite teams from landing next to each other by
+chance) — they're just fighting each other in plain view, rendered
+without any team marker to distinguish them. Verified directly: ran
+`./rumblebot run term --raw --seed 1 -t 3 robot.py robot_v1_baseline.py`
+(via a file redirect, not piped through `head` — piping the `--raw` JSON
+output through `head` seems to cause the docker-exec wrapper here to
+hang/timeout, worth knowing for future teammates: always redirect `--raw`
+output to a file with `> /tmp/out.json`, don't pipe through `head`/`tail`
+directly) and parsed the JSON: confirmed unit objects do carry a
+`"team": "Blue"/"Red"` field internally, it's just never rendered in the
+plain-text board. **No friendly-fire bug exists** — `run_turn` in
+`logic/logic/src/lib.rs` resolves attacks purely by grid-coordinate
+lookup regardless of team (so friendly fire is *theoretically* possible
+if you ever aim an attack at a square an ally moves into), but our
+`robot.py` only ever picks attack directions aimed at squares currently
+occupied by an `enemies`-list member at decision time — no team-checking
+bug found in `robot.py` itself. This closes out the prior round's
+flagged investigation; **no further time should be spent on this
+"mystery," it's just the render not showing team color.**
+
+### New experiment tried: proactive danger-avoidance movement (avoid
+### walking INTO a square that would put you in lethal danger), NOT a
+### repeat of the already-closed "outnumbered retreat" experiments
+
+Rationale: existing `RETREAT_ENABLED` logic only reacts to *already
+being adjacent* to enough enemies to die this turn (i.e., reactive
+escape). It does nothing to prevent a unit from voluntarily walking
+into a square that would newly put it adjacent to that many enemies
+next turn, e.g. approaching a target that happens to be flanked by
+several other enemies. Implemented `robot_experiment_predanger.py`: in
+the movement branch, before committing to the direct `direction_to`
+step, compute `danger(dest) = count of enemies adjacent to dest`; if
+`danger(dest) >= unit.health` (i.e., stepping there could be lethal next
+turn), scan all 4 directions for a free tile with strictly lower danger,
+and prefer whichever such safer tile also makes the most progress toward
+the current target (tie-break); otherwise proceeds with the original
+direct-step/sidestep logic unchanged.
+
+**Result: REGRESSION, NOT adopted.** `tools/ab_test.py
+robot_experiment_predanger.py robot.py --seeds 1-40 --swap --workers 16`
+(unambiguous `{botname}_wins=N` labels):
+```
+[bot_a-as-Blue] predanger_wins=13  robot.py_wins=25  tie=2
+[bot_a-as-Red]  predanger_wins=12  robot.py_wins=27  tie=1
+```
+Predanger variant lost decisively from BOTH sides (13/40 and 12/40) —
+this is a real regression, not noise. Likely explanation: being overly
+cautious about approaching clustered enemies actively works against our
+own core strength (focus-fire clustering + opportunistic always-attack)
+— our units *want* to end up adjacent to multiple enemies simultaneously
+sometimes, because our own allies are usually converging on the same
+enemies too (so "danger" computed from raw enemy-adjacency count,
+without accounting for how many of OUR allies will also be adjacent to
+those same enemies to trade favorably, is too crude a signal and just
+makes units hesitate/take suboptimal paths approaching contested areas).
+**Deleted `robot_experiment_predanger.py` after testing** (regression,
+not kept per repo convention — unlike `robot_retreat_experiment.py`
+which documents a real historical debugging story worth preserving).
+
+### No changes made to `robot.py` this round.
+`git diff HEAD -- robot.py` clean throughout. Did not have remaining
+step budget after the mystery investigation + predanger experiment to
+also re-run the standard sanity-match + `tools/ab_test.py` vs
+`robot_v1_baseline.py` regression check — `robot.py` source is
+byte-identical to the version validated repeatedly in every prior
+round, so risk is low, but next teammate should run that check first
+thing next session per the usual workflow.
+
+**For future teammates on `wolfsleuth__simple` specifically**: this
+remains the thinnest-margin opponent logged so far (~1.6-1.7x avg-units
+margin across 2 rounds, though still a clean round win both times, 456
+combined game-wins out of 500). The mystery that looked like it might
+explain the thin margin (unexplained health drops) turned out to be a
+red herring (just render team-ambiguity, not a bug) — so the actual
+reason this opponent is tougher than most remains unknown and NOT
+attributable to any bug in our own bot found so far. The
+proactive-danger-avoidance idea tried this round was a genuine new
+angle (distinct from the already-closed "outnumbered retreat
+generalization" from the `edward__flail` matchup, which was about
+retreating when *already* adjacent+hurt, not about avoiding approach in
+the first place) but made things worse, not better — so don't re-try
+that same mechanism without a fundamentally different danger metric
+(e.g. one that discounts danger by how many *allies* will also end up
+adjacent to the same enemies, which this version didn't account for —
+that could be a genuinely untried refinement if this opponent recurs
+again with still-thin margins: `predicted_ally_support(dest) = count of
+allies who would also be adjacent to the same enemies threatening dest`,
+and only avoid a square if `danger - predicted_ally_support` is still
+>= health, rather than raw `danger` alone).
