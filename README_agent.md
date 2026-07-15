@@ -2583,3 +2583,53 @@ marginal upside vs an opponent we already dominate on both sides.
   * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
   * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
 - term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = anton__om-om (COMPETITIVE)
+### Result recap
+- Round 0: **WON 205-20 w/ 25 TIES** vs anton__om-om (we were BLUE, ~82%).
+- Round 1: **WON 228-8 w/ 14 TIES** vs anton__om-om (we were BLUE, ~91%).
+  IMPROVING round-over-round (205->228). All 8 round-1 losses are CLOSE
+  (mostly 1-unit: sim_0 8-10, sim_141 8-9, sim_159 6-7, sim_189 5-6, sim_208
+  4-5, sim_241 8-9, sim_68 6-7) except sim_216 (6-10 blowout).
+### Loss analysis (traced sim_0, sim_216 per-turn units)
+- Genuine MID-GAME combat trade-downs: we are ahead/even until turn ~60, then
+  FALL BEHIND turns 60-90 as the opponent out-trades us and holds a lead to
+  turn 100 (win = most units at turn 100; HP NOT a tiebreaker).
+  * sim_0: AHEAD B10 R8 at t60, bled to B8 R10 by t100.
+  * sim_216: BEHIND from ~t20 onward (B7 R8), never recovered, ended B6 R10.
+- This is the documented RESIDUAL that resists safe fixes (matches all prior
+  teammates' analysis). NOT a spawn-wipe or late-lead-throwaway (those gates
+  already handle their patterns).
+### Experiment tested (NOT shipped - no robust gain, REJECTED)
+- /tmp/v_r1.py: tightened gang-kill focus radius 2->1 (init_turn `reachers`,
+  line 90). Prior teammate found 3->2 helped, so tried 2->1.
+  * v_r1 BLUE vs /tmp/aggro.py 8x: 8W/0L (13-10,12-9,13-10,11-10,7-6,12-7,
+    10-8,12-9). baseline BLUE vs aggro 8x: 7W/1L (one 6-9 loss) but LARGER
+    margins otherwise. Within NOISE (term is non-deterministic).
+  * v_r1 BLUE vs /tmp/cluster.py 4x: comparable to baseline (both win all).
+  * v_r1 RED vs aggro 4x: wins all but baseline was MORE CONSISTENT (baseline
+    +3,+3,+3,+3 vs v_r1 +3,+8,+2,+1). radius=1 slightly riskier on Red side.
+  * NET: neutral/noise, no robust improvement, slight Red-side risk. REJECTED.
+### Decision: KEPT robot.py UNCHANGED (proven mature baseline, ~91% win,
+IMPROVING round-over-round). The bot is highly evolved (focus-fire +
+multi-target squads + grouping + spawn-evac + endgame lock-in/disperse +
+favorable-fight override). Verified: parses OK; `def robot` line 268; BLUE vs
+/tmp/aggro.py 3/3, RED vs aggro 3/3, BLUE vs /tmp/cluster.py 4/4, crushes
+/tmp/marcher.py 31-2. Runtime ~2-4s/match, well under 60s. The residual close
+combat trade-downs resist safe fixes; changing risks regression for marginal
+upside vs an opponent we already dominate on both sides.
+### Guidance for next teammate
+- If opponent STAYS anton__om-om: submit robot.py as-is (~91% win as BLUE,
+  improving). Do NOT retry the focus-radius 2->1 tweak (tested, noise/no gain)
+  or the documented dead-ends.
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL (regresses margin), tighter early
+  grouping (no robust gain), passive/retreat mid-game tweaks (lose aggression),
+  adjacency-priority focus (regresses), even_game-tied (regresses),
+  earlier-disperse (regresses), focus-radius 2->1 (noise, no gain).
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/cluster.py: attack-adjacent-weakest + focus-weakest-nearest move.
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+- term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
