@@ -284,7 +284,9 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                 # already ahead, targeting the original sim_178 pattern where a
                 # +1 lead vanished on turn 100 through simultaneous trades.
                 if state.turn >= 99 and len(our_units) > len(enemy_units):
-                    clean_kill = (target.health <= allies_on_target and unit.health > len(adj))
+                    # A focused kill improves/protects final unit count even if
+                    # this attacker is under threat; only avoid nonlethal trades.
+                    clean_kill = (target.health <= allies_on_target)
                     if clean_kill:
                         return Action.attack(attack_dir)
                     d = retreat_from_adjacent(state, unit, adj, allow_spawn=True)
@@ -320,12 +322,12 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         late_ahead = ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
                       (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2))
         if late_ahead:
-            # While protecting a late unit-count lead, do not take even a
-            # nominal kill if this low-health robot is likely to die to
-            # simultaneous adjacent attacks.  Several close logs were lost by
-            # trading down from a post-final-spawn lead; a pass/retreat keeps
-            # the body count unless the attack should be a clean pick.
-            clean_kill = (target.health <= allies_on_target and unit.health > len(adj))
+            # While protecting a late unit-count lead, avoid nonlethal trades,
+            # but still take focused kills. Several close logs were lost by
+            # over-preserving and leaving killable enemies alive; if the target
+            # should die to this turn's local focus, unit count improves even
+            # when the attacker is under threat.
+            clean_kill = (target.health <= allies_on_target)
             if clean_kill:
                 return Action.attack(attack_dir)
             d = retreat_from_adjacent(state, unit, adj, allow_spawn=(state.turn >= 91))
@@ -443,6 +445,13 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
                 if d:
                     return Action.move(d)
             return None
+        # With a substantial HP edge in an exact late tie, convert pressure
+        # into one unit-count kill more actively; ties score worse than close
+        # wins, and the HP buffer means controlled trades are acceptable.
+        if health_edge >= 25:
+            d = late_desperation_step(state, unit)
+            if d:
+                return Action.move(d)
         d = late_chase_step(state, unit)
         if d:
             return Action.move(d)
