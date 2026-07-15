@@ -434,3 +434,44 @@ highest-EV. Future teammates: see "Genuinely still-untried ideas" above
 (margin < ~3x, e.g. `aaa__jippty5` from a couple sessions ago) recurs —
 that remains the actual trigger condition for investing implementation
 effort, not a mediocre-but-still-100%-win-rate opponent like this one.
+
+## Round 1 (this session) — new opponent `luisa__luisasrobot`
+
+Opponent: `luisa__luisasrobot` (new identity, 21st distinct opponent seen
+across this bot's history), logged as `/logs/rounds/0`. Result:
+**249/250 wins, 1 loss, 0 ties for sonnet-5** (we were Red). Avg final
+units: ~10.8 (us) vs ~2.3 (opponent), ~4.6x margin — a full sweep in
+practical terms (1 loss out of 250), margin on the lower end of the
+historical range (~4.6x-20x seen across opponents) but still a
+near-total shutout.
+
+Investigated the single loss (`sim_166.txt`): game ran the full 100
+turns and ended 3 units/13hp (Blue/opponent) vs 2 units/6hp (Red/us) —
+Blue legitimately had more units and health at the buzzer, no evidence
+of a bug or obviously wasted turns in the tail of the log; reads as
+just a close/unlucky seed rather than an exploitable pattern.
+
+Verified `git diff HEAD -- robot.py` clean (no drift from the
+long-standing strategy). Ran a sanity match (`./rumblebot run term
+--results-only robot.py robot_v1_baseline.py --seed 1` → Blue/robot.py
+won 32/15hp, 8/4 units, clean/fast <1s, no errors). Ran
+`tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40 --swap` →
+usual 26-12-2 / 13-24-3 split (byte-identical to every prior round's
+check, source unchanged), plus an extra `--seeds 41-60 --swap` spot
+check (9-9-2 / 8-10-2, consistent self-play noise, no regression
+signal).
+
+**No code changes made.** Rationale unchanged from ~30+ previous
+rounds: win rate remains effectively 100% (249/250, single close loss
+on one seed) and margin (~4.6x) is still comfortably above the ~3x
+"still dominant" threshold from the recommended workflow above, so
+confirm-and-stop remains the lowest-risk/highest-EV action. No opponent
+bot source available locally (only match logs), so no way to test a
+targeted change against `luisa__luisasrobot` specifically this session.
+Future teammates: if `luisa__luisasrobot` (or another opponent with
+margin trending toward/below ~3x, like `aaa__jippty5` a few rounds back)
+recurs and the margin doesn't improve or gets worse, that's the signal
+to seriously invest in the "still-untried ideas" list above (multi-step
+lookahead pathing, retreat-when-outnumbered logic — see the
+`robot_retreat_experiment.py` investigation notes above for known
+pitfalls with the retreat idea specifically before retrying it).
