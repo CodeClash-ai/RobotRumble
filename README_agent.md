@@ -1708,3 +1708,46 @@ low-risk constraint. No regressions found.
   Prior teammates found passive/retreat tweaks regress; reduce OVERKILL (redirect
   a 3rd attacker to a 2nd target for more net kills/turn) is untried. TEST both
   orientations vs aggro AND head-to-head vs baseline; reject any regression.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = kalkin__maxad (COMPETITIVE)
+### Result recap
+- Round 0: **WON 223-15 w/ 12 TIES** vs kalkin__maxad (we were RED).
+- Round 1: **WON 235-5 w/ 10 TIES** vs kalkin__maxad (we were BLUE). ~94% win.
+- Analyzed /logs/rounds/1 non-wins (5 losses + 10 ties). All losses are CLOSE
+  (1-4 units, and behind on HP): sim_199 8-9, sim_225 9-10, sim_49 11-13,
+  sim_68 6-10, sim_83 11-12. TWO distinct loss patterns:
+  * EARLY DEFICIT (sim_199): we were BEHIND the ENTIRE game (3-4 by t10, 2-4
+    by t50, 8-10 by t90). Opponent snowballed early via spawns/combat; never
+    a lead to protect - can't be fixed by late-game logic.
+  * LATE TRADE-DOWN (sim_68): AHEAD 9-7 at t70, then bled to 6-10 by t100.
+    (endgame lock-in gates already target this but don't always catch it.)
+### Experiment tested (NOT shipped - no robust gain)
+- /tmp/v_test.py: TIGHTER EARLY GROUPING in step_toward - for turn<25 weight
+  ally_pen into the sort key (c[0] + min(c[1],8)*0.34) so units advance as a
+  tighter pack early to avoid the early piecemeal deaths (pattern 1).
+  * v_test BLUE vs /tmp/aggro.py seeds 1-3: 3/3 (== baseline).
+  * v_test RED vs aggro seeds 1-3: 2W 1L (== baseline). No regression vs aggro.
+  * v_test(BLUE) vs baseline(RED) seeds 1-5: only 2W-3L -> NO clear gain on our
+    real (BLUE) side, possibly slight regression. REJECTED (consistent with all
+    prior teammates: grouping/passivity tweaks don't robustly help; side bias
+    dominates self-play).
+### Decision: KEPT robot.py UNCHANGED (proven balanced baseline, ~94% win).
+Verified: parses OK; BLUE vs /tmp/aggro.py 3/3 (term seed-0 20-10); RED vs aggro
+2W/1T seeds 1-3; crushes /tmp/marcher.py 24-2. Runtime ~2-3s/game, well under
+60s. We are BLUE vs kalkin__maxad and win 235-5; no tested change beat baseline
+on the BLUE side. Changing risks regression for marginal upside.
+### Guidance for next teammate
+- If opponent STAYS kalkin__maxad: submit robot.py as-is (~94% win as BLUE).
+- Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
+  * /tmp/aggro.py: nearest-enemy chase+attack (STRONGER than real opponent).
+  * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  * /tmp/robot_baseline.py: `git show HEAD:robot.py`.
+- Batch is SLOW (~2s/game); keep NSEEDS<=3-5 to stay under the 30s per-command
+  wall-clock. Run: `(for s in 1 2 3; do printf '{"blue":"A.py","red":"B.py","seed":"%s"}\n' $s; done) | ./rumblebot run batch | grep winner`
+- REMAINING LEVERS (both resist safe fixes): (1) EARLY snowball - keep units
+  grouped turns 5-20 WITHOUT slowing aggression (my tighter-grouping test gave
+  no clear Blue-side gain). (2) reduce OVERKILL (redirect a 3rd attacker on an
+  enemy 2 can kill to a 2nd target for more net kills/turn) - still UNTRIED.
+  ALWAYS test the BLUE side vs /tmp/aggro.py AND head-to-head vs baseline;
+  reject anything that drops the BLUE win rate below baseline.
