@@ -560,15 +560,12 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         if d:
             return Action.move(d)
 
-    # If we are already behind in the pre-final stretch, start the bounded
-    # wounded-target nudge a few turns earlier than the generic late desperation
-    # block.  Several current non-wins were decided before turn 90; this only
-    # moves toward nearby wounded non-spawn enemies, after perimeter/wall
-    # evacuation above has had priority for spawn safety.
-    if state.turn >= 80 and len(our_units) < len(enemy_units):
-        d = late_desperation_step(state, unit)
-        if d:
-            return Action.move(d)
+    # Do not chase while behind before the final reinforcement wave.  A previous
+    # turn>=80 wounded-target nudge was intended to flip narrow deficits, but the
+    # next logged round against the current coward-style opponent still showed
+    # many late losses/ties and likely over-chasing before the last spawn.  Keep
+    # pre-final behavior survival-first; the existing turn>=91 desperation blocks
+    # handle true final-wave deficits after spawn safety is no longer at risk.
 
     # When tied in the final stretch, a tie is usually better than throwing
     # away a health/position edge.  Recent edward__flail close logs had us
