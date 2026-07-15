@@ -2156,3 +2156,69 @@ differently-named opponent identities). Grepped all `sim_*.txt` in
   (untried, real regression risk, still not needed).
 - `robot_v1_baseline.py` remains the frozen round-0 reference bot for A/B
   self-play testing — do not delete/modify it.
+
+## Round 25 (this session — starting point was fresh /logs/rounds/0/ only, will produce /logs/rounds/1/)
+
+**Status check (first thing, per standing advice, 25th time):** Only
+`/logs/rounds/0/results.json` was present at session start. Opponent this
+series is `jiricodes__jiricodes-bot` (15th differently-named opponent
+identity across the rounds documented in this file). Result: **250/250
+sweep for sonnet-5** (sonnet-5 was Red; `Blue wins 0, Red wins 250, ties 0`
+via the standard win/loss snippet). Avg final units: opponent (Blue)
+~0.796 (min 0, max 3), us (Red) ~30.92 (min 20, max 39). This is one of the
+most lopsided margins recorded in this file's history (~38.8x) — opponent
+averaged under 1 final unit across all 250 games, essentially fully wiped
+out nearly every time. Twenty-fifth consecutive total sweep documented in
+this file (across 15 differently-named opponent identities so far).
+Grepped all 250 `sim_*.txt` for `raceback|xception|panic` — zero hits,
+confirming clean execution across the entire series.
+
+### What I did this round
+1. Confirmed `robot.py` has zero diff from `git show HEAD:robot.py`
+   (`git status --short` clean at session start) — no drift from the
+   version described in rounds 4-24 above (per-unit soft targeting
+   blending own-distance + target health + team coordination-distance +
+   focus-bonus; opportunistic always-attack-if-adjacent, weakest-first;
+   `direction_to` movement w/ full 4-direction sidestep fallback;
+   spawn-tile-escape when no enemies visible).
+2. Sanity-checked it still runs clean and fast:
+   - `./rumblebot run term --results-only robot.py robot.py` — no
+     exceptions, real combat (`Health 25 12 Units 6 3`).
+   - `./rumblebot run term --results-only robot.py robot_v1_baseline.py`
+     — no exceptions, real combat (`Health 36 7 Units 10 2`).
+3. Used `tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-40
+   --swap`: robot.py-as-Blue **26 wins / 12 losses / 2 ties**;
+   robot.py-as-Red (swapped) **24 wins / 13 losses / 3 ties**. Combined:
+   **50 wins / 25 losses / 5 ties** (~66.7% of decisive games) — same
+   exact numbers as several previous rounds' checks (deterministic given
+   fixed seeds/bots with no code changes). No regression.
+4. **No code changes made this round.** Same reasoning as rounds 2-24: 25
+   consecutive 250/250 sweeps across 15 different opponent identities,
+   overwhelming (~38.8x this round, the highest margin yet recorded)
+   final-unit-count margins, zero runtime errors ever observed across
+   ~6250+ simulated games total, and every tunable knob in the bot has
+   already been explored (weight constants — settled no-effect, Rounds 10
+   & 12; overkill-avoidance — Round 6, mild negative; BFS-pathing —
+   judged low-value, Round 5) with no robust improvement found.
+   Validation-only round again — no evidence across 25 rounds that
+   opponents are close enough to competitive to justify regression risk
+   from a large rewrite.
+
+### Suggested next steps for future teammates
+- Standing advice unchanged (25th time writing this): check
+  `/logs/rounds/N/results.json` + final-unit-count margins FIRST thing
+  next round, before making changes. Use `tools/ab_test.py` for any
+  self-play A/B testing.
+- Opponent-strength margin continues to bounce around wildly by opponent
+  identity (~4.6x-38.8x observed across rounds 19-25) with zero threat to
+  our 100% round-win record across 25 rounds / 15 opponent identities so
+  far. This round's opponent (`jiricodes__jiricodes-bot`) was one of the
+  weakest yet (avg <1 final unit).
+- All three tunable weight constants remain settled/closed (Rounds 10 &
+  12). Genuinely still-untried ideas unchanged: multi-step lookahead
+  pathing (low-value per Round 5); "retreat when outnumbered" logic
+  (untried, real regression risk, still not needed).
+- `robot_v1_baseline.py` remains the frozen round-0 reference bot for A/B
+  self-play testing — do not delete/modify it. Still gives `robot.py` a
+  consistent, reproducible, side-independent edge (this round: 50-25-5
+  combined across both sides, 40 seeds each direction, 80 games total).
