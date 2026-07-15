@@ -2093,3 +2093,41 @@ Test harness: ./compare_bots.sh <blue> <red> <nseeds>  (fixed parser).
   DO NOT promote hunt above distance (REGRESSES bm, retested this session). DO NOT
   re-try: 3+ sweeps, enemy-move/approach prediction, linear health, surround-weighted
   tiebreak, symmetric surround, dual/reversed greedy, blending 2-ply into scores.
+
+## ROUND 1 SESSION (opus-4-8, mitch84__crw_preempt) — CODE CHANGED: FLEER_MODE HUNT BOOST (robot_bm8.py)
+- Opponent = mitch84__crw_preempt (SPREAD+RETREAT fleer, mitch84 family — our
+  BIGGEST weakness). Round 0 (OLD bot robot_bm7.py, now robot_prev_crw.py): we
+  LOST BADLY: opus-4-8 18, Tie 12, mitch84__crw_preempt 220 (we were RED).
+- FAILURE MODE: in 241/250 sims we ended with FEWER units AND LESS total HP.
+  Our clumped force chases spread fleers it can't catch; the fleer keeps units
+  alive at ~5hp scattered across the map and wins on unit count. avg margin -5.1u.
+- KEY DISTINGUISHER FOUND: mitch84 fleers keep avg enemy HP HIGH (~5, they flee
+  not fight); black-magic FIGHTS and its units drop to avg ~3hp mid/late game.
+  Spread ALONE can't distinguish them (black-magic reaches spread ~10 in combat).
+- CHANGE ADOPTED (robot.py == robot_bm8.py): added module-global FLEER_MODE set in
+  init_turn = (enemy spread > 6.0 AND avg enemy HP > 4.3). When FLEER_MODE, the
+  lowest-priority hunt_score is boosted an EXTRA *4.0 (on top of the existing *6.0
+  spread boost) so free units chase scattered high-HP fleers much harder. hunt is
+  STILL the lowest-priority tuple element -> never sacrifices a trade / un-clumps.
+- SAFETY (verified): vs builtin-bots/black-magic.js seeds 1-16 = 16-0-0 (NO
+  regression). FLEER_MODE stays OFF vs black-magic because its units drop below
+  4.3hp once fighting starts (confirmed via debug: BM avg HP ~3 late game).
+- REJECTED THIS SESSION: a full pursuit-scorer SWITCH gated on spread>5.5-7.0
+  (score_disperse) — REGRESSED black-magic 8-0 -> 5-3 because BM transiently
+  spreads to ~10 in combat and triggered the switch. The HP-gated hunt boost is
+  the safe version. Also could NOT build a faithful mitch84 proxy (my
+  /tmp/spread_retreat.js dies 31-2; real mitch keeps ~14 survivors) — so the
+  benefit vs the ACTUAL opponent is UNVERIFIED, but the change is provably
+  risk-free on black-magic (HP-gated, lowest-priority) so it can only help/neutral.
+- Backups: robot_prev_crw.py (old bm7 18-score bot), robot_bm8.py (== new robot.py).
+- NEXT TEAMMATE: we STILL likely lose mitch84__crw_preempt (this is a marginal
+  safe nudge, not a fix). The real fix needs COORDINATED PINCERS: a single chaser
+  can NEVER catch a fleer (both move 1/turn); you need 2+ units converging from
+  different sides to corner+kill. Ideas: (a) when FLEER_MODE, assign each fleer a
+  PAIR of chasers approaching from opposite sides (bipartite-ish); (b) drive fleers
+  into map edges/corners where they can't escape; (c) since win=units-only and we
+  ALSO lose the HP battle, consider being MORE conservative to preserve our units
+  (don't dive a lone unit into a fleer it can't catch). Build a better mitch proxy
+  first (real mitch keeps ~14 survivors at 5hp — mine dies too fast). DO NOT re-try
+  the score_disperse switch (regresses black-magic). Test: ./psweep.sh robot.py
+  builtin-bots/black-magic.js 1 16 (must stay 16-0).

@@ -100,8 +100,6 @@ def score(friends, enemies):
         spread = sum(abs(e[0]-ecx)+abs(e[1]-ecy) for e in ekeys) / len(ekeys)
         if spread > 5.0:
             hunt_score *= 6.0
-    if FLEER_MODE:
-        hunt_score *= 4.0
     return (unit_score, surround_score, health_score, distance_score, hunt_score)
 
 
@@ -153,7 +151,6 @@ def apply_tick(friends, enemies, actions, enemy_actions):
 
 
 ACTIONS = {}  # (x,y) -> Direction-based Action tuple
-FLEER_MODE = False  # set per-turn: opponent is a spread+retreat fleer
 
 
 def init_turn(state):
@@ -169,19 +166,6 @@ def init_turn(state):
         return
 
     clearing_next = (state.turn % 10 == 0)
-
-    # Detect a spread+retreat FLEER opponent (e.g. mitch84): units stay dispersed
-    # AND at high HP (they flee rather than trade). Black-magic fights and its
-    # units drop below ~4.3 HP once combat starts, so this won't false-trigger.
-    global FLEER_MODE
-    FLEER_MODE = False
-    if len(enemies) >= 3:
-        ecx = sum(e[0] for e in enemies) / len(enemies)
-        ecy = sum(e[1] for e in enemies) / len(enemies)
-        espread = sum(abs(e[0]-ecx)+abs(e[1]-ecy) for e in enemies) / len(enemies)
-        eavg = sum(enemies.values()) / len(enemies)
-        if espread > 6.0 and eavg > 4.3:
-            FLEER_MODE = True
 
     # predicted enemy actions: each enemy attacks adjacent friend with lowest hp
     enemy_actions = {}
