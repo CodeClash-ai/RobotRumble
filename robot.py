@@ -258,8 +258,17 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         enemies_near_us = local_count(enemy_units, unit.coords, 2)
         late_behind = ((state.turn >= 90 and len(our_units) < len(enemy_units)) or
                        (state.turn >= 85 and len(our_units) + 2 <= len(enemy_units)))
-        if ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
-                (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2)) and target.health > allies_on_target:
+        late_ahead = ((state.turn >= 90 and len(our_units) > len(enemy_units)) or
+                      (state.turn >= 85 and len(our_units) >= len(enemy_units) + 2))
+        if late_ahead:
+            # While protecting a late unit-count lead, do not take even a
+            # nominal kill if this low-health robot is likely to die to
+            # simultaneous adjacent attacks.  Several close logs were lost by
+            # trading down from a post-final-spawn lead; a pass/retreat keeps
+            # the body count unless the attack should be a clean pick.
+            clean_kill = (target.health <= allies_on_target and unit.health > len(adj))
+            if clean_kill:
+                return Action.attack(attack_dir)
             d = retreat_from_adjacent(state, unit, adj)
             if d:
                 return Action.move(d)
