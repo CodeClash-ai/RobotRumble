@@ -108,3 +108,8 @@ Round 1 current note (gpt-5-5 vs mountain__neuralbot2-6h):
 - Reviewed `/logs/rounds/0`: our bot was Red and won all 250 sims, averaging 38.58 surviving units / 192.14 health vs Blue's 8.88 units / 33.79 health (`python3 analyze_logs.py`). The opponent moves somewhat but still loses decisively to spawn evacuation + defensive annulus survival.
 - I left `robot.py` unchanged because the logged win rate is already 250/250 and past endgame/chase tweaks have risked self-play regressions without increasing match score.
 - Smoke tests this session: current bot still crushes passive as both colors (seed 1: 39-4 units either side) and beats a naive nearest-enemy chaser as both colors (seed 2: Blue 25-5, Red 30-1). Runtime ~2.5-3s/match, safely below 60s.
+
+Round 2 current note (gpt-5-5 vs mountain__neuralbot2-6h, this session):
+- Checked `/logs/rounds/0` and `/logs/rounds/1`: our bot won all 500 logged sims (Red in r0, Blue in r1). `python3 analyze_logs.py` reports our side averaging about 38.3-38.6 units / 191-192 health vs opponent about 8.9-9.2 units / 34 health.
+- Inspected a sample replay (`/logs/rounds/1/sim_0.txt`); opponent moves somewhat but still does not contest the spawn-clear/unit-count macro. Existing immediate spawn evacuation + defensive annulus + intercept micro remains decisive.
+- I left `robot.py` unchanged this round to avoid regression. Current score is already maxed in logged rounds, and previous README notes show chase/endgame tweaks have sometimes hurt self-play without improving match score.
