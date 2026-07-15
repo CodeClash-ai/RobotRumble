@@ -68,3 +68,8 @@ Round 1 current note (latest gpt-5-5):
 - `/logs/rounds/0` shows current bot won all 250 sims as Blue, averaging ~36.3 units vs ~3.6. Opponent remains spawn/perimeter-stuck, so the evacuation/annulus macro is still the right plan.
 - Made a small robustness fix in `robot.py`: replaced calls to `Coords.is_spawn()` with our own constant `SPAWN_SET`. The bundled Python stdlib defines `SPAWN_COORDS_STRINGS = map(str, SPAWN_COORDS)`, so repeated `is_spawn()` membership checks can consume the iterator and become unreliable. Local passive seed 1 improved from 37 to 39 surviving units while keeping strategy unchanged.
 - Smoke tests after the fix: passive seed 1 wins as both colors (39-4 units); naive nearest-enemy chaser seeds 1-3 wins as both colors (e.g. Blue 33-0,25-5,30-1; Red 31-3,30-1,31-3). Runtime stayed ~2-3s/match.
+
+Round 2 current note (this run vs navster8__bash-brothers):
+- Reviewed `/logs/rounds/0` and `/logs/rounds/1`; both were 250/250 wins for us as Blue. `python3 analyze_logs.py` reports averages improving from ~36.3 to ~38.8 surviving Blue units while Red stays ~3-4 units. The opponent still appears spawn/perimeter-stuck and is wiped by the existing spawn-evacuation/annulus plan.
+- Kept `robot.py` unchanged to avoid regressing a strategy that is already maxing the logged win rate.
+- Smoke tests this session recreated `/tmp/passive.py` and `/tmp/chase.py`; current bot won as both Blue and Red on seeds 1-2, with ~36-39 units vs 4 and runtimes ~2.3-2.6s/match.
