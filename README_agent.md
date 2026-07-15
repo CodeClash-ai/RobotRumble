@@ -3232,3 +3232,166 @@ recurs without improvement, tuning those two constants (e.g. try 1.5:1
 odds, or drop the health condition entirely) is a natural next step,
 using the same `tools/ab_test.py` 3-independent-batch methodology used
 here to avoid single-batch false signals.
+
+## Round 1 (this session) — new opponent `atl15__centerrr`; **FIRST GENUINE ROUND LOSS EVER RECORDED**
+
+Opponent: `atl15__centerrr` (new identity), logged as `/logs/rounds/0`.
+**Result: sonnet-5 LOST the round.** `results.json`: `winner:
+"atl15__centerrr"`, scores `atl15__centerrr=171, sonnet-5=68, Tie=11`
+(out of 250 games) — only **27.2% game win rate for us**. We were Red
+(`details`: "atl15__centerrr was Blue and sonnet-5 was Red"). Avg final
+units: ~7.78 (opponent/Blue) vs ~5.13 (us/Red), opponent ahead ~1.5x.
+This is the **first actual round loss in this bot's entire ~60+ round,
+~45+ distinct-opponent history** — every previous round was won outright
+(even the closest ones, like `clay__diag-lattice` at ~1.01x margin,
+squeaked out a technical win). Treat this as a serious signal, not a
+routine "slightly thinner margin" round.
+
+### Analysis done this session
+
+1. **No opponent source available** (`find / -iname "*atl15*" -o -iname
+   "*centerrr*"` outside `/logs/` → empty), as with nearly every prior
+   opponent — no way to build a matchup-specific counter directly from
+   their code.
+
+2. **Confirmed `robot.py` has no drift and no bug**: `git diff HEAD --
+   robot.py` clean at session start; sanity match
+   (`./rumblebot run term --results-only --seed 1 robot.py
+   robot_v1_baseline.py` → Blue won 67hp/22units vs 9hp/2units, ~3.3s,
+   no errors) matches every prior round's expected post-tune numbers
+   exactly — the engine/harness/our-own-code haven't regressed. This
+   loss is a genuine "this opponent is just better than our current
+   architecture in this matchup," not a bug on our side.
+
+3. **Re-confirmed the "late-game snowball" pattern** (previously
+   identified against `clay__diag-lattice` two sessions ago, see that
+   section above) — wrote a quick script (bucket-averaging `Units`
+   counts by turn number across 40 sim logs) and found:
+   ```
+   turn   opp(Blue)  us(Red)
+   0      4.0        4.0
+   20     8.53       9.12   <- we're actually AHEAD early!
+   40     9.43       9.28   <- roughly even through midgame
+   60     10.03      9.53   <- opponent starts pulling ahead
+   80     10.57      8.70   <- gap widening
+   95     9.55       6.92   <- gap widening fast
+   100    7.47       4.88   <- final: opponent way ahead
+   ```
+   **We are NOT behind early or even at midgame — we're actually
+   slightly ahead through turn ~40!** The loss is entirely a late-game
+   phenomenon (last ~40 turns), consistent with (and a second data point
+   confirming) the snowball mechanism already documented in the
+   `clay__diag-lattice` section: once a local numeric disadvantage opens
+   up anywhere on the map, it self-reinforces (fewer units locally →
+   worse trades → even fewer units) and by turn 100 the gap is large.
+   This strongly suggests the "locally-outnumbered retreat" logic
+   adopted 2 sessions ago (for exactly this reason) is **not
+   aggressive/effective enough against this specific opponent** — either
+   this opponent creates local-numeric-disadvantage situations more
+   often/more severely than `clay__diag-lattice` did, or triggers
+   conditions our retreat logic doesn't catch.
+
+4. **Two follow-up tuning experiments tried this session (both
+   NEGATIVE/regression vs current `robot.py`, NOT adopted, deleted
+   after testing)**:
+   - **Looser locally-outnumbered trigger**: replaced the `>= 2:1 ratio
+     AND health<5` condition with a simpler `adjacent_enemies >
+     adjacent_allies + 1` (any local disadvantage beyond parity,
+     regardless of health). Result vs current `robot.py`
+     (`tools/ab_test.py`, seeds 1-40 `--swap`, n=80): **35 wins, 39
+     losses, 6 ties** — essentially neutral-to-slightly-negative, not
+     an improvement.
+   - **Regroup-biased retreat destination**: when retreating, instead of
+     purely maximizing `min(distance to any enemy)`, added a `-0.3 *
+     distance_to_nearest_ally` term to the tile-scoring (bias retreat
+     direction toward regrouping with allies, not just running away
+     blindly). Result vs current `robot.py` (seeds 1-15, n=15, single
+     side only due to step-budget/tool-timeout constraints this
+     session): **4 wins, 11 losses** — a clear regression. Likely
+     explanation: biasing toward allies sometimes picks a *less safe*
+     tile among those tied on raw safety, or drags the retreating unit
+     back into a contested cluster it was trying to escape from.
+
+   Both experiment files were deleted after testing (regression/neutral,
+   not kept per repo convention — only `robot_retreat_experiment.py` is
+   kept as a historical exception since it documents a real debugging
+   story). **`robot.py` itself is unchanged this round** — did not adopt
+   either experiment given both were flat/negative at the sample sizes
+   tested.
+
+### For future teammates — this is now the top priority matchup to solve
+
+- **The core finding stands: this bot has a real, reproducible late-game
+  snowball weakness once a local numeric disadvantage opens up**, and
+  the existing `locally_outnumbered` retreat trigger (added specifically
+  to address this against `clay__diag-lattice`) is not sufficient against
+  `atl15__centerrr`. Two quick variations of the same "when do we
+  retreat" lever didn't help this session — **don't just keep
+  re-tuning the retreat trigger's threshold numbers** without a
+  fundamentally different angle, that avenue is looking played out fast.
+- **Untried, more promising angles for next session** (in priority
+  order):
+  1. **Reinforcement instead of / in addition to retreat**: rather than
+     (or in addition to) having an outnumbered unit flee, consider
+     having *nearby allies* preferentially path toward an ally that's
+     currently in a losing local fight (i.e. make `_pick_personal_target`
+     or a new signal pull allies toward "friendly units in danger,"
+     not just toward enemies) — this attacks the snowball from the other
+     direction (prevent the numeric disadvantage from opening up in the
+     first place by reinforcing faster, rather than only reacting once
+     it's already happened by fleeing).
+  2. **Investigate WHERE on the map the snowball starts** — pull a few
+     sim logs from this round (e.g. `sim_1.txt`, `sim_2.txt`, both clear
+     losses) and check turns 60-90 specifically for whether losses are
+     concentrated in one isolated fight (a unit or two got cut off far
+     from the group) vs. spread across many small skirmishes. The
+     ASCII render doesn't show team color (documented earlier in this
+     file — only health digits), so you can't visually tell which units
+     are which team directly from `sim_*.txt`; you'd need to either (a)
+     track unit continuity frame-to-frame by nearest-position matching
+     starting from the known-symmetric spawn assignment, or (b) run
+     fresh self-play games with `--raw` output (redirect to a file, per
+     an earlier session's tip — piping `--raw` through `head`/`tail`
+     can hang the docker-exec wrapper) to get actual team-tagged JSON,
+     since we don't have `atl15__centerrr`'s source to replay their
+     exact games but can still study our own bot's general behavior
+     patterns in similar many-small-groups scenarios.
+  3. **Re-check periodic spawn-wave timing**: the game spawns fresh units
+     every ~10 turns per earlier notes. Check whether the "opponent
+     pulls ahead late" pattern correlates with fewer effective spawn
+     waves reaching us in time (e.g. if our existing units are engaged/
+     dying just before a spawn wave while opponent's aren't) — this
+     would point to a scheduling/positioning issue distinct from pure
+     combat-trade efficiency.
+- **Do not** re-attempt the already-closed avenues without a
+  genuinely new angle: weight tuning (`HEALTH_WEIGHT`/`FOCUS_BONUS`/
+  `COORD_WEIGHT`, triply-closed), BFS multi-step lookahead pathing
+  (neutral), raw/ally-discounted danger-avoidance-on-approach (regression/
+  neutral, 2 tries), the original global "outnumbered retreat"
+  generalization (neutral), and now also the 2 variations of the
+  locally-outnumbered retreat trigger tried this session (neutral/
+  regression). All of these tinker with "when/whether a unit avoids or
+  flees a fight" — the more promising untried direction per point (1)
+  above is the opposite lever: making allies actively reinforce a losing
+  local fight faster, rather than only ever fleeing it.
+- If `atl15__centerrr` recurs, immediately re-run the per-turn
+  unit-count-bucket script (saved conceptually above, not as a
+  standalone file yet — **future teammate, consider saving it as
+  `tools/turn_trend.py`** taking a `/logs/rounds/N/` directory as an
+  argument, since it was very useful this session and worth
+  reusing/refining rather than rewriting from scratch) to check whether
+  any adopted change actually flattens the late-game divergence curve,
+  not just whether the final win/loss count improves (a change could
+  win more close games without actually fixing the underlying
+  mechanism, which would be a false-positive signal at small sample
+  sizes — see the `gerenuk__gere-ape` session's cautionary tale about a
+  57%-in-batch-1 result reversing in batch 2).
+
+**Update**: saved the per-turn unit-count trend analysis as
+`tools/turn_trend.py` (usage: `python3 tools/turn_trend.py
+/logs/rounds/N [--limit 40] [--step 5]`) — reusable for future rounds to
+quickly check whether a round's loss/thin-margin pattern is an
+early-game deficit or a late-game snowball, without rewriting the
+bucketing script each time. Verified it reproduces the exact numbers
+quoted above when run against `/logs/rounds/0` for this
+`atl15__centerrr` matchup.
