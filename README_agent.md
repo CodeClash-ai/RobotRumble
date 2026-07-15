@@ -3210,3 +3210,48 @@ Changing risks tipping our comfortable lead for marginal upside.
 - Regenerate test bots (Action/Direction/Coords/State globals, no logic import):
   * /tmp/aggro.py, /tmp/cluster.py, /tmp/marcher.py, /tmp/bench.py BOT OPP N B/R.
 - term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = gerenuk__gere-ape (STRONG, WE LOSE!)
+### Result recap
+- Round 0 (/logs/rounds/0/results.json): **LOST 72-145 w/ 33 TIES** vs
+  `gerenuk__gere-ape` (we were RED). FIRST opponent to BEAT us. mean unit margin
+  -1.46. Traced sim_0 (LOSS -15): even until t20, then we fall behind t30 and it
+  COMPOUNDS (t40 -5, t60 -8, t100 -15). Opponent out-fights us in the mid melee
+  AND our units get SCATTERED - at t60, some Red units stranded in bottom-right
+  corner doing NOTHING while the main group is outnumbered near Blue's spawn.
+### What I changed (robot.py) - DISABLED even_game RETREAT (tested RED-side fix)
+- `even_game` gate (turn>=50, my_units<=enemy_units, retreat fragile <=2HP units
+  when NOT ahead) set to False. It was STRANDING our fragile units out of the
+  fight exactly when we are BEHIND (the gere-ape failure mode) - when behind we
+  NEED every unit trading, not fleeing to a corner. This directly targets our
+  scatter/strand loss pattern.
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- term NON-DETERMINISTIC; ran 8x+ each, compared W/L/T + margins. We are RED.
+- no-even RED vs /tmp/cluster.py (16 games): W12 L0 T4 (baseline had 4 LOSSES
+  across samples: W5L3, W6L1T1, W7L0T1). ELIMINATES the RED-side losses.
+- no-even BLUE vs cluster: W6L0. vs /tmp/aggro.py both sides: all wins. NO
+  regression on the BLUE side.
+- SQUAD=3 (vs baseline 2): WORSE, keep SQUAD=2. Other tested & REJECTED this
+  round (all regressed vs cluster - introduced losses): regroup-when-behind
+  (+1 local thresh), tighter early grouping (turn<35), focus-radius 2->3,
+  anti-overextension +2->+3.
+### Decision: SHIPPED disabling even_game retreat. It removes the exact passivity
+that stranded our units when behind (our gere-ape loss pattern), eliminates the
+RED-side proxy losses, no BLUE-side regression. Best-validated change available.
+CAVEAT: proxies (cluster/aggro) are WEAKER than gere-ape - could not reproduce
+the real loss locally, so this is a best-effort fix on the closest proxy signal.
+### Guidance for next teammate
+- If STILL LOSING to gerenuk__gere-ape: the opponent out-trades us in the mid
+  melee (t20-40) AND concentrates force better. Untried levers: predict enemy
+  flee tile (movement resolves BEFORE attacks - attack where they'll be), or
+  concentrate ALL our force into ONE battle instead of the SQUAD spread. Test
+  RED side vs /tmp/cluster.py (our real side); reject anything with LOSSES.
+- If this fix WORKED (>72 wins): consider also disabling mid_lead/protect_lead
+  if they show similar strand behavior, but TEST first.
+- Regenerate: /tmp/aggro.py, /tmp/cluster.py, /tmp/marcher.py, /tmp/bench.py
+  BOT OPP N [B|R] (BOT plays that side; term non-deterministic, run 5-8x).
+  /tmp/robot_baseline.py = git show HEAD:robot.py.
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL, PREDICTIVE COVERAGE (-15), tighter
+  early grouping, adjacency-priority focus, focus-radius 2->3, SQUAD=3,
+  regroup-when-behind, anti-overextension +2->+3.
