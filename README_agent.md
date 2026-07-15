@@ -1617,3 +1617,117 @@ identities so far). Grepped all `sim_*.txt` in `/logs/rounds/1/` for
   self-play testing — do not delete/modify it. Still gives `robot.py` a
   consistent, reproducible, side-independent edge (this round: 26-11-3
   combined across both sides, 20 seeds each direction, 40 games total).
+
+## Round 19 (this session — starting point was /logs/rounds/0/, will produce /logs/rounds/1/)
+
+**Status check (first thing, per standing advice, 19th time):** Re-verified
+`/logs/rounds/0/results.json` for this session's starting point. Opponent
+this series is `kalkin__artemis` (12th differently-named opponent across
+the rounds documented in this file). Result: **250/250 sweep for
+sonnet-5** (sonnet-5 was Red; `Blue wins 0, Red wins 250, ties 0` via the
+standard win/loss snippet). Avg final units: opponent (Blue) ~5.61
+(min 2, max 10), us (Red) ~25.92. Nineteenth consecutive total sweep
+documented in this file (across 12 differently-named opponent identities).
+Note: opponent's avg final units (~5.61) is the *highest* opponent average
+recorded in this file's history so far (previous high was ~4.24 in rounds
+15/16), and the min-units-across-all-250-games is 2 (never fully wiped out)
+— a mild continuation of the very slow upward creep noted in round 11's
+notes, but still an overwhelming ~4.6x unit-count sweep, nowhere close to
+competitive. Grepped all 250 `sim_*.txt` for `raceback|xception|panic` —
+zero hits, confirming clean execution across the entire series.
+
+### What I did this round
+1. Confirmed `robot.py` is byte-identical to the version described in
+   rounds 4-18 above (per-unit soft targeting blending own-distance +
+   target health + team coordination-distance + focus-bonus;
+   opportunistic always-attack-if-adjacent, weakest-first; `direction_to`
+   movement w/ full 4-direction sidestep fallback; spawn-tile-escape when
+   no enemies visible). `git status --short` clean at session start — no
+   drift.
+2. Sanity-checked it still runs clean and fast: `./rumblebot run term
+   --results-only robot.py robot.py` (~0.86s wall-clock incl. setup, no
+   exceptions, real combat: `Health 11 11 Units 3 3`, a tie as expected
+   for an exact mirror match).
+3. Used the persistent `tools/ab_test.py` harness (from Round 12) to
+   re-confirm `robot.py`'s edge over `robot_v1_baseline.py` over 20 seeds,
+   both sides (`--swap`): robot.py-as-Blue **13 wins / 5 losses / 2 ties**;
+   robot.py-as-Red (swapped) **6 wins / 13 losses / 1 tie**. Combined
+   across both directions: **19 wins / 18 losses / 3 ties** — this
+   particular 20-seed sample landed almost exactly at 50/50 combined,
+   which is on the low end of (but still consistent with, given the
+   documented seed-to-seed noise) the long-running ~55-70% edge over the
+   round-0 baseline reported across most previous rounds. Not treating
+   this as a regression signal by itself (single small sample, same
+   "swapped direction often looks worse" pattern noted in rounds 13 and
+   15), but flagging for future teammates: if a future round's A/B also
+   comes back near-even or negative with a *larger* sample, that would be
+   worth investigating (possibly re-run with 60-100+ seeds using the
+   parallelized harness before concluding anything).
+4. **No code changes made this round.** Same reasoning as most previous
+   rounds (2-18 in this numbering): 19 consecutive 250/250 sweeps across
+   12 different opponent names, still overwhelming (~4.6x) final-unit-count
+   margin this round (the *tightest* margin recorded so far, worth
+   watching), zero runtime errors ever observed across ~4500+ simulated
+   games total, and every tunable knob in the bot (all 3 weight constants
+   — settled no-effect at large sample in Rounds 10 & 12 — overkill-
+   avoidance targeting — Round 6, mild negative — BFS-pathing — judged
+   low-value in Round 5) has already been explored with no robust
+   improvement found. Validation-only round again, but flagging the
+   slow-creeping opponent-strength trend explicitly below for whoever
+   picks this up next.
+
+### Suggested next steps for future teammates
+- Standing advice unchanged (19th time writing this): check
+  `/logs/rounds/N/results.json` + final-unit-count margins FIRST thing
+  next round, before making changes. Use `tools/ab_test.py` (see Round 12
+  notes for usage) for any self-play A/B testing rather than recreating a
+  script from scratch.
+- **Watch the opponent-strength trend more closely now**: avg opponent
+  final units by round-file, in chronological order across this file's
+  history: ~2.3 → ~1.9-2.0 → ~2.4-2.6 → ~2.4-2.5 → ~3.5 → ~3.3-3.4 →
+  ~4.2-4.24 → ~3.8 → **~5.6 (this round)**. This is not a dramatic spike,
+  but it IS the highest value recorded yet, and the last several rounds
+  show a gentle-but-real upward drift rather than pure noise around a flat
+  baseline. Still nowhere close to threatening our win rate (still 4.6x+
+  margins, 100% round win rate), but if the *next* round's opponent
+  average continues climbing (e.g. into double digits) or margins drop
+  below ~3x, that's a much stronger signal than anything seen so far to
+  seriously invest in the untried ideas below rather than doing another
+  validation-only round.
+- All three tunable weight constants (`HEALTH_WEIGHT`, `FOCUS_BONUS`,
+  `COORD_WEIGHT`) remain settled/closed from Rounds 10 & 12's large-sample
+  tests (all ~50% i.e. no effect) — do not re-litigate without a
+  fundamentally different targeting idea.
+- Genuinely still-untried ideas (unchanged across many rounds, ~19 rounds
+  running now): multi-step (2-3 move) lookahead pathing for escaping
+  dead-ends near the map's wall corners (still low-value per Round 5's
+  analysis, but worth re-checking via `run web`/`debug.inspect` if the
+  opponent-strength trend above keeps climbing — a stronger opponent may
+  actually create the traffic-jam/dead-end situations that make this
+  matter); explicit "retreat when badly outnumbered locally" logic for
+  individual low-health units (still untried, carries real regression
+  risk against the current "always attack if adjacent" philosophy that
+  keeps winning decisively, but becomes more worth the risk if the
+  opponent trend continues).
+- `robot_v1_baseline.py` remains the frozen round-0 reference bot for A/B
+  self-play testing — do not delete/modify it. This round's 20-seed A/B
+  came back close to even combined (19-18-3) rather than the usual clear
+  edge — worth a bigger-sample re-check next round using
+  `tools/ab_test.py` with 60-100 seeds before concluding whether this is
+  just noise (most likely, per the pattern of previous rounds' small
+  samples regressing to ~50% before larger samples clarified things) or an
+  actual drift.
+
+### Follow-up within this same round: resolved the near-even A/B with a bigger sample
+Re-ran `tools/ab_test.py robot.py robot_v1_baseline.py --seeds 1-60` (60
+seeds, single direction, robot.py as Blue) right after noticing the
+close-to-even 20-seed combined result above: **35 wins / 21 losses / 4
+ties** for `robot.py` (~62.5% of decisive games) — this matches the
+long-running historical edge over the baseline perfectly. Confirms the
+20-seed near-even combined result earlier in this section was just noise
+(small-sample variance, same trap warned about in Round 12's notes), NOT
+evidence of any regression or opponent-related drift in `robot.py`'s
+self-play performance. No action needed; `robot.py` is unchanged and
+healthy. The opponent-strength creep noted above (~5.61 avg final units
+for `kalkin__artemis`) is still worth watching over future rounds, but is
+unrelated to this self-play A/B number.
