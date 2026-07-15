@@ -11,13 +11,15 @@ from typing import *
 CENTER = Coords(9, 9)
 DIRECTIONS = [Direction.North, Direction.East, Direction.South, Direction.West]
 reserved_moves: Set[Coords] = set()
+reserved_attack_squares: Set[Coords] = set()
 our_units: List[Obj] = []
 enemy_units: List[Obj] = []
 
 
 def init_turn(state: State) -> None:
-    global reserved_moves, our_units, enemy_units
+    global reserved_moves, reserved_attack_squares, our_units, enemy_units
     reserved_moves = set()
+    reserved_attack_squares = set()
     our_units = state.objs_by_team(state.our_team)
     enemy_units = state.objs_by_team(state.other_team)
 
@@ -27,7 +29,8 @@ def in_bounds(c: Coords) -> bool:
 
 
 def is_free(state: State, c: Coords) -> bool:
-    return in_bounds(c) and c not in reserved_moves and state.obj_by_coords(c) is None
+    return (in_bounds(c) and c not in reserved_moves and
+            c not in reserved_attack_squares and state.obj_by_coords(c) is None)
 
 
 def enemy_at(state: State, c: Coords) -> Optional[Obj]:
@@ -118,7 +121,7 @@ def intercept_dir(state: State, unit: Obj) -> Optional[Direction]:
     best: Optional[Tuple[Tuple[int, int], Direction]] = None
     for d in DIRECTIONS:
         adj = unit.coords + d
-        if state.obj_by_coords(adj) is not None:
+        if state.obj_by_coords(adj) is not None or adj in reserved_moves:
             continue
         for e in enemy_units:
             if (e.coords.walking_distance_to(unit.coords) == 2 and
@@ -163,6 +166,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # into a brawl.  Do this only after spawn/perimeter evacuation.
     d = intercept_dir(state, unit)
     if d:
+        reserved_attack_squares.add(unit.coords + d)
         return Action.attack(d)
 
     # Take only local fights.  Do not over-chase perimeter bait or distant
