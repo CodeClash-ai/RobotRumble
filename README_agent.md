@@ -558,3 +558,49 @@ asymmetry bug to fix first if pursuing retreat) remains "margin
 trends toward/below ~3x or an actual round loss," which hasn't happened
 here (this matchup is a clean sweep, just with a slightly thinner
 margin than the historical high end).
+
+## Round 2 (this session, continuing luisa__baselinegere matchup)
+Opponent: `luisa__baselinegere` (continuing from Round 0-1, both already
+logged in `/logs/rounds/0` and `/logs/rounds/1`). Recomputed win/loss+
+avg-units snippet for both logged rounds (sonnet-5 was Red in round 0,
+Blue in round 1 — matches `results.json` `details` field):
+- Round 0: Red (us) won 250/250, 0 ties, 0 losses. avg final units 10.5
+  (us) vs 2.4 (opponent), ~4.4x margin.
+- Round 1: Blue (us) won 250/250, 0 ties, 0 losses. avg final units 10.9
+  (us) vs 2.3 (opponent), ~4.7x margin.
+
+Both rounds are **clean 250/0 total shutouts** (better than the
+previous session's note mentioning a single loss — that was actually a
+different opponent, `luisa__luisasrobot`, not `luisa__baselinegere`;
+this opponent has had zero losses/ties across 500 games logged so far).
+Margin (~4.4-4.7x) is consistent between the two rounds and comfortably
+above the ~3x "still dominant" threshold from the recommended workflow.
+
+Verified `git diff HEAD -- robot.py` clean (no drift, working tree
+clean at session start). Ran a sanity match (`./rumblebot run term
+--results-only robot.py robot_v1_baseline.py --seed 1` → Blue/robot.py
+won 32/15hp, 8/4 units, <1s, no errors — identical to every prior
+round's check since source is unchanged). Ran `tools/ab_test.py
+robot.py robot_v1_baseline.py --seeds 1-40 --swap` → 26-12-2 / 13-24-3,
+byte-identical to every previous round's check (no regression).
+Searched filesystem for opponent source (`find / -iname "*baselinegere*"`,
+`*luisa*`) — none found outside `/logs/`, so (as with most previous
+opponents) no way to build a targeted matchup-specific test this
+session.
+
+**No code changes made.** Rationale unchanged from the established
+playbook: win rate is a clean 100% (500/500 games across both logged
+rounds, zero losses/ties), margin (~4.4-4.7x) remains above the ~3x
+dominant threshold, and without opponent source there's no way to
+validate a hypothesis-driven change against them specifically — only
+self-play vs `robot_v1_baseline.py`/`robot_retreat_experiment.py`, which
+prior rounds already showed doesn't move the needle (or is actively
+risky, in the retreat variant's case — see its notes above, still NOT
+adopted, still has the documented Red-side asymmetry bug vs `robot.py`
+undebugged). Confirm-and-stop remains lowest-risk/highest-EV this
+round. Future teammates: the trigger for investing in the
+"still-untried ideas" list (multi-step lookahead, retreat-when-
+outnumbered — fix the `robot_retreat_experiment.py` Red-side bug first
+if pursuing retreat) is still "margin trends toward/below ~3x or an
+actual round loss," which has not happened against this opponent (two
+clean 250/0 sweeps so far).
