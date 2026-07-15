@@ -519,3 +519,78 @@ opponent name. No sign of the opponent adapting.
 - Remember: `rumblebot run term` calls are ~0.8-1s each; a `bash` tool
   call here times out around 30s wall-clock, so keep any A/B-loop to
   <=15-20 iterations per call (I hit exactly this timeout once this round).
+
+## Round 5 (this session — will produce /logs/rounds/1/ once submitted, since
+starting point this session was /logs/rounds/0/)
+
+**Status check (first thing, per standing advice):** Re-verified
+`/logs/rounds/0/results.json` for this session's starting point. Opponent
+this series is `ldang__nessy` (yet another new opponent name — 5th
+different name across the rounds documented in this file:
+`happysquid__test`, `anton__anton3000`, `anton__wallifier`, and now
+`ldang__nessy`). Result: **250/250 sweep for sonnet-5** again (`Blue wins 0,
+Red wins 250, ties 0` via the standard win/loss snippet; sonnet-5 was Red).
+Avg final units: opponent (Blue/ldang__nessy) ~2.56, us (Red) ~27.18. Same
+overwhelming-dominance pattern as every previous round in this file — 5
+opponent names, 5 total sweeps.
+
+### What I did this round
+1. Confirmed `robot.py` is unchanged from the version described in the
+   Round 4 section above (per-unit soft targeting blending own-distance +
+   target health + team coordination-distance + focus-bonus;
+   opportunistic always-attack-if-adjacent, weakest-first; `direction_to`
+   movement w/ full 4-direction sidestep fallback; spawn-tile-escape when
+   no enemies visible). No drift.
+2. Sanity-checked it still runs clean and fast: `./rumblebot run term
+   --results-only robot.py robot.py` (~0.95s wall clock, no
+   exceptions) and `--seed 42` (grepped output for
+   error/exception/traceback — none found).
+3. **Re-examined the movement/pathing "TODO: real BFS pathfinding" item
+   from previous rounds' notes and concluded it's likely not worth
+   pursuing**: `Direction` only has 4 values (North/South/East/West — see
+   `logic/lang-runners/python/stdlib/rumblelib.py`), and the existing
+   sidestep fallback in `_first_free_dir` already tries `direction`,
+   `direction.rotate_cw`, `direction.rotate_ccw`, and `direction.opposite`
+   as its dir list going into `robot()`'s fallback branch (3 dirs) plus the
+   direct `direction` attempt beforehand — i.e. **all 4 possible adjacent
+   moves are already checked exhaustively every turn before giving up and
+   passing**. A real BFS could still help find a better *2+ step* route
+   around obstacles instead of greedy 1-step preference, but given we're
+   already winning with a >10x final-unit-count margin every round, and
+   nobody has been able to show a robust A/B improvement from tuning
+   *any* aspect of this bot in 4+ attempts across previous rounds (see
+   Round 2/3/4 sections above), I did not implement this — flagging it as
+   probably low-value/deprioritize unless a future teammate specifically
+   observes units getting stuck via `debug.inspect`/`run web` traces.
+4. Re-ran the standard `robot.py` vs `robot_v1_baseline.py` self-play A/B
+   (new-as-Blue) over seeds 1-12: **7 wins / 4 losses / 1 tie** — consistent
+   with every previous round's finding of a modest (~55-65%) but real edge
+   over the round-0 baseline. No regression.
+5. **No code changes made this round.** Same reasoning as rounds 2-4: the
+   bot is sweeping 250/250 against every opponent name we've seen so far,
+   with an ever-growing final-unit-count margin, and no experiment run
+   across 4+ rounds of trying (weight tuning, this round's pathing
+   analysis) has found a clear, low-risk improvement worth risking a
+   regression for. Validation-only round.
+
+### Suggested next steps for future teammates
+- Standing advice unchanged: check `/logs/rounds/N/results.json` +
+  final-unit-count margins FIRST thing next round. Given 5 consecutive
+  250/250 sweeps against 5 different-named opponents now, this matchup
+  looks structurally lopsided (possibly these are all weak/starter-level
+  bots from the opponent's side) — keep prioritizing low-risk validation
+  over large rewrites unless/until an opponent actually contests unit
+  count.
+- The "is BFS pathfinding worth it" question can probably be marked
+  low-priority/closed unless someone has concrete evidence (via `run web`
+  + `debug.inspect`) of units actually getting stuck for multiple turns in
+  a real match log — the *single-step* exhaustiveness analysis above
+  suggests the theoretical failure mode (needing to look 2+ steps ahead to
+  escape a dead end) is narrow and hasn't been observed to matter in
+  practice across 5 rounds of sweeps.
+- Weight-constant tuning (`HEALTH_WEIGHT`/`FOCUS_BONUS`/`COORD_WEIGHT`) has
+  now been attempted/inconclusive across 4 separate rounds — still
+  recommend not re-attempting with small samples; either a large (50+
+  seed) one-sitting sweep, or leave it alone.
+- `robot_v1_baseline.py` remains the frozen round-0 reference for A/B
+  self-play testing — do not delete/modify it.
