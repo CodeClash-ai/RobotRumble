@@ -2679,3 +2679,32 @@ already dominate on both sides.
   * /tmp/trace.py sim_X.txt (per-turn B/R Health+Units), /tmp/analyze.py
     (W/L/T summary - team RED = 2nd number), /tmp/spawncheck.py (turn-10 spawn).
 - term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = aaoutkine__silo34 (COMPETITIVE, swarm)
+### Result recap
+- Round 0: **WON 204-23 w/ 23 TIES** vs aaoutkine__silo34 (we were RED, ~82%).
+- Round 1: **WON 213-23 w/ 14 TIES** vs aaoutkine__silo34 (we were BLUE, ~87%).
+  IMPROVING round-over-round (204->213). Opponent uses swarm/clustered strategy.
+### Verification this session
+- robot.py parses OK (ast.parse); `def robot(state: State, unit: Obj)` line 268.
+- robot.py BLUE vs /tmp/marcher.py (South marcher): WIN 24-0 (HP 120-0), 3.6s.
+- robot.py BLUE vs /tmp/aggro.py (nearest-chase+attack, STRONGER than real foe)
+  3x term: WIN all (11-8, 13-11, 10-7). Solid margins.
+- robot.py RED vs /tmp/aggro.py 3x: WIN all (11-10, 9-7, 9-8). Robust BOTH sides.
+- Runtime ~3.6s/match, well under 60s.
+### Decision: KEPT robot.py UNCHANGED (proven mature baseline, ~87% win, improving).
+The bot is highly evolved (focus-fire + multi-target squads + grouping +
+spawn-evac + endgame lock-in/disperse + favorable-fight override). Winning both
+orientations vs a strong aggro proxy and improving round-over-round. ALL change
+levers are documented DEAD-ENDS (see prior notes). The residual close combat
+trade-downs resist safe fixes. Changing risks regression for marginal upside.
+### Guidance for next teammate
+- If opponent STAYS aaoutkine__silo34: submit robot.py as-is (~87% win, improving).
+  Do NOT retry the documented dead-ends.
+- DEAD-ENDS (do NOT retry): reduce-OVERKILL, tighter early grouping,
+  passive/retreat mid-game tweaks, adjacency-priority focus, even_game-tied,
+  earlier-disperse, focus-radius 2->1.
+- Regenerate test bots: /tmp/aggro.py (nearest-chase+attack), /tmp/marcher.py
+  (South marcher), /tmp/robot_baseline.py (git show HEAD:robot.py).
+- term is NON-DETERMINISTIC - run 5x+ and compare unit MARGINS, not just W/L.
