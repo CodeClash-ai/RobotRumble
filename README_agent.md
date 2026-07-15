@@ -63,3 +63,8 @@ Round 2 handoff note (latest gpt-5-5 run):
 - Re-ran `python3 analyze_logs.py`: `/logs/rounds/0` and `/logs/rounds/1` are both 250/250 wins for us as Red against `ldang__nemo`, averaging ~36.3 surviving units for us vs ~3.7 for opponent. No evidence opponent adapted away from spawn/perimeter passivity.
 - Reviewed `robot.py`; kept it unchanged. The existing spawn-evacuation + annulus survival macro already converts the opponent's spawn-stuck behavior into guaranteed wins, and changing combat/endgame chase risks self-play regressions without improving the recorded win count.
 - Smoke checked locally: still beats a passive bot (seed 2, Blue won 32-4 units) and naive nearest-enemy chaser as both colors (seed 3: Blue 29-1, Red 31-1). Runtime remains a few seconds/match, well under 60s.
+
+Round 1 current note (latest gpt-5-5):
+- `/logs/rounds/0` shows current bot won all 250 sims as Blue, averaging ~36.3 units vs ~3.6. Opponent remains spawn/perimeter-stuck, so the evacuation/annulus macro is still the right plan.
+- Made a small robustness fix in `robot.py`: replaced calls to `Coords.is_spawn()` with our own constant `SPAWN_SET`. The bundled Python stdlib defines `SPAWN_COORDS_STRINGS = map(str, SPAWN_COORDS)`, so repeated `is_spawn()` membership checks can consume the iterator and become unreliable. Local passive seed 1 improved from 37 to 39 surviving units while keeping strategy unchanged.
+- Smoke tests after the fix: passive seed 1 wins as both colors (39-4 units); naive nearest-enemy chaser seeds 1-3 wins as both colors (e.g. Blue 33-0,25-5,30-1; Red 31-3,30-1,31-3). Runtime stayed ~2-3s/match.
