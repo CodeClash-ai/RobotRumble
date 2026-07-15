@@ -1563,3 +1563,47 @@ regressions vs aggro/marcher on either orientation.
 - Regenerate test bots: /tmp/aggro.py, /tmp/marcher.py, /tmp/cluster.py
   (defensive rally+attack), /tmp/robot_baseline.py (git show HEAD:robot.py),
   /tmp/batch.sh, /tmp/spawn.py, /tmp/trace.py, /tmp/analyze.py.
+
+---
+## Round 0 edit (opus-4-8, THIS session) - opponent = mousetail__genetic-robot (COMPETITIVE)
+### Result recap
+- Round 0 (/logs/rounds/0/): **WON 218-22 with 10 TIES** vs
+  `mousetail__genetic-robot` (we were RED). ~87% win. Opponent COMPETITIVE:
+  in all 22 losses Blue is ahead on BOTH units AND HP.
+### ROOT CAUSE of losses (traced sim_22/12/52 spawn deltas via clear_spawn):
+- Spawns are SYMMETRIC (lib.rs spawn_units): each free spawn-PAIR spawns 1 blue
+  + 1 red simultaneously, so per-turn spawn COUNT is EQUAL for both teams.
+- The ONLY way we end a spawn turn with FEWER units is `clear_spawn`: it DELETES
+  any unit (ours) sitting ON a spawn tile at the start of the spawn turn, BEFORE
+  spawning. In losses RED got +0/+1 late spawns (turns 80/90) while Blue got
+  +3/+4 => our units were being WIPED on spawn tiles (retreat/regroup pushed
+  fragile units back into our home spawn zone late-game, then clear_spawn nuked
+  them -> we lose the count race, and count is the win condition).
+### What I changed (robot.py) - SPAWN-TILE AVOIDANCE (low-risk, targeted)
+- Added `bad_spawn_tile(state,c)` = `spawn_turn_soon(state) and c.is_spawn()`.
+- retreat(), regroup_toward_allies(), and step_toward() now SKIP any candidate
+  tile that is a bad_spawn_tile => our units never END a pre-spawn turn on a
+  spawn tile and get wiped. evacuate_spawn already handled units already ON
+  spawn tiles; this stops them RE-ENTERING via retreat/regroup/step.
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD robot.py pre-edit)
+- NEW RED vs /tmp/aggro.py (STRONGER than real foe): all wins (term 14-11,
+  batch seeds 1-4 all Red). Baseline also all wins. NO regression.
+- NEW RED vs /tmp/marcher.py: WIN 25-2 (baseline 26-1, equal; marcher doesn't
+  contest spawns so no wipe scenario). No regression vs passive.
+- Head-to-head NEW vs baseline: dominated by the known side (map) bias (Blue
+  wins seeds 1,2; Red seed 3 in BOTH orientations) - inconclusive as always.
+- robot.py parses OK; runtime ~2s/match, well under 60s.
+### Decision: SHIPPED spawn-tile avoidance. It removes a self-inflicted unit
+loss (getting wiped by clear_spawn) that was the documented root cause of the
+count-race losses. Strictly-safe constraint; no regression found.
+### Guidance for next teammate
+- If opponent STAYS mousetail__genetic-robot: this should convert some
+  losses/ties by stopping late-game spawn-tile wipes. VERIFY in next round's
+  sim logs: check spawn deltas at turns 80/90 (use the python snippet reading
+  Health lines, units are re.findall(r'\d+', line)[2:4]) - RED should now get
+  +3/+4 like Blue, not +0/+1.
+- Regenerate test bots: /tmp/aggro.py, /tmp/marcher.py, /tmp/robot_baseline.py
+  (=git show HEAD:robot.py), /tmp/batch.sh (BLUE RED N, N<=5 for 30s cap).
+- Further ideas: units may occasionally get STUCK (step_toward returns None if
+  its only free tile is a spawn tile pre-spawn) - acceptable (staying safe), but
+  could add a non-spawn fallback. Reduce OVERKILL for more net kills/turn.

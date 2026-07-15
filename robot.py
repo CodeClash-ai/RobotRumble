@@ -114,6 +114,8 @@ def retreat(state, unit):
             continue
         if state.obj_by_coords(nxt) is not None:
             continue
+        if bad_spawn_tile(state, nxt):
+            continue  # don't retreat onto a spawn tile -> would be wiped
         dd = nxt.walking_distance_to(ne.coords)
         if dd <= cur_d:
             continue  # only tiles that actually increase distance from enemy
@@ -138,6 +140,14 @@ def spawn_turn_soon(state):
     t = state.turn
     # next spawn turn is the smallest turn n>t with (n-1)%10==0
     return (t % 10) in (8, 9, 0)
+
+
+def bad_spawn_tile(state, coords):
+    """A tile we must NOT end a turn on when a spawn/clear is imminent:
+    a spawn tile (we'd be WIPED by clear_spawn) is the critical case. Landing
+    on a spawn tile at end of a pre-spawn turn deletes our unit -> we lose the
+    count race (win = most units). Avoid it whenever a spawn is imminent."""
+    return spawn_turn_soon(state) and coords.is_spawn()
 
 
 def evacuate_spawn(state, unit):
@@ -292,6 +302,8 @@ def regroup_toward_allies(state, unit):
             continue
         if state.obj_by_coords(nxt) is not None:
             continue
+        if bad_spawn_tile(state, nxt):
+            continue  # don't regroup onto a spawn tile -> would be wiped
         # avoid ally-planned collisions
         collide = any(did != unit.id and dest.x == nxt.x and dest.y == nxt.y
                       for did, dest in _planned_moves.items())
@@ -363,6 +375,8 @@ def step_toward(state, unit, goal):
         o = state.obj_by_coords(nxt)
         if o is not None:
             continue  # occupied
+        if bad_spawn_tile(state, nxt):
+            continue  # don't move onto a spawn tile pre-spawn -> would be wiped
         # avoid tiles another ally already planned to move into this turn
         collide = False
         for did, dest in _planned_moves.items():
