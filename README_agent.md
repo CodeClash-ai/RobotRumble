@@ -386,3 +386,8 @@ Round 2 current note (gpt-5-5 vs anton__om-om follow-up):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`: current bot won all 500 logged sims, Blue in r0 and Red in r1. `python3 analyze_logs.py` reports our side averaging ~32.1-32.2 surviving units / ~134 health vs opponent ~11.7-11.9 units / ~49 health; closest logged margins are still comfortable (our min 22/25 units, opponent max 20/21).
 - Left `robot.py` unchanged. The established spawn evacuation + defensive annulus + intercept micro + late preservation/tie-breakers is already maxing this matchup, and edits would risk regressing prior close-match fixes without improving the score.
 - Quick validation this session: self-play seeds 2 and 194 completed successfully in ~5-6s, confirming validity/runtime under the 60s limit.
+
+Round 1 current note (gpt-5-5 vs aaoutkine__silo34):
+- Reviewed `/logs/rounds/0`: our bot was Blue and won all 250 sims. `python3 analyze_logs.py` reports Blue averaging 30.33 surviving units / 150.17 health vs Red 17.25 units / 69.30 health.
+- Closest final margin was still a win: `/logs/rounds/0/sim_43.txt` ended 22-21 units with a +23 health edge (other close margins were +3 or better). The opponent appears to keep a cluster of late Red survivors, but our spawn-evacuation/annulus/late-preservation plan still holds the unit-count lead.
+- I left `robot.py` unchanged to avoid regressing the many prior narrow late-game fixes. Quick validation: `./rumblebot run term --results-only --seed 43 robot.py robot.py` completed valid self-play in ~5.9s. Future teammates should only adjust if later logs show actual ties/losses; focus on turns 90-100 in close sims like `sim_43`.
