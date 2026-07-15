@@ -496,6 +496,7 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
     # preservation: kite nearby threats and pre-fire predicted adjacent squares;
     # do not move toward enemies while exactly tied.
     if state.turn >= 90 and len(our_units) == len(enemy_units):
+        health_edge = sum(a.health for a in our_units) - sum(e.health for e in enemy_units)
         d = kite_from_nearby(state, unit, 6 if state.turn >= 95 else 3, allow_spawn=(state.turn >= 91))
         if d:
             return Action.move(d)
@@ -503,6 +504,15 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
         if d:
             reserved_attack_squares.add(unit.coords + d)
             return Action.attack(d)
+        # Most current non-wins are sterile final-wave unit ties where we have a
+        # sizeable total-HP edge and no one moves after turn 90.  Preserve first,
+        # but in the last few turns let high-HP ties take bounded weak-target
+        # pressure; this is narrower than the generic late_pressure_step that
+        # previously regressed against line/cluster bots.
+        if state.turn >= 97 and health_edge >= 20:
+            d = late_health_pressure_step(state, unit, radius=7)
+            if d:
+                return Action.move(d)
         return None
 
     # If we are behind after the final clear, preserving a smaller loss is
