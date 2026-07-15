@@ -254,3 +254,76 @@ get closer to 50/50 on some seeds. Concretely, the "retreat when badly
 outnumbered locally" idea seems most promising to try first, since the
 loss/tie games show us and the opponent trading down roughly in lockstep
 rather than one side avoiding bad trades.
+
+## Round 2 (this session, continuing aaa__jippty5 matchup) — retreat experiment attempted, NOT adopted (bug found)
+
+Continuing from Rounds 0-1 this matchup (both logged already, 247/2/1 and
+248/0/2 for sonnet-5 — dominant but with real losses/ties for the first
+time in ~30 rounds, per prior note flagging `aaa__jippty5` as the first
+genuinely competent opponent). Per the "still-untried ideas" flag from
+last round, I implemented and tested the "retreat when about to take
+lethal damage" idea:
+
+**Mechanic discovered** (traced `logic/logic/src/lib.rs::run_turn`):
+combat is NOT a simple simultaneous-exchange model where moving away
+still lets you get hit. Attacks target a *coordinate* (attacker's
+start-of-turn position + direction), and are resolved via grid lookup
+*after* all movement for the turn is applied. So if a unit vacates its
+tile (moves anywhere valid) on the same turn enemies attack that tile,
+**every attack aimed at that tile simply whiffs**, regardless of how
+many enemies were attacking it. This means retreating is a hard counter
+to being surrounded/focused, not just a marginal EV improvement.
+
+**Implementation** (`robot_retreat_experiment.py`, NOT wired into
+`robot.py`): in the "adjacent enemy" branch, added a pre-check — if
+`len(adjacent_enemies) >= unit.health` (i.e. we'd die this turn if
+everyone adjacent lands their hit), instead of always attacking, scan
+all 4 directions for a free (non-wall/unit) tile and move to whichever
+maximizes `min distance to any enemy`; only actually retreats if that's
+strictly better than staying (dist 1). Otherwise falls through to the
+existing always-attack logic unchanged.
+
+**Result: REJECTED — found a severe side-dependent bug.**
+`tools/ab_test.py robot_retreat_experiment.py robot.py --seeds 1-40
+--swap`:
+- As Blue vs `robot.py` (Red): retreat variant won **39/40**.
+- As Red vs `robot.py` (Blue): retreat variant won **0/40** — total
+  wipeout, not just a losing record.
+
+For comparison, `robot.py` vs `robot_v1_baseline.py` with `--swap` gives
+the expected ~26-12-2 / 13-24-3 split (decisive but NOT side-locked —
+robot.py wins comfortably from *either* side). The retreat variant's
+0/40-as-Red vs 39/40-as-Blue split is wildly more extreme than any
+side-bias ever observed in ~30 rounds of this codebase's history, which
+strongly suggests **the retreat logic itself has a team/coordinate-frame
+bug that only manifests for the Red team** (e.g. `Direction` semantics,
+`is_spawn()`, or grid-coordinate orientation possibly differing by team
+in a way `_first_free_dir`-style code doesn't already account for, but
+this new direction-scoring loop does incorrectly) — not a real strategic
+downside of retreating itself. Did not have remaining step budget this
+round to isolate the exact root cause (candidate suspects: `Direction`
+enum semantics differing by team, or the `min(..., key=...)` tie-break
+when multiple directions have equal `best_safety` silently picking a
+bad one only under Red's coordinate orientation — untested).
+
+**No changes made to `robot.py`** (still byte-identical to the version
+that's won 32+ consecutive rounds) — the experiment file
+`robot_retreat_experiment.py` is left in the repo for whoever wants to
+debug the side-asymmetry further, but should NOT be adopted as-is under
+any circumstances (0/40 as Red is a severe regression, not noise at
+n=40).
+
+**For future teammates**: if you want to pursue the retreat idea (still
+theoretically sound per the mechanic above, and potentially valuable
+against tougher opponents like `aaa__jippty5`), start by debugging why
+`robot_retreat_experiment.py` behaves so differently as Red vs Blue
+before doing anything else — e.g. add a `debug.inspect` dump of
+`Direction` values / candidate `dest` coords in the retreat branch and
+compare a Red-side game log turn-by-turn against a Blue-side one on the
+same seed. Do NOT just re-run the same A/B with more seeds hoping the
+asymmetry goes away — 0/40 is already conclusive that something is
+mechanically broken specifically for one side, not a small-sample
+fluke.
+
+Otherwise, status quo stands: `robot.py` unchanged, still the
+proven 32+-round-winning strategy.
