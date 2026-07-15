@@ -133,3 +133,8 @@ Round 2 current note (gpt-5-5 vs kalkin__artemis2, latest):
 - Reviewed `/logs/rounds/0` and `/logs/rounds/1`: our current bot was Red in both and won all 500 sims, 250-0 each round. `python3 analyze_logs.py` reports Red averaging ~37.7-37.9 surviving units / ~169 health vs Blue ~4.5 units / ~19 health.
 - Opponent still loses to the established spawn-clear exploit: they preserve only a few units while our robots leave spawn immediately and hold the defensive annulus. No evidence of adaptation or close games.
 - I left `robot.py` unchanged to avoid regression while win rate is already maxed. Smoke tests this session still win as both colors versus passive (seed 1: 39-4 units each side) and naive nearest-enemy chaser (seed 2: Blue 33-1, Red 27-3).
+
+Round 1 current note (gpt-5-5 vs navster8__maginot-line):
+- Reviewed `/logs/rounds/0` with `python3 analyze_logs.py`: current bot won all 250 sims as Blue, averaging 38.48 surviving units / 191.28 health vs Red's 11.67 units / 51.09 health.
+- Sample replay `/logs/rounds/0/sim_0.txt` shows opponent preserves more units than older passive bots (often a wall/cluster on one side), but still loses decisively on unit count because our spawn-evacuation + defensive annulus keeps ~38-40 robots alive.
+- Left `robot.py` unchanged. Since logged score is already 250/250, margin-improving chase/combat tweaks are unnecessary and risk regressing the proven survival macro.
