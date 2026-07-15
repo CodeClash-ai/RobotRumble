@@ -975,3 +975,93 @@ Grepped all 250 `sim_*.txt` for `raceback|xception|panic` — zero hits.
   self-play testing — do not delete/modify it. `robot.py` still beats it
   cleanly in quick spot-checks this round (e.g. `Health 15 23 Units 3 6`
   as Red vs baseline as Blue).
+
+## Round 11 (this session — starting point was /logs/rounds/0/, will produce /logs/rounds/1/)
+
+**Status check (first thing, per standing advice, 11th time):** Re-verified
+`/logs/rounds/0/results.json` for this session's starting point. Opponent
+this series is `aaoutkine__dark-knight` (8th differently-named opponent
+across the rounds documented in this file: anton__anton3000,
+happysquid__test, anton__wallifier, ldang__nessy, ldang__nemo,
+navster8__bash-brothers, and now aaoutkine__dark-knight). Result:
+**250/250 sweep for sonnet-5** (sonnet-5 was Red; `Blue wins 0, Red wins
+250, ties 0` via the standard win/loss snippet). Avg final units: opponent
+(Blue) ~3.55, us (Red) ~26.19. Eleventh consecutive total sweep documented
+in this file. Note: opponent's avg final units (~3.55) is a bit *higher*
+than the two previous rounds vs `navster8__bash-brothers` (~2.40, ~2.49),
+which *might* be a very slight uptick in opponent strength, but it's still
+an overwhelming ~7.4x unit-count sweep, nowhere close to competitive.
+Grepped all 250 `sim_*.txt` for `raceback|xception|panic` — zero hits,
+confirming clean execution.
+
+Also noticed (from `git log --oneline`) that commit messages reference a
+`Rung N/58 (opponent, elo #M)` ladder system — e.g. `navster8__bash-brothers`
+was "Rung 6/58, elo #53". This implies we're climbing a fixed ladder of 58
+opponents from weakest to strongest as we keep winning (rung number goes
+up, elo rank number goes down = climbing toward stronger competition). This
+round's opponent (`aaoutkine__dark-knight`) is presumably Rung 7 or 8 in
+that same ladder. Worth flagging for future teammates: as the ladder
+climbs, expect opponents to *eventually* get harder — the still-untried
+ideas list below (multi-step pathing, retreat logic) may become relevant
+sooner rather than later. Keep an eye on avg-final-units trends round over
+round as an early warning signal (this round's 3.55 avg for the opponent is
+the highest opponent average recorded in this file's history so far, though
+still trivial to beat).
+
+### What I did this round
+1. Confirmed `robot.py` is byte-identical to the version described in
+   rounds 4-10 above (per-unit soft targeting blending own-distance +
+   target health + team coordination-distance + focus-bonus;
+   opportunistic always-attack-if-adjacent, weakest-first; `direction_to`
+   movement w/ full 4-direction sidestep fallback; spawn-tile-escape when
+   no enemies visible). `git status --short` clean at session start — no
+   drift.
+2. Sanity-checked it still runs clean and fast: `./rumblebot run term
+   --results-only robot.py robot.py` (~1.0-1.2s wall-clock incl. ~90ms
+   setup, no exceptions, real combat) and vs `robot_v1_baseline.py`
+   (~0.55s, no exceptions).
+3. Re-ran the parallelized self-play A/B vs `robot_v1_baseline.py`
+   (`robot.py` as Blue) using the `ThreadPoolExecutor`-based harness
+   documented in Round 10's notes, over seeds 1-40: **26 wins / 12 losses /
+   2 ties** (~65-68% win rate) — consistent with every previous round's
+   ~55-70% edge over the round-0 baseline, confirming no regression at a
+   larger (40-seed) sample size than most previous single-round checks.
+4. **No code changes made this round.** Same reasoning as most previous
+   rounds (2-10 in this numbering): 11 consecutive 250/250 sweeps across 8
+   different opponent names, still overwhelming (~7x+) final-unit-count
+   margins even in this round's slightly-less-lopsided result, zero
+   runtime errors ever observed across ~2500+ simulated games total, and
+   no experiment in any previous round (weight-constant tuning — now
+   settled at large sample as no-effect per Round 10 — overkill-avoidance
+   targeting, BFS-pathing analysis) has found a robust improvement.
+   Validation-only round again.
+
+### Suggested next steps for future teammates
+- Standing advice (11th time writing this, still true): check
+  `/logs/rounds/N/results.json` + final-unit-count margins FIRST thing
+  next round, before making changes.
+- **New this round**: also glance at `git log --oneline` for the
+  `Rung N/58 (opponent, elo #M)` pattern in recent commit messages to get a
+  sense of ladder position/trajectory — rung numbers should keep climbing
+  (and elo-rank numbers dropping) as long as we keep winning. If a rung
+  number ever *doesn't* advance, or the avg-opponent-final-units trend
+  (tracked round-over-round in this file) keeps climbing rather than
+  staying flat/low, that's a concrete signal the matchups are getting
+  harder — time to seriously invest in the still-untried ideas list below
+  instead of validation-only rounds.
+- Genuinely still-untried ideas (unchanged from several previous rounds):
+  multi-step (2-3 move) lookahead pathing for escaping dead-ends near the
+  map's wall corners; explicit "retreat when badly outnumbered locally"
+  logic for individual low-health units. Still not necessary yet (11
+  rounds, 8 opponent names, all crushed), but keep this list ready in case
+  the ladder trend noted above starts to matter.
+- Settled/closed questions (do not re-litigate without a very large new
+  sample): `HEALTH_WEIGHT`/`FOCUS_BONUS`/`COORD_WEIGHT` tuning (settled
+  no-effect at 241 games in Round 10), overkill-avoidance targeting
+  (Round 6, mild negative at 36 games), BFS/multi-step pathfinding
+  (analyzed, judged low-value given exhaustive single-step sidestep
+  fallback already in place).
+- `robot_v1_baseline.py` remains the frozen round-0 reference bot for A/B
+  self-play testing — do not delete/modify it. Still gives `robot.py` a
+  consistent edge (this round: 26-12-2 over 40 seeds, the largest sample
+  yet for a single-round check).
