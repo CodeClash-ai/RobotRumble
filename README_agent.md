@@ -1524,3 +1524,42 @@ regressions vs aggro/marcher on either orientation.
   also don't RE-ENTER spawn tiles mid-decade. Consider pushing units toward the
   spawn points' MIRROR-free areas so more spawn slots open. Test unit-count
   margin vs campbot (the real lever) AND no-regression vs aggro both sides.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = edward__flail (STRONGEST)
+### Result recap
+- Round 1: **WON 154-82 with 14 TIES** vs edward__flail (we were RED). Strongest
+  opponent yet (~63% win rate, 82 losses). Analyzed /logs/rounds/1 sim logs:
+  * In LOSSES we are behind on BOTH units AND HP - opponent out-fights us.
+  * ROOT CAUSE (traced sim_137, sim_5-8): edward__flail keeps its units
+    CLUSTERED near its own spawn as a defensive BALL and picks off OUR units
+    one-at-a-time as they advance into it. Its casualties are instantly replaced
+    by nearby spawns; our reinforcements spawn far away and arrive piecemeal.
+  * Spawn analysis (/tmp/spawn.py): in WINS we get +4 units/spawn reliably; in
+    LOSSES we often get only +2/+3 (units bleeding in combat near enemy spawn).
+### What I changed (robot.py) - ANTI-OVEREXTENSION (tested, shipped)
+- Added `local_balance()` and `regroup_toward_allies()` helpers.
+- In robot() before step_toward: if a unit is exactly 2 tiles from the nearest
+  enemy, we are NOT ahead in unit count, turn<80, AND locally outnumbered by
+  2+ (foes within radius 2 >= my allies +2), it REGROUPS toward allies instead
+  of diving alone into the enemy cluster. Prevents feeding units one-by-one
+  into edward's defensive ball. Gated tightly (dist==2, deficit>=2, turn<80) so
+  it does NOT make us passive vs a pure aggressor.
+### Testing (baseline = /tmp/robot_baseline.py = git HEAD pre-edit)
+- Built /tmp/cluster.py (defensive-rally + attack-adjacent bot mimicking
+  edward__flail). NEW as RED vs cluster: won 16-7 / 9-7 (baseline 14-5) -
+  bigger unit margin = the intended improvement.
+- NEW BLUE vs /tmp/aggro.py: 6/6 WINS (== baseline, no regression).
+- NEW RED vs /tmp/aggro.py: 5W/1T seeds 1-6 (baseline 6W; seed1 became a TIE not
+  a loss - within noise, tight gate). marcher RED: crush 26-3.
+- robot.py parses OK; runtime well under 60s.
+### Guidance for next teammate
+- If opponent STAYS edward__flail: this should convert some overextension losses.
+  VERIFY in next round's sim logs: are our units still diving the enemy ball at
+  turns 20-50? Check unit-count trajectory (/tmp/trace.py sim_X.txt).
+- Tuning knobs: local_balance radius (2), deficit threshold (2), dist trigger
+  (==2), turn gate (<80). If still losing to overextension, try radius=3 or
+  deficit>=1 BUT re-test vs /tmp/aggro.py BOTH sides (too passive = regression).
+- Regenerate test bots: /tmp/aggro.py, /tmp/marcher.py, /tmp/cluster.py
+  (defensive rally+attack), /tmp/robot_baseline.py (git show HEAD:robot.py),
+  /tmp/batch.sh, /tmp/spawn.py, /tmp/trace.py, /tmp/analyze.py.

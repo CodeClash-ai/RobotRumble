@@ -255,7 +255,57 @@ def robot(state: State, unit: Obj) -> Optional[Action]:
 
     # 2) Move toward focus target if reachable, else nearest weak enemy.
     target = pick_target(state, unit, enemies)
+    # ANTI-OVEREXTENSION: edward__flail clusters defensively near its spawn and
+    # picks off our units one at a time as they arrive. If advancing would put
+    # us adjacent to the enemy cluster while we are LOCALLY OUTNUMBERED, hold
+    # back and regroup toward allies rather than feed a lone unit into the ball.
+    # Only applies in the neutral/early-mid game when we still have units coming.
+    nearest = min(enemies, key=lambda e: my.walking_distance_to(e.coords))
+    dist_to_enemy = my.walking_distance_to(nearest.coords)
+    my_units = len(state.objs_by_team(my_team))
+    enemy_units = len(enemies)
+    if dist_to_enemy == 2 and my_units <= enemy_units and state.turn < 80:
+        mine_near, foes_near = local_balance(state, my, my_team, other_team, radius=2)
+        # Only hold if we are clearly outnumbered locally (2+), so a lone unit
+        # doesn't dive a defensive ball. A small deficit we still contest.
+        if foes_near >= mine_near + 2:
+            # locally outnumbered right at the front: regroup toward allies
+            rg = regroup_toward_allies(state, unit)
+            if rg is not None:
+                return rg
     return step_toward(state, unit, target.coords)
+
+
+def regroup_toward_allies(state, unit):
+    """Move to the free adjacent tile that minimizes distance to nearby allies
+    (pull the pack together) while not stepping into an enemy-adjacent tile."""
+    other = state.other_team
+    my = unit.coords
+    allies = [u for u in state.objs_by_team(unit.team) if u.id != unit.id]
+    if not allies:
+        return None
+    best = None
+    best_key = None
+    for d in DIRECTIONS:
+        nxt = my + d
+        if blocked_tile(state, nxt):
+            continue
+        if state.obj_by_coords(nxt) is not None:
+            continue
+        # avoid ally-planned collisions
+        collide = any(did != unit.id and dest.x == nxt.x and dest.y == nxt.y
+                      for did, dest in _planned_moves.items())
+        if collide:
+            continue
+        ally_pen = sum(nxt.walking_distance_to(a.coords) for a in allies
+                       if nxt.walking_distance_to(a.coords) <= 6)
+        if best_key is None or ally_pen < best_key:
+            best_key = ally_pen
+            best = (d, nxt)
+    if best is not None:
+        _planned_moves[unit.id] = best[1]
+        return Action.move(best[0])
+    return None
 
 
 def enemy_boxed(state, e, my_team):
@@ -285,6 +335,21 @@ def leave_spawn(state, unit):
     if not unit.coords.is_spawn():
         return None
     return step_toward(state, unit, Coords(MAP_SIZE // 2, MAP_SIZE // 2))
+
+
+
+def local_balance(state, coords, my_team, other_team, radius=2):
+    """Return (my_nearby, enemy_nearby) within `radius` walking distance of `coords`.
+    Used to avoid feeding a lone unit into a clustered enemy ball."""
+    mine = 0
+    for u in state.objs_by_team(my_team):
+        if 0 <= coords.walking_distance_to(u.coords) <= radius:
+            mine += 1
+    foes = 0
+    for e in state.objs_by_team(other_team):
+        if coords.walking_distance_to(e.coords) <= radius:
+            foes += 1
+    return mine, foes
 
 
 def step_toward(state, unit, goal):
