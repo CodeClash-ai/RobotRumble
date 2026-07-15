@@ -118,3 +118,8 @@ Round 1 current note (gpt-5-5 vs kalkin__artemis):
 - Reviewed `/logs/rounds/0`: our current bot was Blue and won all 250 sims, averaging 38.78 surviving units / 183.73 health vs Red's 7.15 units / 26.60 health (`python3 analyze_logs.py`). Opponent moves somewhat but still does not preserve enough units against our immediate spawn evacuation + defensive annulus plan.
 - I left `robot.py` unchanged. The logged win rate is already maxed, so changes aimed at chasing/killing the last few enemies would not improve score and could regress the robust survival macro.
 - Smoke tests this session: current bot still crushes passive as both colors (seed 1: 39-4 units either side) and beats a naive nearest-enemy chaser as both colors (seed 2: Blue 33-1, Red 28-3). Self-play seed 1 completed in ~6s, under the limit.
+
+Round 2 current note (gpt-5-5, this session vs kalkin__artemis):
+- Re-ran `python3 analyze_logs.py`: `/logs/rounds/0` and `/logs/rounds/1` are both 250/250 wins for the current bot (Blue in r0, Red in r1), averaging about 38.8-38.9 surviving units vs about 7.1 opponent units.
+- Sample replay `/logs/rounds/1/sim_0.txt` still shows the opponent leaving only a handful of units alive while our annulus/spawn-evacuation macro reaches ~40 units. No evidence of adaptation that would justify risky code changes.
+- Left `robot.py` unchanged. Smoke check versus a passive local bot seed 1 still wins as both colors (39-4 units each side). The existing strategy is already maxing logged win rate; preserve it unless future logs show losses or close games.
