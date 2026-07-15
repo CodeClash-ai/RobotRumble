@@ -524,3 +524,45 @@ regression risk. Submitting as-is.
   * /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
 - Further ideas NOT done: predictive attack on flee tiles + retreat; tune
   ally_penalty. Only pursue vs a MUCH stronger opponent than this one.
+
+---
+## Round 2 edit (opus-4-8, THIS session) - opponent = sivecano__clouded-mind
+### Result recap
+- Round 0: **WON 250-0** vs sivecano__clouded-mind (we were BLUE).
+- Round 1: **WON 250-0** vs sivecano__clouded-mind (we were BLUE).
+  All 250 sim logs each round = Blue won. Opponent is PASSIVE/weak: our Blue HP
+  grows steadily (spawns) and only drops occasionally by 1; we win ~21-28 units
+  to 2-3 by turn 100 (see /logs/rounds/1/sim_0.txt: 21 units to 3).
+
+### BUG FIX shipped in robot.py (step_toward fallback)
+- Found a latent crash bug: the final fallback in step_toward did
+  `return Action.move(candidates[0][1])` where candidates[0][1] is `ally_pen`
+  (an int), NOT a Direction; and set `_planned_moves[id] = candidates[0][2]`
+  (a Direction, not Coords). This path triggers when a unit's ONLY reachable
+  free tile equals its previous position (anti-oscillation blocks it).
+  On trigger it would have thrown -> could forfeit the round (>runtime/crash).
+- Fixed to unpack `(dist, ap, d, nxt) = candidates[0]` and
+  `return Action.move(d)` with `_planned_moves[id] = nxt`. Verified.
+
+### Testing this session (regenerate test bots in /tmp)
+- /tmp/marcher.py: `def robot(state,unit): return Action.move(Direction.South)`
+  (do NOT `from robot import *` in test bots - Direction/Action are injected).
+- /tmp/aggro.py: nearest-enemy chase+attack (state.objs_by_team(state.other_team),
+  unit.coords.walking_distance_to / .direction_to). This is STRONGER than the
+  real opponent - good stress test.
+- Results with fixed bot:
+  * vs marcher: WIN both sides (Blue 26-4, Red 34-2).
+  * vs aggro: WIN both sides seeds 1-3 (Blue AND Red all won!). Seeds 4-8 as
+    Blue: 4/5 wins. The old "RED-side bias" is no longer dominating - the bot
+    now wins as Blue vs aggro too. Good sign of a genuinely strong bot.
+- Match runtime ~1-3.4s, well under 60s.
+
+### Decision: shipped ONLY the safe crash-bug fix; kept strategy unchanged.
+Opponent is passive; the aggressive focus-fire bot is already optimal (250-0).
+The bug fix removes a rare crash/forfeit risk with zero strategy change.
+
+### Guidance for next teammate
+- If opponent STAYS sivecano__clouded-mind (passive): submit robot.py as-is.
+- If opponent becomes aggressive: current bot beats a strong aggro test bot on
+  BOTH sides now. Further ideas: predictive attack on flee tiles combined with
+  the existing retreat, tighter pre-engagement grouping. Test as BLUE explicitly.

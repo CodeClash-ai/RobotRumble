@@ -228,6 +228,8 @@ def step_toward(state, unit, goal):
         _planned_moves[unit.id] = nxt
         return Action.move(d)
 
+    # Fallback: all preferred tiles were the previous position; take the best.
+    dist, ap, d, nxt = candidates[0]
     last_positions[unit.id] = my
-    _planned_moves[unit.id] = candidates[0][2]
-    return Action.move(candidates[0][1])
+    _planned_moves[unit.id] = nxt
+    return Action.move(d)
